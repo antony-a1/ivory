@@ -1,0 +1,12 @@
+#!/bin/bash -ex
+
+SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
+BASE_PATH="$SCRIPT_PATH/../target/data/fatrepo"
+IVORY_JAR="$SCRIPT_PATH/../target/scala-2.10/ivory-example-assembly-*.jar"
+
+hadoop jar ${IVORY_JAR} \
+  com.ambiata.ivory.example.fatrepo.ExtractLatestWorkflowCli \
+  --repo ${BASE_PATH}/repo \
+  --output ${BASE_PATH}/latest2 \
+  --errors ${BASE_PATH}/errors/extract-latest
+

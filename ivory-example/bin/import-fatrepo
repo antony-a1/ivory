@@ -1,0 +1,16 @@
+#!/bin/bash -ex
+
+SCRIPT_PATH=$( cd $(dirname $0) ; pwd -P )
+BASE_PATH="$SCRIPT_PATH/../target/data/fatrepo"
+TMP_PATH="$BASE_PATH/tmp/$(basename $0).$$"
+IVORY_JAR="$SCRIPT_PATH/../target/scala-2.10/ivory-example-assembly-*.jar"
+
+hadoop jar ${IVORY_JAR} \
+  com.ambiata.ivory.example.fatrepo.ImportWorkflowCli \
+  --repo ${BASE_PATH}/repo \
+  --dictionary ${SCRIPT_PATH}/../src/main/resources/dictionary.psv \
+  --input ${SCRIPT_PATH}/../src/main/resources/facts2.psv \
+  --namespace ns1 \
+  --tmp ${TMP_PATH} \
+  --errors ${BASE_PATH}/errors/import
+

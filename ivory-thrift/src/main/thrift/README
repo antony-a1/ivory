@@ -1,0 +1,1 @@
+thrift -r -out src/main/java/ --gen java src/main/thrift/*.thrift

@@ -1,0 +1,26 @@
+[
+{
+  "service-name" : "create-repository",
+  "class-name"   : "com.ambiata.ivory.cli.createRepository"
+},
+{
+  "service-name" : "generate-dictionary",
+  "class-name"   : "com.ambiata.ivory.cli.generateDictionary"
+},
+{
+  "service-name" : "import-dictionary",
+  "class-name"   : "com.ambiata.ivory.cli.importDictionary"
+},
+{
+  "service-name" : "create-feature-store",
+  "class-name"   : "com.ambiata.ivory.cli.createFeatureStore"
+},
+{
+  "service-name" : "import-feature-store",
+  "class-name"   : "com.ambiata.ivory.cli.importFeatureStore"
+},
+{
+  "service-name" : "import-facts",
+  "class-name"   : "com.ambiata.ivory.cli.importFacts"
+}
+]

@@ -1,0 +1,56 @@
+#!/bin/bash -e
+
+IVORY_JAR="ivory-assembly-*.jar"
+
+function show_usage {
+  echo $"Usage: $0 {create-repo|create-store|import-dictionary|import-store|import-text-eavt|validate-store|validate-factset|snapshot|gen-dictionary|gen-facts}"
+}
+
+if [ "$1" == "" ]; then
+  show_usage
+fi
+
+CMD=$1
+shift
+case "$CMD" in
+        create-repo)
+            CLI="com.ambiata.ivory.repository.CreateRepositoryCli $@"
+            ;;
+        create-store)
+            CLI="com.ambiata.ivory.repository.CreateFeatureStoreCli $@"
+            ;;
+        import-dictionary)
+            CLI="com.ambiata.ivory.ingest.DictionaryImporterCli $@"
+            ;;
+        import-store)
+            CLI="com.ambiata.ivory.ingest.FeatureStoreImporterCli $@"
+            ;;
+        import-text-eavt)
+            CLI="com.ambiata.ivory.ingest.TextEavtImporterCli $@"
+            ;;
+        validate-store)
+            CLI="com.ambiata.ivory.validate.ValidateStoreCli $@"
+            ;;
+        validate-factset)
+            CLI="com.ambiata.ivory.validate.ValidateStoreFactSetCli $@"
+            ;;
+        snapshot)
+            CLI="com.ambiata.ivory.snapshot.SnapshotCli $@"
+            ;;
+        gen-dictionary)
+            CLI="com.ambiata.ivory.generation.GenerateDictionaryCli $@"
+            ;;
+        gen-facts)
+            CLI="com.ambiata.ivory.generation.GenerateFactsCli $@"
+            ;;
+         
+        *)
+            show_usage
+            exit 1
+ 
+esac
+
+
+hadoop jar $IVORY_JAR $CLI
+
+echo "Done"
