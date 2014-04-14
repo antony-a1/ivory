@@ -56,6 +56,5 @@ object depend {
       Resolver.sonatypeRepo("public"),
       Resolver.typesafeRepo("releases"),
       "cloudera"             at "https://repository.cloudera.com/content/repositories/releases",
-      "artifactory"           at "http://etd-packaging.research.nicta.com.au/artifactory/libs-release-local",
-      "artifactory snapshot"  at "http://etd-packaging.research.nicta.com.au/artifactory/libs-snapshot-local")
+      Resolver.url("ambiata-oss", new URL("https://ambiata-oss.s3.amazonaws.com"))(Resolver.ivyStylePatterns))
 }
