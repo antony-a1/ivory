@@ -36,11 +36,11 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
    DictionaryTextStorage.fromFile("ivory-storage/src/test/resources/good_dictionary.txt").run.unsafePerformIO().toDisjunction must_== Dictionary("good_dictionary.txt", Map(
      FeatureId("demo", "gender")            -> FeatureMeta(StringEncoding, CategoricalType, "Gender"),
      FeatureId("demo", "postcode")          -> FeatureMeta(StringEncoding, CategoricalType, "Postcode"),
-     FeatureId("widgets", "inbound.count.1W") -> FeatureMeta(IntEncoding, NumericalType, "Count in the last week")
+     FeatureId("widgets", "count.1W") -> FeatureMeta(IntEncoding, NumericalType, "Count in the last week")
    )).right
   }
 
   def e5 = {
-    DictionaryTextStorage.fromFile("src/test/resources/bad_dictionary.txt").run.unsafePerformIO().toEither must beLeft
+    DictionaryTextStorage.fromFile("ivory-storage/src/test/resources/bad_dictionary.txt").run.unsafePerformIO().toEither must beLeft
   }
 }

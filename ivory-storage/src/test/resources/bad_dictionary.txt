@@ -1,0 +1,4 @@
+demo|gender|string|categorical|Gender
+widgets|count.1W|in|numerical|Count in the last week
+demo|postcode|string|categorical|Postcode
+demo|age|int|number|Postcode
