@@ -34,6 +34,9 @@ object createRepository {
   }
 
   def main(args: Array[String]) {
+
+    println("Created configuration: " + configuration)
+
     parser.parse(args, CliArguments()).map { c =>
       val actions =
       if (c.path.startsWith("s3://")) {
