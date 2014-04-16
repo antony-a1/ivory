@@ -15,9 +15,9 @@ object depend {
   val commonsio = Seq("commons-io"           %  "commons-io"      % "2.4")
   val rng       = Seq("com.nicta"            %% "rng"             % "1.2.1")
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1")
-  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20140414034656-35ffdea",
+  val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20140415232043-cc305d0",
                       "net.java.dev.jets3t"  %  "jets3t"          % "0.9.0" )
-  val mundane   = Seq("com.ambiata"          %% "mundane"         % "1.2.1-20140414023851-a7fcbf9")
+  val mundane   = Seq("com.ambiata"          %% "mundane"         % "1.2.1-20140415043355-935bedd")
 
   def scoobi(version: String) = {
     val scoobiVersion =
@@ -56,5 +56,6 @@ object depend {
       Resolver.sonatypeRepo("public"),
       Resolver.typesafeRepo("releases"),
       "cloudera"             at "https://repository.cloudera.com/content/repositories/releases",
-      Resolver.url("ambiata-oss", new URL("https://ambiata-oss.s3.amazonaws.com"))(Resolver.ivyStylePatterns))
+      Resolver.url("ambiata-oss", new URL("https://ambiata-oss.s3.amazonaws.com"))(Resolver.ivyStylePatterns),
+      "Scalaz Bintray Repo"  at "http://dl.bintray.com/scalaz/releases")
 }
