@@ -42,7 +42,7 @@ object build extends Build {
   , base = file("ivory-cli")
   , settings = standardSettings ++ app("cli") ++ Seq[Settings](
       name := "ivory-cli"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz) ++ buildAssemblySettings
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz)
   )
   .dependsOn(generate, ingest, repository, snapshot, validate, scoobi, core, storage)
 
