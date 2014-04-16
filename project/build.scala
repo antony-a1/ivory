@@ -12,9 +12,9 @@ object build extends Build {
     id = "ivory"
   , base = file(".")
   , settings = standardSettings ++ promulgate.library(s"com.ambiata.ivory", "ambiata-oss")
-  , aggregate = Seq(api, cli, core, example, generate, ingest, metadata, repository, scoobi, snapshot, storage, thrift, validate, alien_hdfs)
+  , aggregate = Seq(api, cli, chord, core, example, generate, ingest, metadata, repository, scoobi, snapshot, storage, thrift, validate, alien_hdfs)
   )
-  .dependsOn(api, cli, core, example, generate, ingest, metadata, repository, scoobi, snapshot, storage, thrift, validate, alien_hdfs)
+  .dependsOn(api, cli, chord, core, example, generate, ingest, metadata, repository, scoobi, snapshot, storage, thrift, validate, alien_hdfs)
 
   lazy val standardSettings = Defaults.defaultSettings ++
                               projectSettings          ++
@@ -37,15 +37,6 @@ object build extends Build {
   def app(name: String) =
     promulgate.all(s"com.ambiata.ivory.$name", "ambiata-oss", "ambiata-dist")
 
-  lazy val cli = Project(
-    id = "cli"
-  , base = file("ivory-cli")
-  , settings = standardSettings ++ app("cli") ++ Seq[Settings](
-      name := "ivory-cli"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz)
-  )
-  .dependsOn(generate, ingest, repository, snapshot, validate, scoobi, core, storage)
-
   lazy val api = Project(
     id = "api"
   , base = file("ivory-api")
@@ -55,6 +46,24 @@ object build extends Build {
   )
   .dependsOn(generate, ingest, repository, snapshot, validate)
 
+  lazy val cli = Project(
+    id = "cli"
+  , base = file("ivory-cli")
+  , settings = standardSettings ++ app("cli") ++ Seq[Settings](
+      name := "ivory-cli"
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz)
+  )
+  .dependsOn(generate, ingest, repository, snapshot, validate, scoobi, core, storage)
+
+  lazy val chord = Project(
+    id = "chord"
+  , base = file("ivory-chord")
+  , settings = standardSettings ++ app("chord") ++ Seq[Settings](
+      name := "ivory-chord"
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz)
+  )
+  .dependsOn(core, scoobi, storage, validate)
+
   lazy val core = Project(
     id = "core"
   , base = file("ivory-core")
@@ -62,15 +71,6 @@ object build extends Build {
       name := "ivory-core"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++ depend.hadoop(version.value)) // TODO: remove hadoop dep when a place to put repository Hdfs path handling is found
   )
-
-  lazy val generate = Project(
-    id = "generate"
-  , base = file("ivory-generate")
-  , settings = standardSettings ++ lib("generate") ++ Seq[Settings](
-      name := "ivory-generate"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.joda)
-  )
-  .dependsOn(core, storage)
 
   lazy val example = Project(
     id = "example"
@@ -80,6 +80,15 @@ object build extends Build {
     ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.joda ++ depend.saws ++ depend.scoobi(version.value))
   )
   .dependsOn(generate, repository, storage, core, ingest, scoobi, snapshot)
+
+  lazy val generate = Project(
+    id = "generate"
+  , base = file("ivory-generate")
+  , settings = standardSettings ++ lib("generate") ++ Seq[Settings](
+      name := "ivory-generate"
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.joda)
+  )
+  .dependsOn(core, storage)
 
   lazy val ingest = Project(
     id = "ingest"
