@@ -47,7 +47,7 @@ object createRepository {
           CreateRepository.onHdfs(new Path(c.path)).run(configuration).run
 
       actions.unsafePerformIO() match {
-        case Ok(v)    => println(s"Repository successfully created under ${c.path}.")
+        case Ok(_)    => println(s"Repository successfully created under ${c.path}.")
         case Error(e) => println(s"Failed to create repository: ${Result.asString(e)}")
       }
     }

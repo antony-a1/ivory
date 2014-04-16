@@ -22,5 +22,9 @@
 {
   "service-name" : "import-facts",
   "class-name"   : "com.ambiata.ivory.cli.importFacts"
+},
+{
+  "service-name" : "ingest",
+  "class-name"   : "com.ambiata.ivory.cli.ingest"
 }
 ]

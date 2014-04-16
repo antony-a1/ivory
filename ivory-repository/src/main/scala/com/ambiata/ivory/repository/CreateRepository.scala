@@ -10,18 +10,19 @@ import java.io.File
 
 object CreateRepository {
 
-  def onHdfs(path: Path): Hdfs[Unit] = {
+  def onHdfs(path: Path): Hdfs[Boolean] = {
     val meta = new Path(path, "metadata")
     val dict = new Path(meta, "dictionaries")
     val store = new Path(meta, "stores")
     val factsets = new Path(path, "factsets")
     for {
       e <- Hdfs.exists(path)
-      _ <- if(e) Hdfs.fail("Repository already exists!") else Hdfs.ok(())
-      _ <- Hdfs.mkdir(dict)
-      _ <- Hdfs.mkdir(store)
-      _ <- Hdfs.mkdir(factsets)
-    } yield ()
+      r <- if(e) Hdfs.ok(false) else for {
+        _ <- Hdfs.mkdir(dict)
+        _ <- Hdfs.mkdir(store)
+        _ <- Hdfs.mkdir(factsets)
+      } yield true
+    } yield r
   }
 
   def onS3(repository: S3Repository): S3Action[S3Repository] = {
@@ -40,4 +41,3 @@ object CreateRepository {
   }
 
 }
-

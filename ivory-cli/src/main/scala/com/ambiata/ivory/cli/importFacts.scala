@@ -74,4 +74,3 @@ object importFacts extends ScoobiApp {
     }
   }
 }
-
