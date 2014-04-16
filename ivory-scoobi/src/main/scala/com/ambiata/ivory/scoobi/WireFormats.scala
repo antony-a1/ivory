@@ -1,12 +1,12 @@
-package com.ambiata.ivory
-package scoobi
+package com.ambiata.ivory.scoobi
 
 import com.nicta.scoobi.Scoobi._
-import scalaz.{DList => _, _}, Scalaz._
+import scalaz.{DList => _, Value => _, _}, Scalaz._
 import java.io._
 import org.joda.time.LocalDate
 
-import core._
+import com.ambiata.ivory.core._
+import com.ambiata.ivory.thrift._
 
 trait WireFormats {
 
@@ -68,7 +68,7 @@ trait WireFormats {
     def fromWire(in: DataInput): TombstoneValue = TombstoneValue()
   }
 
-  implicit def ValueFmt = mkAbstractWireFormat[core.Value, BooleanValue, IntValue, LongValue, DoubleValue, StringValue, TombstoneValue]
+  implicit def ValueFmt = mkAbstractWireFormat[Value, BooleanValue, IntValue, LongValue, DoubleValue, StringValue, TombstoneValue]
 
   implicit def ValidationFmt[A, B](implicit awf: WireFormat[A], bwf: WireFormat[B]) = new WireFormat[Validation[A, B]] {
     def toWire(v: Validation[A, B], out: DataOutput) = {
@@ -101,21 +101,17 @@ trait WireFormats {
   }
 
   def mkThriftFmt[A](empty: A)(implicit ev: A <:< org.apache.thrift.TBase[_ <: org.apache.thrift.TBase[_, _], _ <: org.apache.thrift.TFieldIdEnum]) = new WireFormat[A] {
-    val serialiser = new org.apache.thrift.TSerializer(new org.apache.thrift.protocol.TCompactProtocol.Factory)
-    val deserialiser = new org.apache.thrift.TDeserializer(new org.apache.thrift.protocol.TCompactProtocol.Factory)
-    val buffer = new ByteArrayOutputStream()
-
+    val serialiser = ThriftSerialiser()
     def toWire(x: A, out: DataOutput) = {
-      out.write(serialiser.serialize(ev(x)))
+      val bytes = serialiser.toBytes(x)
+      out.writeInt(bytes.length)
+      out.write(bytes)
     }
-
-    def fromWire(in: DataInput) = {
-      buffer.reset()
-      val e = ev(empty).deepCopy
-      e.clear
-      while(try { buffer.write(in.readByte()); true } catch { case e: EOFException => false }) ()
-      deserialiser.deserialize(e, buffer.toByteArray)
-      e.asInstanceOf[A]
+    def fromWire(in: DataInput): A = {
+      val size = in.readInt()
+      val bytes = new Array[Byte](size)
+      in.readFully(bytes)
+      serialiser.fromBytes(empty, bytes)
     }
     override def toString = "ThriftObject"
   }

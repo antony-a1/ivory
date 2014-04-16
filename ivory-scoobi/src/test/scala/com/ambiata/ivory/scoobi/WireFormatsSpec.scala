@@ -12,9 +12,8 @@ import scala.collection.JavaConverters._
 
 class WireFormatsSpec extends Specification { def is = s2"""
   Can serialise/deserialise thrift             $e1
-  Can deserialise using thrift lib directly    $e2
-  Can serialise/deserialise LocalDate          $e3
-  Can serialise/desrialise Facts               $e4
+  Can serialise/deserialise LocalDate          $e2
+  Can serialise/desrialise Facts               $e3
                                                """
   def e1 = {
     val expected = List(new ThriftFact("eid1", "fid1", ThriftFactValue.s("abc")),
@@ -36,27 +35,6 @@ class WireFormatsSpec extends Specification { def is = s2"""
   }
 
   def e2 = {
-    val expected = List(new ThriftFact("eid1", "fid1", ThriftFactValue.s("abc")),
-                        new ThriftFact("eid2", "fid2", ThriftFactValue.b(true)).setSeconds(123),
-                        new ThriftFact("eid3", "fid3", ThriftFactValue.i(123)).setSeconds(987),
-                        new ThriftFact("eid4", "fid4", ThriftFactValue.l(123l)),
-                        new ThriftFact("eid5", "fid5", ThriftFactValue.d(1.0)),
-                        new ThriftFact("eid6", "fid6", ThriftFactValue.t(new ThriftTombstone)))
-    val fmt = mkThriftFmt(new ThriftFact())
-    val deserialiser = new org.apache.thrift.TDeserializer(new org.apache.thrift.protocol.TCompactProtocol.Factory)
-    expected.map(tf => {
-      val bos = new ByteArrayOutputStream(2048)
-      val out = new DataOutputStream(bos)
-      fmt.toWire(tf, out)
-      out.flush()
-
-      val actual = new ThriftFact()
-      deserialiser.deserialize(actual, bos.toByteArray)
-      actual must_== tf
-    })
-  }
-
-  def e3 = {
     val date = new LocalDate(2012, 1, 30)
 
     val bos = new ByteArrayOutputStream
@@ -68,7 +46,7 @@ class WireFormatsSpec extends Specification { def is = s2"""
     actual.toString("yyyy-MM-dd") must_== date.toString("yyyy-MM-dd")
   }
 
-  def e4 = {
+  def e3 = {
     val expected = List(StringFact("eid1", FeatureId("ns1", "nm1"),new LocalDate(2012, 1, 30), 0, "value1"),
                         IntFact("eid1", FeatureId("ns1", "nm2"),new LocalDate(2012, 1, 30), 123, 9),
                         LongFact("eid2", FeatureId("ns1", "nm4"),new LocalDate(2012, 2, 20), 0, 456l),
