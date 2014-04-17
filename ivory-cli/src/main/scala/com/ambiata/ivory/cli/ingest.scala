@@ -1,4 +1,4 @@
-package com.ambiata.ivory.clie
+package com.ambiata.ivory.cli
 
 import com.ambiata.mundane.control._
 
