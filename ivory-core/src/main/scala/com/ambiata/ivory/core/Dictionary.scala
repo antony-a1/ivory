@@ -1,7 +1,7 @@
 package com.ambiata.ivory.core
 
 import scalaz._, Scalaz._
-
+import scala.math.{Ordering => SOrdering}
 
 /** The feature dictionary is simply a look up of metadata for a given identifier/name. */
 case class Dictionary(name: String, meta: Map[FeatureId, FeatureMeta]) {
@@ -20,7 +20,16 @@ case class Dictionary(name: String, meta: Map[FeatureId, FeatureMeta]) {
 }
 
 case class FeatureId(namespace: String, name: String) {
-  override def toString = s"$namespace:$name"
+  override def toString =
+    toString(":")
+
+  def toString(delim: String): String =
+    s"${namespace}${delim}${name}"
+}
+
+object FeatureId {
+  implicit val orderingByNamespace: SOrdering[FeatureId] =
+    SOrdering.by(f => (f.namespace, f.name))
 }
 
 case class FeatureMeta(encoding: Encoding, ty: Type, desc: String, tombstoneValue: List[String] = List("☠")) {

@@ -32,6 +32,8 @@ trait IvoryScoobiLoader[A] {
 
 trait IvoryScoobiStorer[A, +B] {
   def storeScoobi(dlist: DList[A])(implicit sc: ScoobiConfiguration): B
+  def storeMeta: ScoobiAction[Unit] =
+    ScoobiAction.ok(())
 }
 
 /**

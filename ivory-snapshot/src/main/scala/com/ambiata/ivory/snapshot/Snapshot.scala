@@ -29,6 +29,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
     s  <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
     es <- ScoobiAction.fromHdfs(entities.traverseU(e => Hdfs.readWith(e, is =>  Streams.read(is)).map(_.lines.toSet)))
     _  <- scoobiJob(r, d, s, es)
+    _  <- storer.storeMeta
   } yield ()
 
   def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Option[Set[String]]): ScoobiAction[Unit] =
