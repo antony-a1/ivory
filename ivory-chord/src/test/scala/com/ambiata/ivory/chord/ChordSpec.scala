@@ -54,7 +54,8 @@ class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
     
     storeToIvory(repo, FeatureStore(List(FactSet("factset1", 1), FactSet("factset2", 2))), "store1").run(sc) must beOk
 
-    Chord.onHdfs(repo.path, "store1", "dict1", new Path(entitiesFile.toString), new Path(outpath), new Path(errpath)).run(sc) must beOk
+    val storer = DelimitedFactTextStorage.DelimitedFactTextStorer(new Path(outpath))
+    Chord.onHdfs(repo.path, "store1", "dict1", new Path(entitiesFile.toString), new Path(outpath), new Path(errpath), storer).run(sc) must beOk
 
     val res = fromTextFile(outpath).run.toList
     res must_== List("eid1|ns1:fid1|def|2012-09-01 00:00:00", "eid2|ns1:fid2|11|2012-11-01 00:00:00")

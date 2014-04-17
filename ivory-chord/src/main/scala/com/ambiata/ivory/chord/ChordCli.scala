@@ -5,6 +5,7 @@ import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.storage._
 
 object ChordCli extends ScoobiApp {
 
@@ -27,7 +28,8 @@ object ChordCli extends ScoobiApp {
 
   def run() {
     parser.parse(args, CliArguments("", "", "", "", "", "")).map(c => {
-      val res = Chord.onHdfs(new Path(c.repo), c.store, c.dictionary, new Path(c.entities), new Path(c.output), new Path(c.errors)).run(configuration).run.unsafePerformIO()
+      val storer = DelimitedFactTextStorage.DelimitedFactTextStorer(new Path(c.output))
+      val res = Chord.onHdfs(new Path(c.repo), c.store, c.dictionary, new Path(c.entities), new Path(c.output), new Path(c.errors), storer).run(configuration).run.unsafePerformIO()
       res match {
         case Ok(_)    => println(s"successfully wrote output to ${c.output}")
         case Error(e) => sys.error(s"failed! ${e}")

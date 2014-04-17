@@ -53,7 +53,7 @@ object build extends Build {
       name := "ivory-cli"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz)
   )
-  .dependsOn(generate, ingest, repository, snapshot, validate, scoobi, core, storage)
+  .dependsOn(chord, core, generate, ingest, repository, scoobi, snapshot, storage, validate)
 
   lazy val chord = Project(
     id = "chord"

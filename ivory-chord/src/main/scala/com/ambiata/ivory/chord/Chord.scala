@@ -90,10 +90,8 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
 }
 
 object Chord {
-  import DelimitedFactTextStorage._
-
-  def onHdfs(repoPath: Path, store: String, dictName: String, entities: Path, output: Path, errorPath: Path): ScoobiAction[Unit] =
-    HdfsChord(repoPath, store, dictName, entities, errorPath, DelimitedFactTextStorer(output)).run
+  def onHdfs(repoPath: Path, store: String, dictName: String, entities: Path, output: Path, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]]): ScoobiAction[Unit] =
+    HdfsChord(repoPath, store, dictName, entities, errorPath, storer).run
 
   def entityParser: ListParser[(String, LocalDate)] = {
     import ListParser._

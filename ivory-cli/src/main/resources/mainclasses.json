@@ -26,5 +26,13 @@
 {
   "service-name" : "ingest",
   "class-name"   : "com.ambiata.ivory.cli.ingest"
+},
+{
+  "service-name" : "extract-snapshot",
+  "class-name"   : "com.ambiata.ivory.cli.snapshot"
+},
+{
+  "service-name" : "extract-chord",
+  "class-name"   : "com.ambiata.ivory.cli.chord"
 }
 ]
