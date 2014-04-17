@@ -1,8 +1,11 @@
 package com.ambiata.ivory.scoobi
 
+import scalaz.Ordering._
 import com.nicta.scoobi.Scoobi._
 
 object Groupings {
+  type EntityId = String
+  type AttributeName = String
 
   /**
    * This grouping will take a map of partitions to index and send each key to the reducer associated with the index.
@@ -16,5 +19,27 @@ object Groupings {
 
     override def groupCompare(x: String, y: String) =
       grp.groupCompare(x, y)
+  }
+
+  def sortGrouping = new Grouping[(EntityId, AttributeName)] {
+
+    override def partition(key: (EntityId, AttributeName), howManyReducers: Int): Int = {
+      implicitly[Grouping[EntityId]].partition(key._1, howManyReducers)
+    }
+
+    override def sortCompare(a: (EntityId, AttributeName), b: (EntityId, AttributeName)): scalaz.Ordering = {
+      val entityIdOrdering = a._1.compareTo(b._1)
+
+      entityIdOrdering match {
+        case 0 => {
+          fromInt(a._2.compareTo(b._2))
+        }
+        case x => fromInt(x)
+      }
+    }
+
+    override def groupCompare(a: (EntityId, AttributeName), b: (EntityId, AttributeName)): scalaz.Ordering = {
+      fromInt(a._1.compareTo(b._1))
+    }
   }
 }

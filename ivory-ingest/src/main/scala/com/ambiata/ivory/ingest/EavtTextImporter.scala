@@ -17,6 +17,7 @@ import WireFormats._
 import com.ambiata.mundane.io.FilePath
 import com.ambiata.saws.emr._
 import org.joda.time.DateTimeZone
+import org.apache.hadoop.io.compress.SnappyCodec
 
 /**
  * Import a text file, formatted as an EAVT file, into ivory
@@ -48,7 +49,17 @@ object EavtTextImporter {
     val errors: DList[String] = parsedFacts.collect { case -\/(err) => err + " - path " + path }
     val facts: DList[Fact]    = parsedFacts.collect { case \/-(f) => f }
 
-    persist(errors.toTextFile(errorPath.toString, overwrite = true), facts.toIvoryFactset(repository, factset))
+    val codec = new SnappyCodec
+
+    val packed =
+      facts
+        .by(f => (f.entity, f.featureId.name))
+        .groupByKeyWith(Groupings.sortGrouping)
+        .mapFlatten(_._2)
+        .toIvoryFactset(repository, factset)
+        .compressWith(codec)
+
+    persist(errors.toTextFile(errorPath.toString, overwrite = true), packed)
   }
 
   def copyFilesToS3(repository: S3Repository, factset: String, namespace: String): ScoobiS3EMRAction[Unit] = for {
