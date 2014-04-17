@@ -45,7 +45,7 @@ class EavtTextImporterSpec extends HadoopSpecification with SimpleJobs with File
     TempFiles.writeLines(new File(input), raw, isRemote)
 
     // run the scoobi job to import facts on Hdfs
-    EavtTextImporter.onHdfs(repository, dict, "factset1", "ns1", new Path(input), errors, DateTimeZone.getDefault).run(sc) must beOk
+    EavtTextImporter.onHdfs(repository, dict, "factset1", "ns1", new Path(input), errors, DateTimeZone.getDefault, None).run(sc) must beOk
 
     val expected = List(
       StringFact("pid1", FeatureId("ns1", "fid1"), new LocalDate(2012, 10, 1), 10, "v1"),

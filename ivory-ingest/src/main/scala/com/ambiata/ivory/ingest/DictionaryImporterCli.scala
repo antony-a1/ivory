@@ -3,6 +3,7 @@ package com.ambiata.ivory.ingest
 import scalaz._, Scalaz._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
+
 import com.ambiata.mundane.parse._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._

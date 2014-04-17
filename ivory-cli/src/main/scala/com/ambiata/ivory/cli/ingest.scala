@@ -10,7 +10,7 @@ import com.ambiata.ivory.storage._
 import com.ambiata.ivory.alien.hdfs._
 
 import com.nicta.scoobi.Scoobi._
-
+import org.apache.hadoop.io.compress._
 import org.apache.hadoop.fs.Path
 import org.apache.commons.logging.LogFactory
 import org.joda.time.DateTimeZone
@@ -61,7 +61,7 @@ object ingest extends ScoobiApp {
 
   def importFeed(input: Path, namespace: String)(repo: HdfsRepository, factset: String, dname: String, tmpPath: Path, errorPath: Path, timezone: DateTimeZone): ScoobiAction[Unit] = for {
     dict <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dname))
-    _    <- EavtTextImporter.onHdfs(repo, dict, factset, namespace, input, errorPath, timezone)
+    _    <- EavtTextImporter.onHdfs(repo, dict, factset, namespace, input, errorPath, timezone, Some(new SnappyCodec))
   } yield ()
 
 }

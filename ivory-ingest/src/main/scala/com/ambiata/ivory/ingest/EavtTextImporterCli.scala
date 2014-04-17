@@ -4,6 +4,7 @@ import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, Scalaz._
 import scalaz.effect._
 import org.joda.time.{DateTimeZone, LocalDate, LocalDateTime}
+import org.apache.hadoop.io.compress._
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.parse._
@@ -50,7 +51,7 @@ object EavtTextImporterCli extends ScoobiApp {
         val repository = Repository.fromS3(new FilePath(c.repositoryPath.replace("s3://", "")))
         for {
           dictionary <- ScoobiS3EMRAction.fromHdfsS3(DictionariesS3Loader(repository).load(c.dictionary))
-          _          <- EavtTextImporter.onS3(repository, dictionary, c.factset, c.namespace, new FilePath(c.input), c.timezone)
+          _          <- EavtTextImporter.onS3(repository, dictionary, c.factset, c.namespace, new FilePath(c.input), c.timezone, Some(new SnappyCodec))
         } yield ()
       } else {
         // import to Hdfs only
@@ -59,7 +60,7 @@ object EavtTextImporterCli extends ScoobiApp {
           dictionary <- ScoobiS3EMRAction.fromHdfs(InternalDictionaryLoader(repository, c.dictionary).load)
           _          <- ScoobiS3EMRAction.fromScoobiAction(
             EavtTextImporter.onHdfs(repository, dictionary, c.factset, c.namespace,
-                                    new Path(c.input), c.errors.getOrElse(new Path("errors")), c.timezone))
+                                    new Path(c.input), c.errors.getOrElse(new Path("errors")), c.timezone, Some(new SnappyCodec)))
         } yield ()
       }
 
@@ -70,4 +71,3 @@ object EavtTextImporterCli extends ScoobiApp {
     }
   }
 }
-

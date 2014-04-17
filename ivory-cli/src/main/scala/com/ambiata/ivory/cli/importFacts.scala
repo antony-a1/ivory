@@ -2,6 +2,7 @@ package com.ambiata.ivory.cli
 
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.io.compress._
 import org.joda.time.DateTimeZone
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.core._
@@ -54,7 +55,7 @@ object importFacts extends ScoobiApp {
         val repository = Repository.fromS3(new FilePath(c.repositoryPath.replace("s3://", "")), new FilePath(c.tmpDirectory))
         for {
           dictionary <- ScoobiS3EMRAction.fromHdfsS3(DictionariesS3Loader(repository).load(c.dictionary))
-          _          <- EavtTextImporter.onS3(repository, dictionary, c.factset, c.namespace, new FilePath(c.input), c.timezone)
+          _          <- EavtTextImporter.onS3(repository, dictionary, c.factset, c.namespace, new FilePath(c.input), c.timezone, Some(new SnappyCodec))
         } yield ()
       } else {
         // import to Hdfs only
@@ -63,7 +64,7 @@ object importFacts extends ScoobiApp {
           dictionary <- ScoobiS3EMRAction.fromHdfs(InternalDictionaryLoader(repository, c.dictionary).load)
           _          <- ScoobiS3EMRAction.fromScoobiAction(
             EavtTextImporter.onHdfs(repository, dictionary, c.factset, c.namespace,
-              new Path(c.input), c.errors.getOrElse(new Path("errors")), c.timezone))
+              new Path(c.input), c.errors.getOrElse(new Path("errors")), c.timezone, Some(new SnappyCodec)))
         } yield ()
       }
 

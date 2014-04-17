@@ -17,7 +17,7 @@ import WireFormats._
 import com.ambiata.mundane.io.FilePath
 import com.ambiata.saws.emr._
 import org.joda.time.DateTimeZone
-import org.apache.hadoop.io.compress.SnappyCodec
+import org.apache.hadoop.io.compress._
 
 /**
  * Import a text file, formatted as an EAVT file, into ivory
@@ -25,31 +25,29 @@ import org.apache.hadoop.io.compress.SnappyCodec
  */
 object EavtTextImporter {
 
-  def onS3(repository: S3Repository, dictionary: Dictionary, factset: String, namespace: String, path: FilePath, timezone: DateTimeZone, preprocess: String => String = identity): ScoobiS3EMRAction[Unit] = for {
+  def onS3(repository: S3Repository, dictionary: Dictionary, factset: String, namespace: String, path: FilePath, timezone: DateTimeZone, codec: Option[CompressionCodec], preprocess: String => String = identity): ScoobiS3EMRAction[Unit] = for {
     _  <- ScoobiS3EMRAction.reader((sc: ScoobiConfiguration) =>
               scoobiJob(repository.hdfsRepository, dictionary, factset, namespace,
-                new Path(path.path), new Path(repository.tmpDirectory+"/errors/"), timezone,
+                new Path(path.path), new Path(repository.tmpDirectory+"/errors/"), timezone, codec,
                 preprocess)(sc))
     _  <- copyFilesToS3(repository, factset, namespace)
   } yield ()
 
   def onHdfs(repository: HdfsRepository, dictionary: Dictionary, factset: String, namespace: String,
-             path: Path, errorPath: Path, timezone: DateTimeZone,
+             path: Path, errorPath: Path, timezone: DateTimeZone, codec: Option[CompressionCodec],
              preprocess: String => String = identity): ScoobiAction[Unit] = for {
     sc <- ScoobiAction.scoobiConfiguration
-    _  <- ScoobiAction.safe(scoobiJob(repository, dictionary, factset, namespace, path, errorPath, timezone, preprocess)(sc))
+    _  <- ScoobiAction.safe(scoobiJob(repository, dictionary, factset, namespace, path, errorPath, timezone, codec, preprocess)(sc))
     _  <- ScoobiAction.fromHdfs(writeFactsetVersion(repository, List(factset)))
   } yield ()
 
   def scoobiJob(repository: HdfsRepository, dictionary: Dictionary, factset: String, namespace: String,
-                path: Path, errorPath: Path, timezone: DateTimeZone,
+                path: Path, errorPath: Path, timezone: DateTimeZone, codec: Option[CompressionCodec],
                 preprocess: String => String = identity)(implicit sc: ScoobiConfiguration) {
     val parsedFacts = fromEavtTextFile(path.toString, dictionary, namespace, timezone, preprocess)
 
     val errors: DList[String] = parsedFacts.collect { case -\/(err) => err + " - path " + path }
     val facts: DList[Fact]    = parsedFacts.collect { case \/-(f) => f }
-
-    val codec = new SnappyCodec
 
     val packed =
       facts
@@ -57,9 +55,13 @@ object EavtTextImporter {
         .groupByKeyWith(Groupings.sortGrouping)
         .mapFlatten(_._2)
         .toIvoryFactset(repository, factset)
-        .compressWith(codec)
 
-    persist(errors.toTextFile(errorPath.toString, overwrite = true), packed)
+    val compressed = codec match {
+      case None => packed
+      case Some(c) => packed.compressWith(c)
+    }
+
+    persist(errors.toTextFile(errorPath.toString, overwrite = true), compressed)
   }
 
   def copyFilesToS3(repository: S3Repository, factset: String, namespace: String): ScoobiS3EMRAction[Unit] = for {
