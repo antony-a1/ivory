@@ -33,7 +33,7 @@ object DenseRowTextStorage {
           val v = rest.headOption.collect({
             case f if f.featureId == fid => f.value
           }).getOrElse(TombstoneValue())
-          (rest.tail, valueToString(v, tombstoneValue) :: acc)
+          (if(rest.isEmpty) Nil else rest.tail, valueToString(v, tombstoneValue) :: acc)
         })._2)
       })
       row.map({ case (eid, vs) => eid + delim + vs.mkString(delim.toString) }).toTextFile(path.toString)
