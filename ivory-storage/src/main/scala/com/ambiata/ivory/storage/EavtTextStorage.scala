@@ -54,8 +54,21 @@ object EavtTextStorage {
       fid     = FeatureId(namespace, name)
       rawv   <- string
       v      <- value(dict.meta.get(fid).map(fm => DelimitedFactTextStorage.valueFromString(fm, rawv)).getOrElse(s"Could not find dictionary entry for '$fid'".failure))
-      time   <- localDatetime("yyyy-MM-dd HH:mm:ss")
-    } yield Fact(entity, fid, time.toDateTime(timezone).toLocalDate, time.getMillisOfDay / 1000, v)
+      time   <- either(localDatetime("yyyy-MM-dd HH:mm:ss"), localDate("yyyy-MM-dd"))
+    } yield time match {
+      case -\/(t) =>
+        // FIX this looks wrong, it is getting the date with timezone, but millisOfDay without
+        Fact(entity, fid, t.toDateTime(timezone).toLocalDate, t.getMillisOfDay / 1000, v)
+      case \/-(t) =>
+        Fact(entity, fid, t, 0, v)
+    }
   }.preprocess(preprocessor)
-}
 
+  // FIX this probably belongs back in mundane.
+  def either[A, B](x: ListParser[A], y: ListParser[B]): ListParser[A \/ B] =
+    ListParser((n, ls) =>
+      x.parse(n, ls) match {
+        case Success((m, rest, a)) => Success((m, rest, a.left[B]))
+        case Failure(_) => y.parse(n, ls).map(_.map(_.right[A]))
+      })
+}
