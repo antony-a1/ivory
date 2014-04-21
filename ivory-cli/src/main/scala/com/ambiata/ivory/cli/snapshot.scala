@@ -23,8 +23,9 @@ object snapshot extends ScoobiApp {
 
   implicit val snapStorerRead: scopt.Read[SnapStorer] =
   scopt.Read.reads(str => str match {
-    case "eavttext"     => EavtText
-    case "denserowtext" => DenseRowText
+    case "eavttext"     => EavtTextSnapStorer
+    case "denserowtext" => DenseRowTextSnapStorer
+    case s              => throw new IllegalArgumentException(s"Storer '${s}' not found!")
   })
 
   val parser = new scopt.OptionParser[CliArguments]("snapshot") {
@@ -45,7 +46,7 @@ object snapshot extends ScoobiApp {
   }
 
   def run {
-    parser.parse(args, CliArguments("", "", "", LocalDate.now(), EavtText)).map(c => {
+    parser.parse(args, CliArguments("", "", "", LocalDate.now(), EavtTextSnapStorer)).map(c => {
       val res = onHdfs(new Path(c.repo), new Path(c.output), new Path(c.errors), c.date, c.storer)
       res.run(configuration).run.unsafePerformIO() match {
         case Ok(_)    => println(s"Successfully extracted snapshot from '${c.repo}' with date '${c.date}' and stored to '${c.output}'")
@@ -60,13 +61,13 @@ object snapshot extends ScoobiApp {
   def extractLatest(outputPath: Path, errorPath: Path, storer: SnapStorer)(repo: HdfsRepository, store: String, dictName: String, date: LocalDate): ScoobiAction[Unit] = for {
     d  <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dictName))
     s   = storer match {
-      case DenseRowText => DenseRowTextStorage.DenseRowTextStorer(outputPath.toString, d)
-      case EavtText     => EavtTextStorage.EavtTextStorerV1(outputPath.toString)
+      case DenseRowTextSnapStorer => DenseRowTextStorage.DenseRowTextStorer(outputPath.toString, d)
+      case EavtTextSnapStorer     => EavtTextStorage.EavtTextStorerV1(outputPath.toString)
     }
     _  <- HdfsSnapshot(repo.path, store, dictName, None, date, errorPath, s).run
   } yield ()
 }
 
 sealed trait SnapStorer
-case object DenseRowText extends SnapStorer
-case object EavtText extends SnapStorer
+case object DenseRowTextSnapStorer extends SnapStorer
+case object EavtTextSnapStorer extends SnapStorer

@@ -31,6 +31,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
     s  <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
     es <- ScoobiAction.fromHdfs(readEntities(entities))
     _  <- scoobiJob(r, d, s, es)
+    _  <- storer.storeMeta
   } yield ()
 
   def readEntities(path: Path): Hdfs[HashMap[String, LocalDate]] = for {
