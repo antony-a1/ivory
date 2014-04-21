@@ -10,13 +10,28 @@ import com.ambiata.ivory.thrift._
 
 trait WireFormats {
 
+  /**
+   * TODO Remove this when scoobi has the wire format
+   */
+  implicit def ShortFmt = new ShortWireFormat
+  class ShortWireFormat extends WireFormat[Short] {
+    def toWire(x: Short, out: DataOutput) { out.writeShort(x) }
+    def fromWire(in: DataInput): Short = in.readShort()
+    override def toString = "Short"
+  }
+
   implicit def FactFmt = new WireFormat[Fact] {
     def toWire(f: Fact, out: DataOutput) = {
       StringFmt.toWire(f.entity, out)
       StringFmt.toWire(f.featureId.namespace, out)
       StringFmt.toWire(f.featureId.name, out)
       LocalDateFmt.toWire(f.date, out)
-      IntFmt.toWire(f.seconds, out)
+      if(f.seconds != 0) {
+        BooleanFmt.toWire(true, out)
+        IntFmt.toWire(f.seconds, out)
+      } else {
+        BooleanFmt.toWire(false, out)
+      }
       ValueFmt.toWire(f.value, out)
     }
     
@@ -24,7 +39,7 @@ trait WireFormats {
       Fact(StringFmt.fromWire(in),
            FeatureId(StringFmt.fromWire(in), StringFmt.fromWire(in)),
            LocalDateFmt.fromWire(in),
-           IntFmt.fromWire(in),
+           if(BooleanFmt.fromWire(in)) IntFmt.fromWire(in) else 0,
            ValueFmt.fromWire(in))
   }
 

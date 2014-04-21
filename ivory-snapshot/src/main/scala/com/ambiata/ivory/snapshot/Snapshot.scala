@@ -18,7 +18,7 @@ import com.ambiata.ivory.alien.hdfs._
 case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: LocalDate, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]]) {
   import IvoryStorage._
 
-  type Priority = Int
+  type Priority = Short
 
   def withStorer(newStorer: IvoryScoobiStorer[Fact, DList[_]]): HdfsSnapshot =
     copy(storer = newStorer)
@@ -37,17 +37,16 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
       // disable combiners as it's just overhead. The data is partitioned by date, so each mapper will have
       // only one date in it
       sc.disableCombiners
-      factsFromIvoryStore(repo, store).map(input => {
-        input.map(_.flatMap({ case (p, fs, f) =>
-          Validate.validateFact(f, dict).map(_ => (p, fs, f)).disjunction
-        }))
 
+      lazy val factsetMap = store.factSets.map(fs => (fs.priority.toShort, fs.name)).toMap
+
+      factsFromIvoryStore(repo, store).map(input => {
         val errors: DList[String] = input.collect {
           case -\/(e) => e
         }
 
-        val facts: DList[(Priority, FactSetName, Fact)] = input.collect {
-          case \/-((p, fs, f)) if f.date.isBefore(snapshot) && entities.map(_.contains(f.entity)).getOrElse(true) => (p, fs, f)
+        val facts: DList[(Priority, Fact)] = input.collect {
+          case \/-((p, _, f)) if f.date.isBefore(snapshot) && entities.map(_.contains(f.entity)).getOrElse(true) => (p.toShort, f)
         }
 
         /*
@@ -55,12 +54,26 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
          * 2. take the minimum fact in the group using fact time then priority to determine order
          */
         implicit val revDateOrder: Order[LocalDateTime] = DateTimex.LocalDateTimeHasOrder.reverseOrder
-        val ord: Order[(Priority, FactSetName, Fact)] = Order.orderBy { case (p, _, f) => (f.time, p) }
-        val latest: DList[Fact] = facts.groupBy { case (p, fs, f) => (f.entity, f.featureId.toString) }
-                                       .reduceValues(Reduction.minimum(ord))
-                                       .collect { case (_, (_, _, f)) if !f.isTombstone => f }
+        val ord: Order[(Priority, Fact)] = Order.orderBy { case (p, f) => (f.time, p) }
+        val latest: DList[(Priority, Fact)] = facts.groupBy { case (p, f) => (f.entity, f.featureId.toString) }
+                                                   .reduceValues(Reduction.minimum(ord))
+                                                   .collect { case (_, (p, f)) if !f.isTombstone => (p, f) }
 
-        persist(errors.toTextFile(errorPath.toString), storer.storeScoobi(latest))
+        val validated: DList[String \/ Fact] = latest.map({ case (p, f) =>
+          Validate.validateFact(f, dict).disjunction.leftMap(e => e + " - Factset " + factsetMap.get(p).getOrElse("Unknown, priority " + p))
+        })
+
+        val valErrors = validated.collect {
+          case -\/(e) => e
+        }
+
+        val good = validated.collect {
+          case \/-(f) => f
+        }
+
+        persist(errors.toTextFile((new Path(errorPath, "parse")).toString),
+                valErrors.toTextFile((new Path(errorPath, "validation")).toString),
+                storer.storeScoobi(good))
         ()
       })
     }).flatten
