@@ -56,8 +56,8 @@ object chord extends ScoobiApp {
   def extractChord(entities: Path, outputPath: Path, errorPath: Path, storer: ChordStorer)(repo: HdfsRepository, store: String, dictName: String): ScoobiAction[Unit] = for {
     d  <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dictName))
     s   = storer match {
-      case DenseRowTextChordStorer => DenseRowTextStorage.DenseRowTextStorer(outputPath.toString, d)
-      case EavtTextChordStorer     => EavtTextStorage.EavtTextStorerV1(outputPath.toString)
+      case DenseRowTextChordStorer => DenseRowTextStorageV1.DenseRowTextStorer(outputPath.toString, d)
+      case EavtTextChordStorer     => EavtTextStorageV1.EavtTextStorer(outputPath.toString)
     }
     _  <- Chord.onHdfs(repo.path, store, dictName, entities, outputPath, errorPath, s)
   } yield ()

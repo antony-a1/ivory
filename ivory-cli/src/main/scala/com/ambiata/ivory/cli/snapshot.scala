@@ -61,8 +61,8 @@ object snapshot extends ScoobiApp {
   def extractLatest(outputPath: Path, errorPath: Path, storer: SnapStorer)(repo: HdfsRepository, store: String, dictName: String, date: LocalDate): ScoobiAction[Unit] = for {
     d  <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dictName))
     s   = storer match {
-      case DenseRowTextSnapStorer => DenseRowTextStorage.DenseRowTextStorer(outputPath.toString, d)
-      case EavtTextSnapStorer     => EavtTextStorage.EavtTextStorerV1(outputPath.toString)
+      case DenseRowTextSnapStorer => DenseRowTextStorageV1.DenseRowTextStorer(outputPath.toString, d)
+      case EavtTextSnapStorer     => EavtTextStorageV1.EavtTextStorer(outputPath.toString)
     }
     _  <- HdfsSnapshot(repo.path, store, dictName, None, date, errorPath, s).run
   } yield ()

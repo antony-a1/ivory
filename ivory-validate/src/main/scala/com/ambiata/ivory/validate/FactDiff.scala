@@ -13,8 +13,8 @@ object FactDiff {
 
   def scoobiJob(input1: String, input2: String, outputPath: String, errorPath: String): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-      val (first_errs, first_facts) = byflag(PartitionFactThriftStorage.PartitionedFactThriftLoaderV1(input1).loadScoobi, true)
-      val (second_errs, second_facts) = byflag(PartitionFactThriftStorage.PartitionedFactThriftLoaderV1(input2).loadScoobi, false)
+      val (first_errs, first_facts) = byflag(PartitionFactThriftStorageV1.PartitionedFactThriftLoader(input1).loadScoobi, true)
+      val (second_errs, second_facts) = byflag(PartitionFactThriftStorageV1.PartitionedFactThriftLoader(input2).loadScoobi, false)
 
       val errors = first_errs ++ second_errs
       val facts = first_facts ++ second_facts

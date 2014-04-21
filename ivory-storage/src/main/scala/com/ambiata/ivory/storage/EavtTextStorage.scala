@@ -15,15 +15,15 @@ import org.joda.time.DateTimeZone
  *
  * entity|name|value|encoding|datetime
  */
-object EavtTextStorage {
+object EavtTextStorageV1 {
   type Namespace = String
 
-  case class EavtTextLoaderV1(path: String, dict: Dictionary, namespace: String, timezone: DateTimeZone, preprocess: String => String) extends IvoryScoobiLoader[Fact] {
+  case class EavtTextLoader(path: String, dict: Dictionary, namespace: String, timezone: DateTimeZone, preprocess: String => String) extends IvoryScoobiLoader[Fact] {
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[String \/ Fact] =
       fromTextFile(path).map(l => parseFact(dict, namespace, timezone, preprocess).run(splitLine(l)).disjunction)
   }
 
-  case class EavtTextStorerV1(base: String, delim: String = "|", tombstoneValue: Option[String] = None) extends IvoryScoobiStorer[Fact, DList[(Namespace, String)]] {
+  case class EavtTextStorer(base: String, delim: String = "|", tombstoneValue: Option[String] = None) extends IvoryScoobiStorer[Fact, DList[(Namespace, String)]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[(Namespace, String)] =
       dlist.mapFlatten(f =>
         DelimitedFactTextStorage.valueToString(f.value, tombstoneValue).map(v => (f.featureId.namespace, f.entity + delim + f.featureId.name + delim + v + delim + f.date.toString("yyyy-MM-dd")))
@@ -31,14 +31,14 @@ object EavtTextStorage {
 
   }
 
-  implicit class EavtTextFactStorage(dlist: DList[Fact]) {
+  implicit class EavtTextFactStorageV1(dlist: DList[Fact]) {
 
     def toEavtTextFile(base: String, delim: String = "|", tombstoneValue: Option[String] = None)(implicit sc: ScoobiConfiguration): DList[(Namespace, String)] =
-      EavtTextStorerV1(base, delim, tombstoneValue).storeScoobi(dlist)
+      EavtTextStorer(base, delim, tombstoneValue).storeScoobi(dlist)
   }
 
   def fromEavtTextFile(path: String, dict: Dictionary, namespace: String, timezone: DateTimeZone, preprocess: String => String)(implicit sc: ScoobiConfiguration): DList[String \/ Fact] =
-    EavtTextLoaderV1(path, dict, namespace, timezone, preprocess).loadScoobi
+    EavtTextLoader(path, dict, namespace, timezone, preprocess).loadScoobi
 
   def splitLine(line: String): List[String] =
     line.split('|').toList match {

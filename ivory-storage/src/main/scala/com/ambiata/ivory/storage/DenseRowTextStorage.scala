@@ -12,7 +12,7 @@ import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.alien.hdfs._
 import WireFormats._
 
-object DenseRowTextStorage {
+object DenseRowTextStorageV1 {
 
   type Entity = String
   type Attribute = String

@@ -26,7 +26,7 @@ class DenseRowTextStorageSpec extends HadoopSpecification with SimpleJobs {
                      IntFact("eid1", FeatureId("ns1", "fid2"), new LocalDate(2012, 1, 1), 0, 123),
                      BooleanFact("eid1", FeatureId("ns1", "fid3"), new LocalDate(2012, 1, 1), 0, true))
 
-    DenseRowTextStorage.makeDense(facts, features, "☠") must_== List("abc", "123", "true", "☠")
+    DenseRowTextStorageV1.makeDense(facts, features, "☠") must_== List("abc", "123", "true", "☠")
   }
 
   "Dense rows stored correctly" >> { implicit sc: ScoobiConfiguration =>
@@ -44,7 +44,7 @@ class DenseRowTextStorageSpec extends HadoopSpecification with SimpleJobs {
                       DoubleFact("eid2", FeatureId("ns1", "fid4"), new LocalDate(2012, 2, 2), 123, 2.0),
                       IntFact("eid2", FeatureId("ns1", "fid2"), new LocalDate(2012, 3, 1), 0, 9))
 
-    val res = DenseRowTextStorage.DenseRowTextStorer(directory, dict).storeScoobi(facts).run.toList
+    val res = DenseRowTextStorageV1.DenseRowTextStorer(directory, dict).storeScoobi(facts).run.toList
     res must_== List("eid1|abc|123|true|NA", "eid2|NA|9|NA|2.0")
   }
 }

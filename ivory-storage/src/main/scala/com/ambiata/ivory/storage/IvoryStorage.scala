@@ -55,10 +55,11 @@ case class InternalFactsetFactS3Loader(repo: S3Repository, factset: String) {
 }
 
 case class InternalFeatureStoreFactLoader(repo: HdfsRepository, store: FeatureStore) {
-  def load: ScoobiAction[DList[String \/ (Priority, FactSetName, Fact)]] =
-    store.factSets.traverse(factSet =>
-      InternalFactsetFactLoader(repo, factSet.name).load.map(_.map(fact => fact.map(f => (factSet.priority, factSet.name, f)) ))
-    ).map(_.reduce(_++_))
+  def load: ScoobiAction[DList[String \/ (Priority, FactSetName, Fact)]] = for {
+    sc       <- ScoobiAction.scoobiConfiguration
+    versions <- store.factSets.traverseU(factset => ScoobiAction.fromHdfs(Versions.readFactsetVersionFromHdfs(repo, factset.name).map((factset, _))))
+    combined: List[(FactsetVersion, List[FactSet])] = versions.groupBy(_._2).toList.map({ case (k, vs) => (k, vs.map(_._1)) })
+  } yield combined.map({ case (v, fss) => IvoryStorage.multiFactsetLoader(v, repo.factsetsPath, fss).loadScoobi(sc) }).reduce(_++_)
 }
 
 case class InternalFactsetFactStorer(repo: HdfsRepository, factset: String) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
@@ -158,14 +159,19 @@ object IvoryStorage {
   // this is the version that factsets are written as
   val factsetVersion = FactsetVersionTwo
   def factsetStorer(path: String): IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] =
-    PartitionFactThriftStorage.PartitionedFactThriftStorerV2(path)
+    PartitionFactThriftStorageV2.PartitionedFactThriftStorer(path)
 
   /**
    * Get the loader for a given version
    */
   def factsetLoader(version: FactsetVersion, path: Path): IvoryScoobiLoader[Fact] = version match {
-    case FactsetVersionOne => PartitionFactThriftStorage.PartitionedFactThriftLoaderV1(path.toString)
-    case FactsetVersionTwo => PartitionFactThriftStorage.PartitionedFactThriftLoaderV2(path.toString)
+    case FactsetVersionOne => PartitionFactThriftStorageV1.PartitionedFactThriftLoader(path.toString)
+    case FactsetVersionTwo => PartitionFactThriftStorageV2.PartitionedFactThriftLoader(path.toString)
+  }
+
+  def multiFactsetLoader(version: FactsetVersion, path: Path, factsets: List[FactSet]): IvoryScoobiLoader[(Int, String, Fact)] = version match {
+    case FactsetVersionOne => PartitionFactThriftStorageV1.PartitionedMultiFactsetThriftLoader(path.toString, factsets)
+    case FactsetVersionTwo => PartitionFactThriftStorageV2.PartitionedMultiFactsetThriftLoader(path.toString, factsets)
   }
 
   def writeFactsetVersion(repo: HdfsRepository, factsets: List[String]): Hdfs[Unit] =

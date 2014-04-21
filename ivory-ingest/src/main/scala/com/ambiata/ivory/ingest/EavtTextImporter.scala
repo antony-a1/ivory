@@ -10,7 +10,7 @@ import scoobi._
 import scalaz.{DList => _, _}, Scalaz._
 import alien.hdfs._
 import metadata.Versions
-import storage.EavtTextStorage._
+import storage.EavtTextStorageV1._
 import ScoobiS3EMRAction._
 import ScoobiAction._
 import WireFormats._
