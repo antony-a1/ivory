@@ -18,7 +18,7 @@ object DenseRowTextStorage {
   type Attribute = String
   type StringValue = String
   
-  case class DenseRowTextStorer(path: String, dict: Dictionary, delim: Char = '|', tombstoneValue: String = "NA") extends IvoryScoobiStorer[Fact, DList[String]] {
+  case class DenseRowTextStorer(path: String, dict: Dictionary, delim: Char = '|', tombstone: String = "NA") extends IvoryScoobiStorer[Fact, DList[String]] {
     lazy val features: List[(Int, FeatureId, FeatureMeta)] =
       dict.meta.toList.sortBy(_._1.toString(".")).zipWithIndex.map({ case ((f, m), i) => (i, f, m) })
 
@@ -28,13 +28,7 @@ object DenseRowTextStorage {
         dlist.by(f => (f.entity, f.featureId.toString("."))).groupByKeyWith(Groupings.sortGrouping)
 
       val row: DList[(Entity, List[StringValue])] = byKey.map({ case ((eid, _), fs) =>
-        (eid, features.foldLeft((fs, List[StringValue]()))({ case ((facts, acc), (_, fid, _)) =>
-          val rest = facts.dropWhile(f => f.featureId < fid)
-          val v = rest.headOption.collect({
-            case f if f.featureId == fid => f.value
-          }).getOrElse(TombstoneValue())
-          (if(rest.isEmpty) Nil else rest.tail, valueToString(v, tombstoneValue) :: acc)
-        })._2)
+        (eid, makeDense(fs, features, tombstone))
       })
       row.map({ case (eid, vs) => eid + delim + vs.mkString(delim.toString) }).toTextFile(path.toString)
     }
@@ -43,9 +37,25 @@ object DenseRowTextStorage {
       ScoobiAction.fromHdfs(Hdfs.writeWith(new Path(path, ".dictionary"), os => Streams.write(os, featuresToString(features, delim).mkString("\n"))))
   }
 
+  /**
+   * Make an Iterable of Facts dense according to a dictionary. 'tombstone' is used as a value for missing facts.
+   *
+   * Note: It is assumed 'facts' and 'features' are sorted by FeatureId
+   */
+  def makeDense(facts: Iterable[Fact], features: List[(Int, FeatureId, FeatureMeta)], tombstone: String): List[StringValue] = {
+    features.foldLeft((facts, List[StringValue]()))({ case ((fs, acc), (_, fid, _)) =>
+      val rest = fs.dropWhile(f => f.featureId.toString(".") < fid.toString("."))
+      val value = rest.headOption.collect({
+        case f if f.featureId == fid => f.value
+      }).getOrElse(TombstoneValue())
+      val next = if(value == TombstoneValue() || rest.isEmpty) rest else rest.tail
+      (next, valueToString(value, tombstone) :: acc)
+    })._2.reverse
+  }
+
   def featuresToString(features: List[(Int, FeatureId, FeatureMeta)], delim: Char): List[String] = {
     import DictionaryTextStorage._
-    features.map({ case (i, f, m) => i + delim + delimitedFeatureIdString(f, delim) + delim + delimitedFeatureMetaString(m, delim) })
+    features.map({ case (i, f, m) => i.toString + delim + delimitedFeatureIdString(f, delim) + delim + delimitedFeatureMetaString(m, delim) })
   }
 
   def valueToString(v: Value, tombstoneValue: String): String = v match {
