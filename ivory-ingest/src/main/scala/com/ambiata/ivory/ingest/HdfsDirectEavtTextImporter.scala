@@ -51,8 +51,7 @@ object HdfsDirectEavtTextImporter {
                 SequenceFile.Writer.file(new Path(new Path(repository.factsetPath(factset), path), "facts")),
                 SequenceFile.Writer.keyClass(classOf[NullWritable]),
                 SequenceFile.Writer.valueClass(classOf[BytesWritable])
-              ) ++ (codec.map(c => SequenceFile.Writer.compression(SequenceFile.CompressionType.RECORD, c)).toList) ++
-                   (codec.map(c => SequenceFile.Writer.compression(SequenceFile.CompressionType.BLOCK, c)).toList)
+              ) ++ (codec.map(c => SequenceFile.Writer.compression(SequenceFile.CompressionType.BLOCK, c)).toList)
               SequenceFile.createWriter(conf, opts:_*)
             })
 
