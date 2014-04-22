@@ -2,7 +2,7 @@
 =========
 
 
-### Primary Commands
+### Veneer Commands
 
 ```
 
@@ -18,9 +18,15 @@ ivory extract [-r|--repository REPOSITORY_URI] [-a|--at VERSION] [-t|--tag TAG] 
 
 ```
 
-### Manual maintenance tools
+### Base Commands
 
 ```
+
+ivory fact-cat [-r|--repository REPOSITORY_URI] FACT_SET_ID
+
+ivory store-cat [-r|--repository REPOSITORY_URI]
+
+ivory store-edit [-r|--repository REPOSITORY_URI]
 
 ivory store-add [-r|--repository REPOSITORY_URI] FACT_SET_PATH ...
 

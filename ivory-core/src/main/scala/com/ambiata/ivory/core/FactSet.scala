@@ -8,7 +8,6 @@ case class FactSet(name: String, priority: Int) {
 }
 
 object FactSets {
-
   def fromLines(lines: List[String]): String \/ List[FactSet] =
     lines.zipWithIndex.map { case (l, i) => (l, i + 1) } .map { case (l, i) =>
       val trimmed = l.trim
