@@ -5,6 +5,7 @@ import scalaz.{DList => _, _}, Scalaz._
 import scala.math.{Ordering => SOrdering}
 import org.apache.hadoop.fs.Path
 import org.joda.time.{DateTimeZone, LocalDate}
+import org.joda.time.format.DateTimeFormat
 import org.apache.commons.logging.LogFactory
 
 import com.ambiata.ivory.core._
@@ -43,12 +44,40 @@ object ImportWorkflow {
 
   def onHdfs(repoPath: Path, importDict: Option[ImportDictFunc], importFacts: ImportFactsFunc, tombstone: Tombstone, tmpPath: Path, errorPath: Path, timezone: DateTimeZone): ScoobiAction[String] = {
     val repo = Repository.fromHdfsPath(repoPath)
+    val start = System.currentTimeMillis
+    println("starting ==")
     for {
       _        <- ScoobiAction.fromHdfs(createRepo(repo))
-      dname    <- ScoobiAction.fromHdfs(importDictionary(repo, tombstone, new Path(tmpPath, "dictionaries"), importDict))
+      t1 = {
+        val x = System.currentTimeMillis
+        println(s"created repository in ${x - start}ms")
+        x
+      }
+      dname    <- ScoobiAction.fromHdfs(importDictionary(repo, tombstone, new Path(tmpPath, "dictionaries"), importDict)
+)
+      t2 = {
+        val x = System.currentTimeMillis
+        println(s"imported dictionary in ${x - t1}ms")
+        x
+      }
       factset  <- ScoobiAction.fromHdfs(createFactSet(repo))
+      t3 = {
+        val x = System.currentTimeMillis
+        println(s"created fact set in ${x - t2}ms")
+        x
+      }
       _        <- importFacts(repo, factset, dname, new Path(tmpPath, "facts"), new Path(errorPath, "facts"), timezone)
+      t4 = {
+        val x = System.currentTimeMillis
+        println(s"imported fact set in ${x - t3}ms")
+        x
+      }
       sname    <- ScoobiAction.fromHdfs(createStore(repo, factset))
+      t5 = {
+        val x = System.currentTimeMillis
+        println(s"created store in ${x - t4}ms")
+        x
+      }
     } yield sname
   }
 
@@ -67,15 +96,14 @@ object ImportWorkflow {
   } yield ()
 
   def importDictionary(repo: HdfsRepository, tombstone: List[String], tmpPath: Path, importer: Option[ImportDictFunc]): Hdfs[String] = importer match {
-    case None => for {
-      dicts <- Hdfs.globPaths(repo.dictionariesPath, "*")
-      _ = {
-        dicts.foreach(d => {
-          println("fred: " + d)
-          println("barney: " + d.getName)
-        })
-      }
-    } yield ???
+    case None =>
+      Hdfs.globPaths(repo.dictionariesPath, "*").map(dicts =>
+        dicts
+          .map(_.getName)
+          .filter(_.matches("""\d{4}-\d{2}-\d{2}"""))
+          .map(DateTimeFormat.forPattern("yyyy-MM-dd").parseLocalDate)
+          .sortBy(d => (d.getYear, d.getMonthOfYear, d.getDayOfMonth)).last.toString("yyyy-MM-dd")
+      )
     case Some(importDict) => {
       val name = (new LocalDate()).toString("yyyy-MM-dd")
       logger.info(s"Importing dictionary under the name '${name}'")
