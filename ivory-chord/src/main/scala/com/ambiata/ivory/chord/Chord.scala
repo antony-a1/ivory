@@ -34,19 +34,19 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
     _  <- storer.storeMeta
   } yield ()
 
-  def readEntities(path: Path): Hdfs[HashMap[String, LocalDate]] = for {
+  def readEntities(path: Path): Hdfs[HashMap[EntityId, ShortDate]] = for {
     lines <- Hdfs.readWith(path, is => Streams.read(is)).map(_.lines.toList)
     map   <- Hdfs.fromDisjunction(parseLines(lines))
   } yield map
 
-  def parseLines(lines: List[String]): String \/ HashMap[String, LocalDate] =
+  def parseLines(lines: List[String]): String \/ HashMap[EntityId, ShortDate] =
     lines.traverseU(l => Chord.entityParser.run(Delimited.parsePsv(l)).disjunction).map(entries => {
-      val map = new HashMap[String, LocalDate]
+      val map = new HashMap[EntityId, ShortDate]
       entries.foreach({ case (k, v) => map.put(k, v) })
       map
     })
 
-  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: HashMap[String, LocalDate]): ScoobiAction[Unit] =
+  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: HashMap[EntityId, ShortDate]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       lazy val factsetMap = store.factSets.map(fs => (fs.priority.toShort, fs.name)).toMap
 
@@ -56,7 +56,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
         }
 
         def ofInterest(f: Fact): Boolean =
-          Option(entities.get(f.entity)).map(f.date.isBefore).getOrElse(false)
+          Option(entities.get(EntityId.fromString(f.entity))).map(sd => f.date.isBefore(sd.localDate)).getOrElse(false)
 
         val facts: DList[(Priority, Fact)] = input.collect {
           case \/-((p, _, f)) if ofInterest(f) => (p.toShort, f)
@@ -93,14 +93,36 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
 }
 
 object Chord {
+
   def onHdfs(repoPath: Path, store: String, dictName: String, entities: Path, output: Path, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]]): ScoobiAction[Unit] =
     HdfsChord(repoPath, store, dictName, entities, errorPath, storer).run
 
-  def entityParser: ListParser[(String, LocalDate)] = {
+  def entityParser: ListParser[(EntityId, ShortDate)] = {
     import ListParser._
     for {
       e <- string.nonempty
       d <- localDate
-    } yield (e, d)
+    } yield (EntityId.fromString(e), ShortDate(d.getYear.toShort, d.getMonthOfYear.toByte, d.getDayOfMonth.toByte))
   }
+}
+
+case class EntityId(value: EntityIdValue) {
+  def stringValue: String = value match {
+    case StringEntityId(v) => v
+    case IntEntityId(v)    => v.toString
+  }
+}
+
+object EntityId {
+  def fromString(str: String): EntityId =
+    EntityId(str.parseInt.map(IntEntityId.apply).toOption.getOrElse(StringEntityId(str)))
+}
+
+sealed trait EntityIdValue
+case class StringEntityId(v: String) extends EntityIdValue
+case class IntEntityId(v: Int) extends EntityIdValue
+
+case class ShortDate(year: Short, month: Byte, day: Byte) {
+  def localDate: LocalDate =
+    new LocalDate(year.toInt, month.toInt, day.toInt)
 }
