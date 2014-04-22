@@ -98,7 +98,7 @@ Mapping this onto a more direct project structure.
 
 Guidelines for APIs between components / layers:
 
- * Don't expose interface/layer splits based on implementation detail. Basically any difference between HDFS/S3/LOCAL (and those varieties with SYNC steps) needs to be resolved internally to sub-projects, otherwise the nice split doesn't but as anything. We need to be able to reason about "dictionary import" not "dictionary import on HDFS" or this won't work
+ * Don't expose interface/layer splits based on implementation detail. Basically any difference between HDFS/S3/LOCAL (and those varieties with SYNC steps) needs to be resolved internally to sub-projects, otherwise the nice split doesn't buy as anything. We need to be able to reason about "dictionary import" not "dictionary import on HDFS" or this won't work
 
  * A follow on to this is, don't export implementation specific effects. For example the storage layer may have a mix of `S3, HDFS` actions internally, but they should be unified to generic structures that don't have a reader of some config blob (this may be `ResultT[IO, _]`, `\/`, `Validation` or any number of things, but importantly lifecycle and control of implementation specific things should not accumulate through interfaces.
 
