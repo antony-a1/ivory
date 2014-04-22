@@ -41,9 +41,9 @@ class FeatureStoreImporterSpec extends Specification with BeforeAfterExample {
 
   def saveFeaturestoreFile: HdfsS3Action[FilePath] =
     HdfsS3Action.fromResultT {
-    val path = new FilePath(s"target/test/$dir/featurestore1/fs1")
-    Files.write(path, featurestore).map(_ => path)
-  }
+      val path = new FilePath(s"target/test/$dir/featurestore1/fs1")
+      Files.write(path, featurestore).map(_ => path)
+    }
 
   def before = clean
   def after  = clean
