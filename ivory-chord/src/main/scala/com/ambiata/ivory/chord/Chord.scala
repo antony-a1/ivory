@@ -20,7 +20,7 @@ import com.ambiata.ivory.alien.hdfs._
 case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: Path, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]]) {
   import IvoryStorage._
 
-  type Priority = Int
+  type Priority = Short
 
   def withStorer(newStorer: IvoryScoobiStorer[Fact, DList[_]]): HdfsChord =
     copy(storer = newStorer)
@@ -48,6 +48,8 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
 
   def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: HashMap[String, LocalDate]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
+      lazy val factsetMap = store.factSets.map(fs => (fs.priority.toShort, fs.name)).toMap
+
       factsFromIvoryStore(repo, store).map(input => {
         val errors: DList[String] = input.collect {
           case -\/(e) => e
@@ -56,8 +58,8 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
         def ofInterest(f: Fact): Boolean =
           Option(entities.get(f.entity)).map(f.date.isBefore).getOrElse(false)
 
-        val facts: DList[(Priority, FactSetName, Fact)] = input.collect {
-          case \/-((p, fs, f)) if ofInterest(f) => (p, fs, f)
+        val facts: DList[(Priority, Fact)] = input.collect {
+          case \/-((p, _, f)) if ofInterest(f) => (p.toShort, f)
         }
 
         /*
@@ -65,13 +67,13 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
          * 2. take the minimum fact in the group using fact time then priority to determine order
          */
         implicit val revDateOrder: Order[LocalDateTime] = DateTimex.LocalDateTimeHasOrder.reverseOrder
-        val ord: Order[(Priority, FactSetName, Fact)] = Order.orderBy { case (p, _, f) => (f.time, p) }
-        val latest: DList[(FactSetName, Fact)] = facts.groupBy { case (p, fs, f) => (f.entity, f.featureId.toString) }
-                                                      .reduceValues(Reduction.minimum(ord))
-                                                      .collect { case (_, (_, fs, f)) if !f.isTombstone => (fs, f) }
+        val ord: Order[(Priority, Fact)] = Order.orderBy { case (p, f) => (f.time, p) }
+        val latest: DList[(Priority, Fact)] = facts.groupBy { case (p, f) => (f.entity, f.featureId.toString) }
+                                                   .reduceValues(Reduction.minimum(ord))
+                                                   .collect { case (_, (p, f)) if !f.isTombstone => (p, f) }
 
-        val validated: DList[String \/ Fact] = latest.map({ case (fs, f) =>
-          Validate.validateFact(f, dict).disjunction.leftMap(e => e + " - Factset " + fs)
+        val validated: DList[String \/ Fact] = latest.map({ case (p, f) =>
+          Validate.validateFact(f, dict).disjunction.leftMap(e => e + " - Factset " + factsetMap.get(p).getOrElse("Unknown, priority " + p))
         })
 
         val valErrors = validated.collect {
