@@ -13,6 +13,8 @@ import com.nicta.scoobi.Scoobi._
 import scalaz._, Scalaz._, effect._, Effect._
 
 
+// FIX this is unpleasent, but is the current super set of what is there, redefine in terms of "fact-set descriptor".
+
 sealed trait IngestFactsets {
   def ingest(dictionary: Dictionary, namespace: String, factsetId: String, input: FilePath, timezone: DateTimeZone, codec: Option[CompressionCodec]): ResultT[IO, Unit]
 }

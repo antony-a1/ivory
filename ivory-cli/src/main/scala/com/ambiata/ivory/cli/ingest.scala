@@ -21,7 +21,7 @@ object ingest extends ScoobiApp {
 
   val tombstone = List("☠")
 
-  case class CliArguments(repo: String, dictionary: String, input: String, namespace: String, tmp: String, errors: String, timezone: DateTimeZone, runOnSingleMachine: Boolean)
+  case class CliArguments(repo: String, dictionary: Option[String], input: String, namespace: String, tmp: String, errors: String, timezone: DateTimeZone, runOnSingleMachine: Boolean)
 
   val parser = new scopt.OptionParser[CliArguments]("ingest") {
     head("""
@@ -36,7 +36,7 @@ object ingest extends ScoobiApp {
     opt[String]('e', "errors")     action { (x, c) => c.copy(errors = x) }     required() text "Path to store any errors."
     opt[String]('t', "tmp")        action { (x, c) => c.copy(tmp = x) }        required() text "Path to store tmp data."
     opt[String]('i', "input")      action { (x, c) => c.copy(input = x) }      required() text "Path to data to import."
-    opt[String]('d', "dictionary")      action { (x, c) => c.copy(dictionary = x) }      required() text "Name of dictionary to use."
+    opt[String]('d', "dictionary")      action { (x, c) => c.copy(dictionary = Some(x)) }      text "Name of dictionary to use."
     opt[String]('n', "namespace")  action { (x, c) => c.copy(namespace = x) }  required() text "Namespace'."
     opt[String]('z', "timezone")        action { (x, c) => c.copy(timezone = DateTimeZone.forID(x))   } required() text
       s"timezone for the dates (see http://joda-time.sourceforge.net/timezones.html, for example Sydney is Australia/Sydney)"
@@ -45,7 +45,7 @@ object ingest extends ScoobiApp {
   }
 
   def run {
-    parser.parse(args, CliArguments("", "", "", "", "", "", DateTimeZone.getDefault, false)).map(c => {
+    parser.parse(args, CliArguments("", None, "", "", "", "", DateTimeZone.getDefault, false)).map(c => {
       val res = onHdfs(new Path(c.repo), c.dictionary, c.namespace, new Path(c.input), tombstone, new Path(c.tmp), new Path(c.errors), c.timezone, c.runOnSingleMachine)
       res.run(configuration).run.unsafePerformIO() match {
         case Ok(_)    => println(s"Successfully imported '${c.input}' into '${c.repo}'")
@@ -54,8 +54,8 @@ object ingest extends ScoobiApp {
     })
   }
 
-  def onHdfs(repo: Path, dictionary: String, namespace: String, input: Path, tombstone: List[String], tmp: Path, errors: Path, timezone: DateTimeZone, runOnSingleMachine: Boolean): ScoobiAction[String] =
-    fatrepo.ImportWorkflow.onHdfs(repo, defaultDictionaryImport(dictionary), importFeed(input, namespace, runOnSingleMachine), tombstone, tmp, errors, timezone)
+  def onHdfs(repo: Path, dictionary: Option[String], namespace: String, input: Path, tombstone: List[String], tmp: Path, errors: Path, timezone: DateTimeZone, runOnSingleMachine: Boolean): ScoobiAction[String] =
+    fatrepo.ImportWorkflow.onHdfs(repo, dictionary.map(defaultDictionaryImport(_)), importFeed(input, namespace, runOnSingleMachine), tombstone, tmp, errors, timezone)
 
   def defaultDictionaryImport(dictionary: String)(repo: HdfsRepository, name: String, tombstone: List[String], tmpPath: Path): Hdfs[Unit] =
     DictionaryImporter.onHdfs(repo.path, repo.dictionaryPath(dictionary), name)

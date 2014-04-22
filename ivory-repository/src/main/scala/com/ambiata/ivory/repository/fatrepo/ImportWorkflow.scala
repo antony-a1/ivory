@@ -41,7 +41,7 @@ object ImportWorkflow {
 
   private implicit val logger = LogFactory.getLog("ivory.repository.fatrepo.Import")
 
-  def onHdfs(repoPath: Path, importDict: ImportDictFunc, importFacts: ImportFactsFunc, tombstone: Tombstone, tmpPath: Path, errorPath: Path, timezone: DateTimeZone): ScoobiAction[String] = {
+  def onHdfs(repoPath: Path, importDict: Option[ImportDictFunc], importFacts: ImportFactsFunc, tombstone: Tombstone, tmpPath: Path, errorPath: Path, timezone: DateTimeZone): ScoobiAction[String] = {
     val repo = Repository.fromHdfsPath(repoPath)
     for {
       _        <- ScoobiAction.fromHdfs(createRepo(repo))
@@ -66,15 +66,26 @@ object ImportWorkflow {
     }
   } yield ()
 
-  def importDictionary(repo: HdfsRepository, tombstone: List[String], tmpPath: Path, importDict: ImportDictFunc): Hdfs[String] = {
-    val name = (new LocalDate()).toString("yyyy-MM-dd")
-    logger.info(s"Importing dictionary under the name '${name}'")
-    for {
-      e <- Hdfs.exists(repo.dictionaryPath(name))
-      _ <- if(!e) copyLatestDictionary(repo, name) else Hdfs.ok(())
-      _ <- importDict(repo, name, tombstone, tmpPath)
-      _  = logger.info(s"Successfully imported dictionary '${name}'")
-    } yield name
+  def importDictionary(repo: HdfsRepository, tombstone: List[String], tmpPath: Path, importer: Option[ImportDictFunc]): Hdfs[String] = importer match {
+    case None => for {
+      dicts <- Hdfs.globPaths(repo.dictionariesPath, "*")
+      _ = {
+        dicts.foreach(d => {
+          println("fred: " + d)
+          println("barney: " + d.getName)
+        })
+      }
+    } yield ???
+    case Some(importDict) => {
+      val name = (new LocalDate()).toString("yyyy-MM-dd")
+      logger.info(s"Importing dictionary under the name '${name}'")
+      for {
+        e <- Hdfs.exists(repo.dictionaryPath(name))
+        _ <- if(!e) copyLatestDictionary(repo, name) else Hdfs.ok(())
+        _ <- importDict(repo, name, tombstone, tmpPath)
+        _  = logger.info(s"Successfully imported dictionary '${name}'")
+      } yield name
+    }
   }
 
   def copyLatestDictionary(repo: HdfsRepository, name: String): Hdfs[Unit] = for {

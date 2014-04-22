@@ -17,7 +17,7 @@ object ImportWorkflow {
   private implicit val logger = LogFactory.getLog("ivory.example.fatrepo.ImportWorkflow")
 
   def onHdfs(repo: Path, dict: Path, namespace: String, input: Path, tombstone: List[String], tmp: Path, errors: Path, timezone: DateTimeZone): ScoobiAction[String] =
-    fatrepo.ImportWorkflow.onHdfs(repo, importDictionary(dict), importFeed(input, namespace), tombstone, tmp, errors, timezone)
+    fatrepo.ImportWorkflow.onHdfs(repo, Some(importDictionary(dict)), importFeed(input, namespace), tombstone, tmp, errors, timezone)
 
   def importDictionary(path: Path)(repo: HdfsRepository, name: String, tombstone: List[String], tmpPath: Path): Hdfs[Unit] =
     DictionaryImporter.onHdfs(repo.path, path, name)
