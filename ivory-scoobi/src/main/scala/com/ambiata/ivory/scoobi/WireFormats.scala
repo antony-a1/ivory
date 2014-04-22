@@ -110,8 +110,8 @@ trait WireFormats {
   }
 
   implicit def LocalDateFmt = new WireFormat[LocalDate] {
-    def toWire(x: LocalDate, out: DataOutput) = { out.writeShort(x.getYear); out.writeShort(x.getMonthOfYear); out.writeShort(x.getDayOfMonth) }
-    def fromWire(in: DataInput): LocalDate = new LocalDate(in.readShort.toInt, in.readShort.toInt, in.readShort.toInt)
+    def toWire(x: LocalDate, out: DataOutput) = { out.writeShort(x.getYear); out.writeByte(x.getMonthOfYear.toByte); out.writeByte(x.getDayOfMonth.toByte) }
+    def fromWire(in: DataInput): LocalDate = new LocalDate(in.readShort.toInt, in.readByte.toInt, in.readByte.toInt)
     override def toString = "LocalDate"
   }
 
