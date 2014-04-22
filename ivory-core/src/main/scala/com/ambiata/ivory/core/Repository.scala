@@ -7,6 +7,7 @@ import com.ambiata.mundane.io.FilePath
 sealed trait Repository
 
 case class HdfsRepository(path: Path) extends Repository {
+  lazy val errorsPath = new Path(path, "errors")
   lazy val metadataPath = new Path(path, "metadata")
   lazy val factsetsPath = new Path(path, "factsets")
 
@@ -24,6 +25,7 @@ case class HdfsRepository(path: Path) extends Repository {
 }
 
 case class LocalRepository(path: String) extends Repository {
+  lazy val errorsPath = s"$path/errors"
   lazy val metadataPath = s"$path/metadata"
   lazy val factsetsPath = s"$path/factsets"
 

@@ -11,6 +11,7 @@ import com.ambiata.saws._
 import com.ambiata.ivory.alien.hdfs.HdfsS3Action._
 import com.ambiata.mundane.io.FilePath
 
+// FIX move to com.ambiata.ivory.ingest.internal
 object DictionaryImporter {
 
    def onHdfs(repoPath: Path, dictPath: Path, name: String): Hdfs[Unit] = {

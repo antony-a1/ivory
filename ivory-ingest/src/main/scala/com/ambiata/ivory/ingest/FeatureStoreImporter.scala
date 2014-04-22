@@ -9,6 +9,7 @@ import com.ambiata.ivory.alien.hdfs._
 import com.ambiata.mundane.io.FilePath
 import HdfsS3Action._
 
+// FIX move to com.ambiata.ivory.ingest.internal
 object FeatureStoreImporter {
 
    def onHdfs(repository: HdfsRepository, name: String, storePath: Path): Hdfs[Unit] = {

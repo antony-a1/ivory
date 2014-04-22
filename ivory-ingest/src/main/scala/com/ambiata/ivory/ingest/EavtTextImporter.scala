@@ -19,6 +19,7 @@ import com.ambiata.saws.emr._
 import org.joda.time.DateTimeZone
 import org.apache.hadoop.io.compress._
 
+// FIX move to com.ambiata.ivory.ingest.internal
 /**
  * Import a text file, formatted as an EAVT file, into ivory
  * either on S3 or Hdfs
