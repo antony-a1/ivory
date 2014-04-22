@@ -50,27 +50,27 @@ case class LocalRepository(path: String) extends Repository {
  */
 case class S3Repository(bucket: String, key: String, tmpDirectory: String = ".s3Repository") extends Repository {
   lazy val hdfsRepository = HdfsRepository(new Path(tmpDirectory))
-
-  lazy val metadata    = s"$key/metadata"
+  
+  lazy val repositoryDir = if (key.endsWith("/")) key else key+"/"
+  lazy val metadata    = s"${repositoryDir}metadata/"
 
   lazy val factsets    = "factsets"
-  lazy val factsetsKey = s"$key/$factsets"
+  lazy val factsetsKey = s"${repositoryDir}$factsets/"
 
   lazy val dictionaries    = "dictionaries"
-  lazy val dictionariesKey = s"$metadata/$dictionaries"
+  lazy val dictionariesKey = s"${metadata}$dictionaries/"
 
   lazy val stores    = "stores"
-  lazy val storesKey = s"$metadata/$stores"
+  lazy val storesKey = s"${metadata}$stores"
 
   def dictionaryKey(name: String): String =
-    s"$dictionariesKey/$name"
+    s"${dictionariesKey}$name"
 
   def storeKey(name: String): String =
-    s"$storesKey/$name"
+    s"${storesKey}$name"
 
   def factsetKey(name: String): String =
-    s"$factsetsKey/$name"
-
+    s"${factsetsKey}$name"
 }
 
 object Repository {
