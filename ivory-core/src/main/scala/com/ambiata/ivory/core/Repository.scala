@@ -75,6 +75,25 @@ case class S3Repository(bucket: String, key: String, tmpDirectory: String = ".s3
 }
 
 object Repository {
+  def fromUri(s: String): String \/ Repository = try {
+    val uri = new java.net.URI(s)
+    uri.getScheme match {
+      case "hdfs" =>
+        HdfsRepository(new Path(uri.getPath)).right
+      case "s3" =>
+        S3Repository(uri.getHost, uri.getPath.drop(1)).right
+      case "file" =>
+        LocalRepository(uri.toURL.getFile).right
+      case null =>
+        LocalRepository(uri.getPath).right
+      case _ =>
+        s"Unknown or invalid repository scheme [${uri.getScheme}]".left
+    }
+  } catch {
+    case e: java.net.URISyntaxException =>
+      e.getMessage.left
+  }
+
 
   def fromHdfsPath(path: Path): HdfsRepository =
     HdfsRepository(path)
