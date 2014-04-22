@@ -63,12 +63,10 @@ object HdfsDirectEavtTextImporter {
         }
 
       }
-
-    } catch {
-      case e: Throwable =>
-        err.close
-        channels.values.foreach(_.close)
-        in.close
+    } finally {
+      err.close
+      channels.values.foreach(_.close)
+      in.close
     }
   }
 }
