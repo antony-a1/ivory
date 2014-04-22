@@ -75,7 +75,7 @@ storage               |                                                      |
 Mapping this onto a more direct project structure.
 
  * `ivory-cli`: Command-line tools. Divided into two types of tools, `veneer` and `base`. `veener` tools include things like
-                 ingestion workflows, snapshots, chording, loopback (feature engineering). `core` tools include things like cat fact set,
+                 ingestion workflows, snapshots, chording, loopback (feature engineering). `base` tools include things like cat fact set,
                 edit metadata directly in `$EDITOR`, ad-hoc import/edit of data/stores/dictionaries. _Only_ calls things in `api`.
 
  * `ivory-api`: Re-exports of public ingest/extract/core/storage functionality only. This is just to help manage public APIs and control consistency.
