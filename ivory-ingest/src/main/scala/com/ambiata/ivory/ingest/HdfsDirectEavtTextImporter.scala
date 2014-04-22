@@ -48,7 +48,7 @@ object HdfsDirectEavtTextImporter {
 
             val writer = channels.getOrElseUpdate(path, {
               val opts = List(
-                SequenceFile.Writer.file(new Path(repository.factsetPath(factset), path)),
+                SequenceFile.Writer.file(new Path(new Path(repository.factsetPath(factset), path), "facts")),
                 SequenceFile.Writer.keyClass(classOf[NullWritable]),
                 SequenceFile.Writer.valueClass(classOf[BytesWritable])
               ) ++ (codec.map(c => SequenceFile.Writer.compression(SequenceFile.CompressionType.RECORD, c)).toList) ++
@@ -56,7 +56,7 @@ object HdfsDirectEavtTextImporter {
               SequenceFile.createWriter(conf, opts:_*)
             })
 
-            writer.append(new NullWritable, new BytesWritable(serializer.toBytes(fact.asThrift)))
+            writer.append(NullWritable.get, new BytesWritable(serializer.toBytes(fact.asThrift)))
           }
           case Failure(e) =>
             err.write(e); err.newLine
