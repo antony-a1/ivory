@@ -22,7 +22,12 @@ case class S3EavtIngestFactsets(conf: ScoobiConfiguration, repository: S3Reposit
     EavtTextImporter.onS3(repository, dictionary, factsetId, namespace, input, timezone, codec, transform).runScoobiAwsT(conf)
 }
 
-case class HdfsEavtIngestFactsets(conf: ScoobiConfiguration, repository: HdfsRepository, transform: String => String) {
+case class MapReduceEavtIngestFactsets(conf: ScoobiConfiguration, repository: HdfsRepository, transform: String => String) {
   def ingest(dictionary: Dictionary, namespace: String, factsetId: String, input: FilePath, timezone: DateTimeZone, codec: Option[CompressionCodec]): ResultT[IO, Unit] =
     EavtTextImporter.onHdfs(repository, dictionary, factsetId, namespace, new Path(input.path), repository.errorsPath, timezone, codec, transform).run(conf)
+}
+
+case class HdfsEavtIngestFactsets(conf: Configuration, repository: HdfsRepository, transform: String => String) {
+  def ingest(dictionary: Dictionary, namespace: String, factsetId: String, input: FilePath, timezone: DateTimeZone, codec: Option[CompressionCodec]): ResultT[IO, Unit] =
+    EavtTextImporter.onHdfsDirect(conf, repository, dictionary, factsetId, namespace, new Path(input.path), repository.errorsPath, timezone, codec, transform)
 }

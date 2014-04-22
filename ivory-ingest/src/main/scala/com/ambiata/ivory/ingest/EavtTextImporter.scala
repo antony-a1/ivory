@@ -7,17 +7,19 @@ import core._
 import storage.IvoryStorage
 import storage.IvoryStorage._
 import scoobi._
-import scalaz.{DList => _, _}, Scalaz._
+import scalaz.{DList => _, _}, Scalaz._, effect.IO
 import alien.hdfs._
 import metadata.Versions
 import storage.EavtTextStorageV1._
 import ScoobiS3EMRAction._
 import ScoobiAction._
 import WireFormats._
+import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.FilePath
 import com.ambiata.saws.emr._
 import org.joda.time.DateTimeZone
 import org.apache.hadoop.io.compress._
+import org.apache.hadoop.conf.Configuration
 
 // FIX move to com.ambiata.ivory.ingest.internal
 /**
@@ -40,6 +42,13 @@ object EavtTextImporter {
     sc <- ScoobiAction.scoobiConfiguration
     _  <- ScoobiAction.safe(scoobiJob(repository, dictionary, factset, namespace, path, errorPath, timezone, codec, preprocess)(sc))
     _  <- ScoobiAction.fromHdfs(writeFactsetVersion(repository, List(factset)))
+  } yield ()
+
+  def onHdfsDirect(conf: Configuration, repository: HdfsRepository, dictionary: Dictionary, factset: String, namespace: String,
+             path: Path, errorPath: Path, timezone: DateTimeZone, codec: Option[CompressionCodec],
+             preprocess: String => String): ResultT[IO, Unit] = for {
+    _  <- HdfsDirectEavtTextImporter.direct(conf, repository, dictionary, factset, namespace, path, errorPath, timezone, codec, preprocess)
+    _  <- writeFactsetVersion(repository, List(factset)).run(conf)
   } yield ()
 
   def scoobiJob(repository: HdfsRepository, dictionary: Dictionary, factset: String, namespace: String,
