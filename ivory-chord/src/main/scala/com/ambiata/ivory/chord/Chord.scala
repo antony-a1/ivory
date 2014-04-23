@@ -33,17 +33,17 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
     _  <- storer.storeMeta
   } yield ()
 
-  def readEntities(path: Path): Hdfs[Map[String, Int]] = for {
+  def readEntities(path: Path): Hdfs[Map[String, Array[Int]]] = for {
     lines <- Hdfs.readWith(path, is => Streams.read(is)).map(_.lines.toList)
     map   <- Hdfs.fromDisjunction(parseLines(lines))
   } yield map
 
-  def parseLines(lines: List[String]): String \/ Map[String, Int] =
+  def parseLines(lines: List[String]): String \/ Map[String, Array[Int]] =
     lines.traverseU(l => Chord.entityParser.run(Delimited.parsePsv(l)).disjunction).map(entries => {
-      entries.groupBy(_._1).map({ case (e, ts) => (e, ts.map(_._2).max) })
+      entries.groupBy(_._1).map({ case (e, ts) => (e, ts.map(_._2).sortBy(-_).toArray) })
     })
 
-  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Map[String, Int]): ScoobiAction[Unit] =
+  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Map[String, Array[Int]]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       lazy val factsetMap = store.factSets.map(fs => (fs.priority.toShort, fs.name)).toMap
       factsFromIvoryStore(repo, store).map(input => {
@@ -53,12 +53,18 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
           case -\/(e) => e
         }
 
-        def ofInterest(es: Map[String, Int], f: Fact): Boolean =
-          es.lift(f.entity).map(epoch => f.date.isBefore(new LocalDate(epoch.toLong * 1000))).getOrElse(false)
+        def ofInterest(es: Map[String, Array[Int]], f: Fact): Boolean =
+          es.lift(f.entity).map(times => f.date.isBefore(new LocalDate(times.head.toLong * 1000))).getOrElse(false)
 
-        val facts: DList[(Priority, Fact)] = (entityMap join input).collect {
-          case (es, \/-((p, _, f))) if ofInterest(es, f) => (p.toShort, f)
-        }
+        val facts: DList[(Priority, Fact)] = (entityMap join input).mapFlatten({
+          case (es, \/-((p, _, f))) =>
+            val times = es.getOrElse(f.entity, Array())
+            times.flatMap(epoch => {
+              val ld = new LocalDate(epoch.toLong * 1000)
+              if(f.date.isBefore(ld)) Some((p.toShort, f.copy(entity = f.entity + ":" + ld.toString("yyyy-MM-dd")))) else None
+            })
+          case _                    => Nil
+        })
 
         /*
          * 1. group by entity and feature id

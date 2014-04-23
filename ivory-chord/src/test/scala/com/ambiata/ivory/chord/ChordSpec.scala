@@ -31,7 +31,7 @@ class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
     val outpath = directory + "/out"
     val errpath = directory + "/err"
 
-    val entities = Seq("eid1|2012-09-15", "eid2|2012-12-01")
+    val entities = Seq("eid1|2012-09-15", "eid2|2012-12-01", "eid1|2012-11-01")
 
     lazy val entitiesFile = new File(directory + "/entities")
     TempFiles.writeLines(entitiesFile, entities, isRemote)
@@ -58,6 +58,6 @@ class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
     Chord.onHdfs(repo.path, "store1", "dict1", new Path(entitiesFile.toString), new Path(outpath), new Path(errpath), storer).run(sc) must beOk
 
     val res = fromTextFile(outpath).run.toList
-    res must_== List("eid1|ns1:fid1|def|2012-09-01 00:00:00", "eid2|ns1:fid2|11|2012-11-01 00:00:00")
+    res must_== List("eid1:2012-09-15|ns1:fid1|def|2012-09-01 00:00:00", "eid1:2012-11-01|ns1:fid1|abc|2012-10-01 00:00:00", "eid2:2012-12-01|ns1:fid2|11|2012-11-01 00:00:00")
   }
 }
