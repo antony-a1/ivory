@@ -6,14 +6,14 @@ import language.experimental.macros
 object IvoryDataLiterals {
   implicit class IvoryDataLiteralContext(val c: StringContext) extends AnyVal {
     def k(): Key =
-      macro Macros.keyMacro
+      macro IvoryDataLiteralsMacros.keyMacro
 
     def i(): Identifier =
-      macro Macros.identifierMacro
+      macro IvoryDataLiteralsMacros.identifierMacro
   }
 }
 
-object Macros {
+object IvoryDataLiteralsMacros {
   def keyMacro(c: Context)(): c.Expr[Key] = {
     import c.universe._
     c.prefix.tree match {
