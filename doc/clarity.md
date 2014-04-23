@@ -87,7 +87,7 @@ Mapping this onto a more direct project structure.
  * `ivory-core`: fundamental data structures and interfaces that make ivory a feature store. Stores/Dictionaries/Facts, should depend on ivory storage interfaces for
                  actual implementations.
 
- * `ivory-storage`:  metadata, data storage interfaces, abstracts over HDFS/S3/HDFS+S3-SYNC/LOCAL/LOCAL+S3-SYNC/LOCAL+HDFS-SYNC, nothing specific to a feature store.
+ * `ivory-data`:  metadata, data storage interfaces, abstracts over HDFS/S3/HDFS+S3-SYNC/LOCAL/LOCAL+S3-SYNC/LOCAL+HDFS-SYNC, nothing specific to a feature store.
 
  * `ivory-example`: Example projects. Depend only on `cli`, and `api`.
 

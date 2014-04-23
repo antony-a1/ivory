@@ -12,7 +12,7 @@ object build extends Build {
     id = "ivory"
   , base = file(".")
   , settings = standardSettings ++ promulgate.library(s"com.ambiata.ivory", "ambiata-oss")
-  , aggregate = Seq(api, cli, chord, core, example, generate, ingest, metadata, repository, scoobi, snapshot, storage, thrift, validate, alien_hdfs)
+  , aggregate = Seq(api, cli, chord, core, data, example, generate, ingest, metadata, repository, scoobi, snapshot, storage, thrift, validate, alien_hdfs)
   )
   .dependsOn(api, cli, chord, core, example, generate, ingest, metadata, repository, scoobi, snapshot, storage, thrift, validate, alien_hdfs)
 
@@ -63,6 +63,14 @@ object build extends Build {
     ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz)
   )
   .dependsOn(core, scoobi, storage, validate)
+
+  lazy val data = Project(
+    id = "data"
+  , base = file("ivory-data")
+  , settings = standardSettings ++ lib("data") ++ Seq[Settings](
+      name := "ivory-data"
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.specs2 ++ depend.hadoop(version.value))
+  )
 
   lazy val core = Project(
     id = "core"
