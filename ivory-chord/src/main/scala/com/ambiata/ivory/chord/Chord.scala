@@ -4,6 +4,7 @@ import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, Scalaz._, effect._
 import scala.math.{Ordering => SOrdering}
 import org.joda.time.{LocalDate, LocalDateTime, LocalTime}
+import org.joda.time.format.DateTimeFormat
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.time.DateTimex
@@ -28,22 +29,12 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
     r  <- ScoobiAction.value(Repository.fromHdfsPath(repoPath))
     d  <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dictName))
     s  <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
-    es <- ScoobiAction.fromHdfs(readEntities(entities))
+    es <- ScoobiAction.fromHdfs(Chord.readEntities(entities))
     _  <- scoobiJob(r, d, s, es)
     _  <- storer.storeMeta
   } yield ()
 
-  def readEntities(path: Path): Hdfs[Map[String, Array[Int]]] = for {
-    lines <- Hdfs.readWith(path, is => Streams.read(is)).map(_.lines.toList)
-    map   <- Hdfs.fromDisjunction(parseLines(lines))
-  } yield map
-
-  def parseLines(lines: List[String]): String \/ Map[String, Array[Int]] =
-    lines.traverseU(l => Chord.entityParser.run(Delimited.parsePsv(l)).disjunction).map(entries => {
-      entries.groupBy(_._1).map({ case (e, ts) => (e, ts.map(_._2).sortBy(-_).toArray) })
-    })
-
-  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Map[String, Array[Int]]): ScoobiAction[Unit] =
+  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Map[String, Array[String]]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       lazy val factsetMap = store.factSets.map(fs => (fs.priority.toShort, fs.name)).toMap
       factsFromIvoryStore(repo, store).map(input => {
@@ -55,10 +46,9 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
 
         val facts: DList[(Priority, Fact)] = (entityMap join input).mapFlatten({
           case (es, \/-((p, _, f))) =>
-            val times = es.getOrElse(f.entity, Array())
-            times.flatMap(epoch => {
-              val ld = new LocalDate(epoch.toLong * 1000)
-              if(f.date.isBefore(ld)) Some((p.toShort, f.copy(entity = f.entity + ":" + ld.toString("yyyy-MM-dd")))) else None
+            es.getOrElse(f.entity, Array()).flatMap(strDate => {
+              val ld = DateTimeFormat.forPattern("yyyy-MM-dd").parseLocalDate(strDate)
+              if(f.date.isBefore(ld)) Some((p.toShort, f.copy(entity = f.entity + ":" + strDate))) else None
             })
           case _                    => Nil
         })
@@ -98,11 +88,21 @@ object Chord {
   def onHdfs(repoPath: Path, store: String, dictName: String, entities: Path, output: Path, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]]): ScoobiAction[Unit] =
     HdfsChord(repoPath, store, dictName, entities, errorPath, storer).run
 
-  def entityParser: ListParser[(String, Int)] = {
+  def readEntities(path: Path): Hdfs[Map[String, Array[String]]] = for {
+    lines <- Hdfs.readWith(path, is => Streams.read(is)).map(_.lines.toList)
+    map   <- Hdfs.fromDisjunction(parseLines(lines))
+  } yield map
+
+  def parseLines(lines: List[String]): String \/ Map[String, Array[String]] =
+    lines.traverseU(l => entityParser.run(Delimited.parsePsv(l)).disjunction).map(entries => {
+      entries.groupBy(_._1).map({ case (e, ts) => (e, ts.map(_._2).toArray) })
+    })
+
+  def entityParser: ListParser[(String, String)] = {
     import ListParser._
     for {
       e <- string.nonempty
       d <- localDate
-    } yield (e, (d.toDateTime(new LocalTime(0)).getMillis / 1000).toInt)
+    } yield (e, d.toString("yyyy-MM-dd").intern())
   }
 }
