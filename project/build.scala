@@ -82,7 +82,7 @@ object build extends Build {
   , base = file("ivory-core")
   , settings = standardSettings ++ lib("core") ++ Seq[Settings](
       name := "ivory-core"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++ depend.hadoop(version.value)) // TODO: remove hadoop dep when a place to put repository Hdfs path handling is found
+    ) ++ Seq[Settings](libraryDependencies ++= depend.trove ++ depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++ depend.hadoop(version.value)) // TODO: remove hadoop dep when a place to put repository Hdfs path handling is found
   )
 
   lazy val example = Project(

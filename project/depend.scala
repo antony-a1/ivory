@@ -5,6 +5,7 @@ object depend {
   val scalaz    = Seq("org.scalaz"           %% "scalaz-core"     % "7.0.6",
                       "org.scalaz"           %% "scalaz-effect"   % "7.0.6")
   val scopt     = Seq("com.github.scopt"     %% "scopt"           % "3.2.0")
+  val trove     = Seq("trove"                %  "trove"           % "1.0.2")
   val joda      = Seq("joda-time"            %  "joda-time"       % "2.1",
                       "org.joda"             %  "joda-convert"    % "1.1")
   val specs2    = Seq("org.specs2"           %% "specs2-core",
