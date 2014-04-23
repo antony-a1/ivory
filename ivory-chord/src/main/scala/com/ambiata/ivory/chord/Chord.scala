@@ -46,14 +46,13 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
   def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Map[String, Int]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       lazy val factsetMap = store.factSets.map(fs => (fs.priority.toShort, fs.name)).toMap
-
       factsFromIvoryStore(repo, store).map(input => {
         val errors: DList[String] = input.collect {
           case -\/(e) => e
         }
 
         def ofInterest(f: Fact): Boolean =
-          entities.lift(f.entity).map(epoch => f.date.isBefore(new LocalDate(epoch))).getOrElse(false)
+          entities.lift(f.entity).map(epoch => f.date.isBefore(new LocalDate(epoch.toLong * 1000))).getOrElse(false)
 
         val facts: DList[(Priority, Fact)] = input.collect {
           case \/-((p, _, f)) if ofInterest(f) => (p.toShort, f)
