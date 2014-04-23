@@ -16,6 +16,7 @@ Identifier Properties
   Render/parse is symmetric                       $symmetric
   Initial starts with zero                        $initial
   If next succeeds identifier is always larger    $next
+  Literals work                                   $literals
 
 """
   def overflow = {
@@ -37,6 +38,11 @@ Identifier Properties
 
   def next = prop((i: Identifier) =>
     i.next.forall(_ > i))
+
+  def literals = {
+    import IvoryDataLiterals._
+    Some(i"1234") must_== Identifier.parse("1234")
+  }
 
   implicit def IdentifierArbitrary: Arbitrary[Identifier] =
     Arbitrary(Gen.choose(0, 200) map (n => (1 to n).foldLeft(Identifier.initial)((acc, _) => acc.next.get)))
