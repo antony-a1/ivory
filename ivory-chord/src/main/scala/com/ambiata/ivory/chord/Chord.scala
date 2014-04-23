@@ -53,9 +53,6 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
           case -\/(e) => e
         }
 
-        def ofInterest(es: Map[String, Array[Int]], f: Fact): Boolean =
-          es.lift(f.entity).map(times => f.date.isBefore(new LocalDate(times.head.toLong * 1000))).getOrElse(false)
-
         val facts: DList[(Priority, Fact)] = (entityMap join input).mapFlatten({
           case (es, \/-((p, _, f))) =>
             val times = es.getOrElse(f.entity, Array())
