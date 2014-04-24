@@ -10,6 +10,7 @@ import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.time.DateTimex
 import com.ambiata.mundane.parse._
+import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.WireFormats._
@@ -19,7 +20,7 @@ import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
 import DateMap.localDateToInt
 
-case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: Path, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]]) {
+case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: Path, tmpPath: Path, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]]) {
   import IvoryStorage._
 
   type Priority   = Short
@@ -41,29 +42,35 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
     d  <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dictName))
     s  <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
     es <- ScoobiAction.fromHdfs(Chord.readChords(entities))
-    _  <- scoobiJob(r, d, s, es)
+    chordPath = new Path(tmpPath, java.util.UUID.randomUUID().toString)
+    _  <- ScoobiAction.fromHdfs(Chord.serialiseChords(chordPath, es))
+    _  <- scoobiJob(r, d, s, chordPath)
     _  <- storer.storeMeta
   } yield ()
 
   /**
    * Persist facts which are the latest corresponding to a set of dates given for each entity
    */
-  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Mappings): ScoobiAction[Unit] =
+  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, chordPath: Path): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       lazy val factsetMap = store.factSets.map(fs => (fs.priority.toShort, fs.name)).toMap
 
       factsFromIvoryStore(repo, store).map { input =>
-        val entityMap = DObject(entities)
+
+        // DANGER - needs to be executed on mapper
+        lazy val map: Mappings = Chord.deserialiseChords(chordPath).run(sc).run.unsafePerformIO() match {
+          case Ok(m)    => m
+          case Error(e) => sys.error("Can not deserialise chord map - " + Result.asString(e))
+        }
 
         val errors: DList[String] = input.collect { case -\/(e) => e }
 
         // filter out the facts which are not in the entityMap or
         // which date are greater than the required dates for this entity
         val facts: DList[(Priority, Fact)] =
-          (entityMap join input)
-            .collect { case (map, \/-((p, _, fact))) => (map, (p.toShort, fact)) }
-            .filter  { case (map, (p, f)) => Option(map.get(f.entity)).exists(_.headOption.getOrElse(0) >= localDateToInt(f.date)) }
-            .map(_._2)
+          input
+            .collect { case \/-((p, _, fact)) => (p.toShort, fact) }
+            .filter  { case (p, f) => DateMap.keep(map, f.entity, f.date.getYear.toShort, f.date.getMonthOfYear.toByte, f.date.getDayOfMonth.toByte) }
 
         /**
          * 1. group by entity and feature id
@@ -74,7 +81,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
             .groupBy { case (p, f) => (f.entity, f.featureId.toString) }
             .mapFlatten { case ((entityId, featureId), fs) =>
               // the required dates
-              val dates = entities.get(entityId)
+              val dates = map.get(entityId)
 
               // we traverse all facts and for each required date
               // we keep the "best" fact which date is just before that date
@@ -113,8 +120,22 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
 
 object Chord {
 
-  def onHdfs(repoPath: Path, store: String, dictName: String, entities: Path, output: Path, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]]): ScoobiAction[Unit] =
-    HdfsChord(repoPath, store, dictName, entities, errorPath, storer).run
+  def onHdfs(repoPath: Path, store: String, dictName: String, entities: Path, output: Path, tmpPath: Path, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]]): ScoobiAction[Unit] =
+    HdfsChord(repoPath, store, dictName, entities, tmpPath, errorPath, storer).run
+
+  def serialiseChords(path: Path, map: HashMap[String, Array[Int]]): Hdfs[Unit] = {
+    import java.io.ObjectOutputStream
+    Hdfs.writeWith(path, os => ResultT.safe({
+      val bOut = new ObjectOutputStream(os)
+      bOut.writeObject(map)
+      bOut.close()
+    }))
+  }
+
+  def deserialiseChords(path: Path): Hdfs[HashMap[String, Array[Int]]] = {
+    import java.io.ObjectInputStream
+    Hdfs.readWith(path, is => ResultT.safe((new ObjectInputStream(is)).readObject.asInstanceOf[HashMap[String, Array[Int]]]))
+  }
 
   def readChords(path: Path): Hdfs[HashMap[String, Array[Int]]] = for {
     chords <- Hdfs.readWith(path, is => Streams.read(is))

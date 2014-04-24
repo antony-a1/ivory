@@ -7,7 +7,7 @@ object DateMap {
 
   def keep(dates: Danger, entity: String, year: Short, month: Byte, day: Byte): Boolean = {
     val x = dates.get(entity)
-    x != null && toInt(year, month, day) < x(0)
+    x != null && toInt(year, month, day) <= x(0)
   }
 
   def chords(s: String): Danger = {
