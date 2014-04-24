@@ -29,6 +29,7 @@ object build extends Build {
   , version in ThisBuild := s"""1.0.0-${Option(System.getenv("HADOOP_VERSION")).getOrElse("cdh5")}"""
   , organization := "com.ambiata"
   , scalaVersion := "2.10.4"
+  , fork in run  := true
   ) ++ Seq(prompt)
 
   def lib(name: String) =

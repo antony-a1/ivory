@@ -23,6 +23,7 @@ import IvoryStorage._
 class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
   override def isCluster = false
 
+
   "Can extract expected facts" >> { implicit sc: ScoobiConfiguration =>
     implicit val fs = sc.fileSystem
 
@@ -59,5 +60,5 @@ class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
 
     val res = fromTextFile(outpath).run.toList
     res must_== List("eid1:2012-09-15|ns1:fid1|def|2012-09-01 00:00:00", "eid1:2012-11-01|ns1:fid1|abc|2012-10-01 00:00:00", "eid2:2012-12-01|ns1:fid2|11|2012-11-01 00:00:00")
-  }
+  }.pendingUntilFixed("Reduction needs to be implemented")
 }

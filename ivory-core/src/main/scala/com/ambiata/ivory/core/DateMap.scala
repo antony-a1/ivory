@@ -1,6 +1,7 @@
 package com.ambiata.ivory.core
 
 object DateMap {
+  import org.joda.time.LocalDate
   import java.util.HashMap
   type Danger = HashMap[String, Array[Int]]
 
@@ -27,6 +28,14 @@ object DateMap {
 
   @inline def toInt(y: Short, m: Byte, d: Byte)  =
     (y.toInt << 16) | (m.toInt << 8) | d.toInt
+
+  @inline def localDateToInt(d: LocalDate): Int =
+    toInt(d.getYear.toShort, d.getMonthOfYear.toByte, d.getDayOfMonth.toByte)
+
+  @inline def localDateFromInt(date: Int): LocalDate = {
+    val (y, m, d) = fromInt(date)
+    new LocalDate(y.toInt, m.toInt, d.toInt)
+  }
 }
 
 

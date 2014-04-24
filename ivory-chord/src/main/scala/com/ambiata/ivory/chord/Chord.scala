@@ -5,6 +5,7 @@ import scalaz.{DList => _, _}, Scalaz._, effect._
 import scala.math.{Ordering => SOrdering}
 import org.joda.time.{LocalDate, LocalDateTime, LocalTime}
 import org.joda.time.format.DateTimeFormat
+import java.util.HashMap
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.time.DateTimex
@@ -29,12 +30,12 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
     r  <- ScoobiAction.value(Repository.fromHdfsPath(repoPath))
     d  <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dictName))
     s  <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
-    es <- ScoobiAction.fromHdfs(Chord.readEntities(entities))
+    es <- ScoobiAction.fromHdfs(Chord.readChords(entities))
     _  <- scoobiJob(r, d, s, es)
     _  <- storer.storeMeta
   } yield ()
 
-  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Map[String, Array[String]]): ScoobiAction[Unit] =
+  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: HashMap[String, Array[Int]]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       lazy val factsetMap = store.factSets.map(fs => (fs.priority.toShort, fs.name)).toMap
       factsFromIvoryStore(repo, store).map(input => {
@@ -46,11 +47,10 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
 
         val facts: DList[(Priority, Fact)] = (entityMap join input).mapFlatten({
           case (es, \/-((p, _, f))) =>
-            es.getOrElse(f.entity, Array()).flatMap(strDate => {
-              val ld = DateTimeFormat.forPattern("yyyy-MM-dd").parseLocalDate(strDate)
-              if(f.date.isBefore(ld)) Some((p.toShort, f.copy(entity = f.entity + ":" + strDate))) else None
+            Option(es.get(f.entity)).map(_.head).flatMap(intDate => {
+              if(DateMap.localDateToInt(f.date) <= intDate) Some((p.toShort, f)) else None
             })
-          case _                    => Nil
+          case _                    => None
         })
 
         /*
@@ -87,6 +87,10 @@ object Chord {
 
   def onHdfs(repoPath: Path, store: String, dictName: String, entities: Path, output: Path, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]]): ScoobiAction[Unit] =
     HdfsChord(repoPath, store, dictName, entities, errorPath, storer).run
+
+  def readChords(path: Path): Hdfs[HashMap[String, Array[Int]]] = for {
+    chords <- Hdfs.readWith(path, is => Streams.read(is))
+  } yield DateMap.chords(chords)
 
   def readEntities(path: Path): Hdfs[Map[String, Array[String]]] = for {
     lines <- Hdfs.readWith(path, is => Streams.read(is)).map(_.lines.toList)

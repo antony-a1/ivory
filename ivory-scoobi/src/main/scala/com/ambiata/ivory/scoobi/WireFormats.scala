@@ -8,6 +8,8 @@ import org.joda.time.LocalDate
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.thrift._
 
+import scala.collection.JavaConverters._
+
 trait WireFormats {
 
   /**
@@ -114,6 +116,8 @@ trait WireFormats {
     def fromWire(in: DataInput): LocalDate = new LocalDate(in.readShort.toInt, in.readByte.toInt, in.readByte.toInt)
     override def toString = "LocalDate"
   }
+
+  implicit def DateMapWireFormat = AnythingFmt[java.util.HashMap[String, Array[Int]]]
 
   def mkThriftFmt[A](empty: A)(implicit ev: A <:< org.apache.thrift.TBase[_ <: org.apache.thrift.TBase[_, _], _ <: org.apache.thrift.TFieldIdEnum]) = new WireFormat[A] {
     val serialiser = ThriftSerialiser()
