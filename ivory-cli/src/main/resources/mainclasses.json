@@ -4,10 +4,6 @@
   "class-name"   : "com.ambiata.ivory.cli.createRepository"
 },
 {
-  "service-name" : "generate-dictionary",
-  "class-name"   : "com.ambiata.ivory.cli.generateDictionary"
-},
-{
   "service-name" : "import-dictionary",
   "class-name"   : "com.ambiata.ivory.cli.importDictionary"
 },
@@ -31,7 +27,6 @@
   "service-name" : "ingest-bulk",
   "class-name"   : "com.ambiata.ivory.cli.ingestBulk"
 },
-
 {
   "service-name" : "extract-snapshot",
   "class-name"   : "com.ambiata.ivory.cli.snapshot"
