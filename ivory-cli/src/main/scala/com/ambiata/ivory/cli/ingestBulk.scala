@@ -63,7 +63,7 @@ object ingestBulk {
   def importFeed(input: Path)(repo: HdfsRepository, factset: String, dname: String, tmpPath: Path, errorPath: Path, timezone: DateTimeZone): ScoobiAction[Unit] = for {
     dict <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dname))
     list <- listing(input)
-    _    = list.foreach({ case (n, d) => { println(s"namespace[$n] --"); d.foreach(x => println(s"  $d")) }})
+    _    = list.foreach({ case (n, d) => { println(s"namespace[$n] --"); d.foreach(x => println(s"  $x")) }})
     _    = partitions(list).foreach({ case (n, d) => println(s"part $n / $d") })
     conf <- ScoobiAction.scoobiConfiguration
     _    <- EavtTextImporter.onHdfsBulk(repo, dict, factset, list.map(_._1), input, errorPath, timezone, Some(new SnappyCodec), partitions(list))

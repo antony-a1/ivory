@@ -82,9 +82,9 @@ object EavtTextImporter {
     sc: ScoobiConfiguration
   ) {
     sc.setMinReducers(partitions.size)
-    val parsedFacts = namespaces.map(namespace =>
-      fromEavtTextFile(path.toString + "/" + namespace, dictionary, namespace, timezone, preprocess)
-    ).reduceLeft(_ ++ _)
+    val parsedFacts = namespaces.map(namespace => {
+      fromEavtTextFile(path.toString + "/" + namespace + "/*", dictionary, namespace, timezone, preprocess)
+    }).reduceLeft(_ ++ _)
 
     scoobiJobOnFacts(
       parsedFacts,
