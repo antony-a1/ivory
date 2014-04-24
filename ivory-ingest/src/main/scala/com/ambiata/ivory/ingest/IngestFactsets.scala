@@ -3,6 +3,7 @@ package com.ambiata.ivory.ingest
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.scoobi._
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
