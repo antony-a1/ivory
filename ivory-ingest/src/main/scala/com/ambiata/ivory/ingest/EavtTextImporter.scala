@@ -72,7 +72,7 @@ object EavtTextImporter {
     dictionary: Dictionary,
     factset: String,
     namespaces: List[String],
-    path: Pnath,
+    path: Path,
     errorPath: Path,
     timezone: DateTimeZone,
     codec: Option[CompressionCodec],
