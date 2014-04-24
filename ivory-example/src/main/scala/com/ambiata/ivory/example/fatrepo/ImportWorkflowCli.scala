@@ -11,7 +11,7 @@ object ImportWorkflowCli extends ScoobiApp {
 
   val tombstone = List("☠")
 
-  case class CliArguments(repo: String, dictionary: String, input: String, namespace: String, tmp: String, errors: String, timezone: DateTimeZone)
+  case class CliArguments(repo: String, dictionary: String, input: String, namespace: String, tmp: String, timezone: DateTimeZone)
 
   val parser = new scopt.OptionParser[CliArguments]("ImportWorkflow") {
     head("""
@@ -25,13 +25,12 @@ object ImportWorkflowCli extends ScoobiApp {
          |5. Create a feature store with the fact set and any previous fact sets in it.
          |
          |Example:
-         |hadoop jar ivory.jar com.ambiata.ivory.example.fatrepo.ImportWorkflowCli -r ivory_repo -d dictionaries -e errors -i input -z Australia/Sydney
+         |hadoop jar ivory.jar com.ambiata.ivory.example.fatrepo.ImportWorkflowCli -r ivory_repo -d dictionaries  -i input -z Australia/Sydney
          |""".stripMargin)
 
     help("help") text "shows this usage text"
     opt[String]('r', "repo") action { (x, c) => c.copy(repo = x) }       required() text "Path to an ivory repository."
     opt[String]('d', "dictionary") action { (x, c) => c.copy(dictionary = x) } required() text "Path to a set of dictionaries to import."
-    opt[String]('e', "errors")     action { (x, c) => c.copy(errors = x) }     required() text "Path to store any errors."
     opt[String]('t', "tmp")        action { (x, c) => c.copy(tmp = x) }        required() text "Path to store tmp data."
     opt[String]('i', "input")      action { (x, c) => c.copy(input = x) }      required() text "Path to data to import."
     opt[String]('n', "namespace")  action { (x, c) => c.copy(namespace = x) }             text "Namespace, default 'namespace'."
@@ -41,8 +40,8 @@ object ImportWorkflowCli extends ScoobiApp {
   }
 
   def run {
-    parser.parse(args, CliArguments("", "", "", "namespace", "", "", DateTimeZone.getDefault)).map(c => {
-      val res = ImportWorkflow.onHdfs(new Path(c.repo), new Path(c.dictionary), c.namespace, new Path(c.input), tombstone, new Path(c.tmp), new Path(c.errors), c.timezone)
+    parser.parse(args, CliArguments("", "", "", "namespace", "", DateTimeZone.getDefault)).map(c => {
+      val res = ImportWorkflow.onHdfs(new Path(c.repo), new Path(c.dictionary), c.namespace, new Path(c.input), tombstone, new Path(c.tmp), c.timezone)
       res.run(configuration).run.unsafePerformIO() match {
         case Ok(_)    => println(s"Successfully imported '${c.input}' into '${c.repo}'")
         case Error(e) => println(s"Failed! - ${e}")

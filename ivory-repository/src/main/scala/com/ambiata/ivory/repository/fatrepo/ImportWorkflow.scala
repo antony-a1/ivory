@@ -42,7 +42,7 @@ object ImportWorkflow {
 
   private implicit val logger = LogFactory.getLog("ivory.repository.fatrepo.Import")
 
-  def onHdfs(repoPath: Path, importDict: Option[ImportDictFunc], importFacts: ImportFactsFunc, tombstone: Tombstone, tmpPath: Path, errorPath: Path, timezone: DateTimeZone): ScoobiAction[String] = {
+  def onHdfs(repoPath: Path, importDict: Option[ImportDictFunc], importFacts: ImportFactsFunc, tombstone: Tombstone, tmpPath: Path, timezone: DateTimeZone): ScoobiAction[String] = {
     val repo = Repository.fromHdfsPath(repoPath)
     val start = System.currentTimeMillis
     println("starting ==")
@@ -66,7 +66,7 @@ object ImportWorkflow {
         println(s"created fact set in ${x - t2}ms")
         x
       }
-      _        <- importFacts(repo, factset, dname, new Path(tmpPath, "facts"), new Path(errorPath, "facts"), timezone)
+      _        <- importFacts(repo, factset, dname, new Path(tmpPath, "facts"), new Path(repo.errorsPath, factset), timezone)
       t4 = {
         val x = System.currentTimeMillis
         println(s"imported fact set in ${x - t3}ms")

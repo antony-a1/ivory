@@ -21,7 +21,7 @@ object ingest {
 
   val tombstone = List("☠")
 
-  case class CliArguments(repo: String, dictionary: Option[String], input: String, namespace: String, tmp: String, errors: String, timezone: DateTimeZone, runOnSingleMachine: Boolean)
+  case class CliArguments(repo: String, dictionary: Option[String], input: String, namespace: String, tmp: String, timezone: DateTimeZone, runOnSingleMachine: Boolean)
 
   val parser = new scopt.OptionParser[CliArguments]("ingest") {
     head("""
@@ -33,7 +33,6 @@ object ingest {
 
     help("help") text "shows this usage text"
     opt[String]('r', "repo") action { (x, c) => c.copy(repo = x) }       required() text "Path to an ivory repository."
-    opt[String]('e', "errors")     action { (x, c) => c.copy(errors = x) }     required() text "Path to store any errors."
     opt[String]('t', "tmp")        action { (x, c) => c.copy(tmp = x) }        required() text "Path to store tmp data."
     opt[String]('i', "input")      action { (x, c) => c.copy(input = x) }      required() text "Path to data to import."
     opt[String]('d', "dictionary")      action { (x, c) => c.copy(dictionary = Some(x)) }      text "Name of dictionary to use."
@@ -45,8 +44,8 @@ object ingest {
   }
 
   def main(args: Array[String]) {
-    parser.parse(args, CliArguments("", None, "", "", "", "", DateTimeZone.getDefault, false)).map(c => {
-      val res = onHdfs(new Path(c.repo), c.dictionary, c.namespace, new Path(c.input), tombstone, new Path(c.tmp), new Path(c.errors), c.timezone, c.runOnSingleMachine)
+    parser.parse(args, CliArguments("", None, "", "", "", DateTimeZone.getDefault, false)).map(c => {
+      val res = onHdfs(new Path(c.repo), c.dictionary, c.namespace, new Path(c.input), tombstone, new Path(c.tmp), c.timezone, c.runOnSingleMachine)
       res.run(ScoobiConfiguration()).run.unsafePerformIO() match {
         case Ok(_)    => println(s"Successfully imported '${c.input}' into '${c.repo}'")
         case Error(e) => println(s"Failed! - ${e}")
@@ -54,8 +53,8 @@ object ingest {
     })
   }
 
-  def onHdfs(repo: Path, dictionary: Option[String], namespace: String, input: Path, tombstone: List[String], tmp: Path, errors: Path, timezone: DateTimeZone, runOnSingleMachine: Boolean): ScoobiAction[String] =
-    fatrepo.ImportWorkflow.onHdfs(repo, dictionary.map(defaultDictionaryImport(_)), importFeed(input, namespace, runOnSingleMachine), tombstone, tmp, errors, timezone)
+  def onHdfs(repo: Path, dictionary: Option[String], namespace: String, input: Path, tombstone: List[String], tmp: Path, timezone: DateTimeZone, runOnSingleMachine: Boolean): ScoobiAction[String] =
+    fatrepo.ImportWorkflow.onHdfs(repo, dictionary.map(defaultDictionaryImport(_)), importFeed(input, namespace, runOnSingleMachine), tombstone, tmp, timezone)
 
   def defaultDictionaryImport(dictionary: String)(repo: HdfsRepository, name: String, tombstone: List[String], tmpPath: Path): Hdfs[Unit] =
     DictionaryImporter.onHdfs(repo.path, repo.dictionaryPath(dictionary), name)
