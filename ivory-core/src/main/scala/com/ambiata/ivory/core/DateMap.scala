@@ -36,6 +36,11 @@ object DateMap {
     val (y, m, d) = fromInt(date)
     new LocalDate(y.toInt, m.toInt, d.toInt)
   }
+
+  @inline def intToStringDate(date: Int): String = {
+    val (y, m, d) = fromInt(date)
+    "%4d-%02d-%02d".format(y, m, d)
+  }
 }
 
 

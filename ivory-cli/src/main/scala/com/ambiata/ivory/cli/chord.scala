@@ -30,6 +30,7 @@ object chord extends ScoobiApp {
     head("""
          |Extract the latest features from a given ivory repo using a list of entitiy id and date pairs
          |
+         |The output entity ids will be of the form eid:yyyy-MM-dd
          |""".stripMargin)
 
     help("help") text "shows this usage text"

@@ -99,7 +99,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
                     if (factDate <= date && (fact, priority) < ((f, p))) (date, priority, Some(fact))
                     else                                               previous
                 }
-              }.collect { case (d, p, Some(f)) => (p, f) }.toIterable
+              }.collect { case (d, p, Some(f)) => (p, f.copy(entity = f.entity + ":" + DateMap.intToStringDate(d))) }.toIterable
             }.collect { case (p, f) if !f.isTombstone => (p, f) }
 
         val validated: DList[String \/ Fact] = latest.map { case (p, f) =>
@@ -140,17 +140,4 @@ object Chord {
   def readChords(path: Path): Hdfs[HashMap[String, Array[Int]]] = for {
     chords <- Hdfs.readWith(path, is => Streams.read(is))
   } yield DateMap.chords(chords)
-
-  def parseLines(lines: List[String]): String \/ Map[String, Array[String]] =
-    lines.traverseU(l => entityParser.run(Delimited.parsePsv(l)).disjunction).map(entries => {
-      entries.groupBy(_._1).map({ case (e, ts) => (e, ts.map(_._2).toArray) })
-    })
-
-  def entityParser: ListParser[(String, String)] = {
-    import ListParser._
-    for {
-      e <- string.nonempty
-      d <- localDate
-    } yield (e, d.toString("yyyy-MM-dd").intern())
-  }
 }

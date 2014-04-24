@@ -35,7 +35,7 @@ class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
     Chord.onHdfs(repo.path, "store1", "dict1", new Path(directory+"/entities"), storer.path, new Path(directory+"/tmp"), new Path(directory+"/err"), storer).run(sc) must beOk
 
     fromTextFile(storer.path.toString).run.toSet must_==
-    Set("eid1|ns1:fid1|def|2012-09-01 00:00:00", "eid1|ns1:fid1|abc|2012-10-01 00:00:00", "eid2|ns1:fid2|11|2012-11-01 00:00:00")
+    Set("eid1:2012-09-15|ns1:fid1|def|2012-09-01 00:00:00", "eid1:2012-11-01|ns1:fid1|abc|2012-10-01 00:00:00", "eid2:2012-12-01|ns1:fid2|11|2012-11-01 00:00:00")
   }
   
   def createEntitiesFiles(directory: String)(implicit sc: ScoobiConfiguration) = {
