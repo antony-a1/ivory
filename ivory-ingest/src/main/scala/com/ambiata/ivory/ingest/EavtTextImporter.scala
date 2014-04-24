@@ -72,7 +72,7 @@ object EavtTextImporter {
     dictionary: Dictionary,
     factset: String,
     namespaces: List[String],
-    path: Path,
+    path: Pnath,
     errorPath: Path,
     timezone: DateTimeZone,
     codec: Option[CompressionCodec],
@@ -81,6 +81,7 @@ object EavtTextImporter {
   )(implicit
     sc: ScoobiConfiguration
   ) {
+    sc.setMinReducers(partitions.size)
     val parsedFacts = namespaces.map(namespace =>
       fromEavtTextFile(path.toString + "/" + namespace, dictionary, namespace, timezone, preprocess)
     ).reduceLeft(_ ++ _)
