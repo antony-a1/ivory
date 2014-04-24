@@ -8,7 +8,6 @@ import java.io._
 import com.ambiata.mundane.control._
 
 case class Hdfs[+A](action: ActionT[IO, Unit, Configuration, A]) {
-
   def run(conf: Configuration): ResultTIO[A] =
     action.executeT(conf)
 
@@ -64,6 +63,9 @@ object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
 
   def exists(p: Path): Hdfs[Boolean] =
     filesystem.map(fs => fs.exists(p))
+
+  def isDirectory(p: Path): Hdfs[Boolean] =
+    filesystem.map(fs => fs.isDirectory(p))
 
   def mustexist(p: Path): Hdfs[Unit] =
     exists(p).flatMap(e => if(e) Hdfs.ok(()) else Hdfs.fail(s"$p doesn't exist!"))
@@ -126,6 +128,12 @@ object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
 
   def mkdir(p: Path): Hdfs[Boolean] =
     filesystem.map(fs => fs.mkdirs(p))
+
+  def delete(p: Path): Hdfs[Unit] =
+    filesystem.map(fs => fs.delete(p, false))
+
+  def deleteAll(p: Path): Hdfs[Unit] =
+    filesystem.map(fs => fs.delete(p, true))
 
   implicit def HdfsMonad: Monad[Hdfs] = new Monad[Hdfs] {
     def point[A](v: => A) = ok(v)

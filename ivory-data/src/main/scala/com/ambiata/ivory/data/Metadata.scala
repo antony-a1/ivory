@@ -28,7 +28,7 @@ case class StoreMetadata(store: Store[ResultTIO]) extends Metadata[ResultTIO] {
     val uuid = java.util.UUID.randomUUID.toString
     for {
       _ <- store.bytes.write(stage </> key.render </> uuid, value)
-      i <- store.list(data </> key.render).map(_.map(x => Identifier.parse(x.relativeTo(data </> key.render).path)).flatten.sorted.lastOption.getOrElse(Identifier.initial))
+      i <- store.list(data </> key.render).map(_.map(x => Identifier.parse(x.relativeTo(data </> key.render).path)).flatten.sorted.lastOption.flatMap(_.next).getOrElse(Identifier.initial))
       _ <- store.move(stage </> key.render </> uuid, data </> key.render </> i.render)
     } yield i
   }
@@ -58,36 +58,6 @@ case class StoreMetadata(store: Store[ResultTIO]) extends Metadata[ResultTIO] {
     case IdentifierRef(i) =>
       ResultT.ok[IO, Identifier](i)
   }
-
-/*
-  def resolve(ref: Ref): ResultT[IO, Commit] = ref match {
-    case Head => for {
-      e <- store.exists(refs </> "HEAD")
-      c <- if (e) store.utf8.read(refs </> "HEAD").flatMap(x => Identifier.parse(x) match {
-        case None =>
-          ResultT.fail[IO, Commit](s"Invalid HEAD reference [$x].")
-        case Some(i) =>
-          resolve(IdentifierRef(i))
-      }) else ResultT.fail[IO, Commit]("No HEAD reference could be found.")
-    } yield c
-    case TagRef(tag) => for {
-      e <- store.exists(refs </> tag.render)
-      c <- if (e) store.utf8.read(refs </> tag.render).flatMap(x => Identifier.parse(x) match {
-        case None =>
-          ResultT.fail[IO, Commit](s"Invalid tag reference [$x] for tag [$tag].")
-        case Some(i) =>
-          resolve(IdentifierRef(i))
-      }) else ResultT.fail[IO, Commit](s"No tag [$tag] reference could be found.")
-    } yield c
-    case IdentifierRef(identifier) =>
-      store.utf8.read(meta </> identifier.render).flatMap(s => Commit.decode(s) match {
-        case None =>
-          ResultT.fail[IO, Commit](s"Invalid identifier [$identifier]: ===\n$s")
-        case Some(commit) =>
-          ResultT.ok[IO, Commit](commit)
-      })
-  }
-  */
 }
 
 case class Commit(id: Identifier, entries: List[(Key, Identifier)])
