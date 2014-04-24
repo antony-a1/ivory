@@ -49,7 +49,7 @@ object ingestBulk {
       val res = onHdfs(new Path(c.repo), c.dictionary, new Path(c.input), tombstone, new Path(c.tmp), c.timezone)
       res.run(ScoobiConfiguration()).run.unsafePerformIO() match {
         case Ok(_)    => println(s"Successfully imported '${c.input}' into '${c.repo}'")
-        case Error(e) => println(s"Failed! - ${e}")
+        case Error(e) => println(s"Failed! - ${Result.asString(e)}")
       }
     })
   }
@@ -63,6 +63,8 @@ object ingestBulk {
   def importFeed(input: Path)(repo: HdfsRepository, factset: String, dname: String, tmpPath: Path, errorPath: Path, timezone: DateTimeZone): ScoobiAction[Unit] = for {
     dict <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dname))
     list <- listing(input)
+    _    = list.foreach({ case (n, d) => { println(s"namespace[$n] --"); d.foreach(x => println(s"  $d")) }})
+    _    = partitions(list).foreach({ case (n, d) => println(s"part $n / $d") })
     conf <- ScoobiAction.scoobiConfiguration
     _    <- EavtTextImporter.onHdfsBulk(repo, dict, factset, list.map(_._1), input, errorPath, timezone, Some(new SnappyCodec), partitions(list))
   } yield ()
