@@ -17,7 +17,7 @@ import org.joda.time.DateTimeZone
 
 import scalaz.{DList => _, _}, Scalaz._
 
-object ingest extends ScoobiApp {
+object ingest {
 
   val tombstone = List("☠")
 
@@ -44,10 +44,10 @@ object ingest extends ScoobiApp {
 
   }
 
-  def run {
+  def main(args: Array[String]) {
     parser.parse(args, CliArguments("", None, "", "", "", "", DateTimeZone.getDefault, false)).map(c => {
       val res = onHdfs(new Path(c.repo), c.dictionary, c.namespace, new Path(c.input), tombstone, new Path(c.tmp), new Path(c.errors), c.timezone, c.runOnSingleMachine)
-      res.run(configuration).run.unsafePerformIO() match {
+      res.run(ScoobiConfiguration()).run.unsafePerformIO() match {
         case Ok(_)    => println(s"Successfully imported '${c.input}' into '${c.repo}'")
         case Error(e) => println(s"Failed! - ${e}")
       }
