@@ -68,7 +68,7 @@ object ingestBulk {
   } yield ()
 
   def partitions(ns: List[(Namespace, List[Parts])]): Map[String, Int] =
-    ns.flatMap({ case (n, ps) => ps.map(p => s"${n}/${p}") }).zipWithIndex.toMap
+    ns.flatMap({ case (n, ps) => ps.map(p => s"${n}/${p.replace("-", "/")}") }).zipWithIndex.toMap
 
   def listing(in: Path): ScoobiAction[List[(Namespace, List[Parts])]] = ScoobiAction.fromHdfs(for {
     namespaces <- Hdfs.globPaths(in).map(_.map(_.getName))
