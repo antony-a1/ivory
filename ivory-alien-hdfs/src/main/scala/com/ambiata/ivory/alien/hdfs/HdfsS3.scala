@@ -13,7 +13,7 @@ object HdfsS3 {
   def putPath(bucket: String, key: String, path: Path, metadata: ObjectMetadata = S3.ServerSideEncryption)(implicit c: Client[AmazonS3Client]): HdfsS3Action[Unit] = {
     fromHdfs(Hdfs.readWith(path, is =>
       S3Action(_.putObject(bucket, key, is, metadata)).
-        onResult(_.prependErrorMessage(s"Could not put file to S3://$bucket/$key")).evalT)).map((result: PutObjectResult) => ())
+        onResult(_.prependErrorMessage(s"Could not put file to s3://$bucket/$key")).evalT)).map((result: PutObjectResult) => ())
   }
 
   def putPaths(bucket: String, key: String, path: Path, glob: String = "*/*/*/*/*/*", metadata: ObjectMetadata = S3.ServerSideEncryption)(implicit c: Client[AmazonS3Client]): HdfsS3Action[Unit] =  for {
