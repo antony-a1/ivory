@@ -47,7 +47,7 @@ object ingestBulk extends ScoobiApp {
   def run {
     parser.parse(args, CliArguments("", None, "", "", DateTimeZone.getDefault)).map(c => {
       val res = onHdfs(new Path(c.repo), c.dictionary, new Path(c.input), tombstone, new Path(c.tmp), c.timezone)
-      res.run(ScoobiConfiguration()).run.unsafePerformIO() match {
+      res.run(configuration.modeIs(com.nicta.scoobi.core.Mode.Cluster)).run.unsafePerformIO() match {
         case Ok(_)    => println(s"Successfully imported '${c.input}' into '${c.repo}'")
         case Error(e) => println(s"Failed! - ${Result.asString(e)}")
       }

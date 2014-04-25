@@ -145,8 +145,6 @@ object EavtTextImporter {
     val errors: DList[String] = dlist.collect { case -\/(err) => err + " - path " + path }
     val facts: DList[Fact]    = dlist.collect { case \/-(f) => f }
 
-    persist(errors.toTextFile(errorPath.toString, overwrite = true))
-
     val packed =
       facts
         .by(keyedBy)
@@ -159,7 +157,7 @@ object EavtTextImporter {
       case Some(c) => packed.compressWith(c)
     }
 
-    persist(compressed)
+    persist(compressed, errors.toTextFile(errorPath.toString, overwrite = true))
   }
 
   def copyFilesToS3(repository: S3Repository, factset: String, namespace: String): ScoobiS3EMRAction[Unit] = for {
