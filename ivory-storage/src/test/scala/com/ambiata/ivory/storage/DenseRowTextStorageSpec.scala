@@ -1,14 +1,12 @@
 package com.ambiata.ivory.storage
 
 import scalaz.{DList => _, _}, Scalaz._
-import org.joda.time.LocalDate
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.testing.mutable._
 import com.nicta.scoobi.testing.SimpleJobs
 import com.nicta.scoobi.testing.TestFiles._
 import com.nicta.scoobi.testing.TempFiles
 
-import org.joda.time.LocalDate
 import org.specs2._
 
 import com.ambiata.ivory.core._

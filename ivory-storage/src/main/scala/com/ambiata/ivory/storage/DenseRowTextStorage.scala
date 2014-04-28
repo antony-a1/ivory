@@ -2,7 +2,6 @@ package com.ambiata.ivory.storage
 
 import scalaz.{DList => _, Value => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
-import org.joda.time.LocalDate
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.parse._
 import com.ambiata.mundane.io._

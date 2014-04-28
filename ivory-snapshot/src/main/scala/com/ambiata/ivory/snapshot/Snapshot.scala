@@ -3,7 +3,7 @@ package com.ambiata.ivory.snapshot
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, Scalaz._, effect._
 import scala.math.{Ordering => SOrdering}
-import org.joda.time.{LocalDate, LocalDateTime}
+import org.joda.time.LocalDate
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
 import com.ambiata.mundane.io._
@@ -79,8 +79,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
          * 1. group by entity and feature id
          * 2. take the minimum fact in the group using fact time then priority to determine order
          */
-        implicit val revDateOrder: Order[LocalDateTime] = DateTimex.LocalDateTimeHasOrder.reverseOrder
-        val ord: Order[(Priority, Fact)] = Order.orderBy { case (p, f) => (f.time, p) }
+        val ord: Order[(Priority, Fact)] = Order.orderBy { case (p, f) => (-f.datetime, p) }
         val latest: DList[(Priority, Fact)] = facts.groupBy { case (p, f) => (f.entity, f.featureId.toString) }
                                                    .reduceValues(Reduction.minimum(ord))
                                                    .collect { case (_, (p, f)) if !f.isTombstone => (p, f) }

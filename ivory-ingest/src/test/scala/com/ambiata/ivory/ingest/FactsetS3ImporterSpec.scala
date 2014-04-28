@@ -28,7 +28,7 @@ import com.ambiata.ivory.storage.IvoryStorage._
 import com.ambiata.ivory.core.S3Repository
 import com.ambiata.mundane.io.FilePath
 import com.ambiata.ivory.core.Fact
-import org.joda.time.{DateTimeZone, LocalDate}
+import org.joda.time.DateTimeZone
 
 class FactsetS3ImporterSpec extends HadoopSpecification with ThrownExpectations with FileMatchers with BeforeAfterExample { def is = s2"""
 

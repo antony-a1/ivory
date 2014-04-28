@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage
 
 import scalaz.{DList => _, Value => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
-import org.joda.time.LocalDate
+import org.joda.time.LocalDateTime
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.parse._
 
@@ -20,8 +20,11 @@ object DelimitedFactTextStorage {
   case class DelimitedFactTextStorer(path: Path, delim: String = "|", tombstoneValue: Option[String] = Some("☠")) extends IvoryScoobiStorer[Fact, DList[String]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[String] =
     dlist.mapFlatten(f =>
-      valueToString(f.value, tombstoneValue).map(v => f.entity + delim + f.featureId.namespace + ":" + f.featureId.name + delim + v + delim + f.time.toString("yyyy-MM-dd HH:mm:ss"))
+      valueToString(f.value, tombstoneValue).map(v => f.entity + delim + f.featureId.namespace + ":" + f.featureId.name + delim + v + delim + time(f.date, f.seconds).toString("yyyy-MM-dd HH:mm:ss"))
     ).toTextFile(path.toString)
+
+    def time(d: Date, s: Int): LocalDateTime =
+      d.localDate.toDateTimeAtStartOfDay.toLocalDateTime.plusSeconds(s)
   }
 
   def parseFact(dict: Dictionary, str: String): String \/ Fact =

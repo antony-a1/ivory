@@ -19,6 +19,13 @@ case class Date(year: Short, month: Byte, day: Byte) {
 
   def isBeforeOrEqual(other: Date): Boolean =
     int <= other.int
+
+  /**
+   * This is not epoch! Add seconds to the int representation of the date. This will
+   * produce a long that can be reversed with the Date.fromSeconds function.
+   */
+  def addSeconds(s: Int): Long =
+    int.toLong << 32 | s
 }
 
 object Date {
@@ -40,4 +47,11 @@ object Date {
                         { t => s"""Not a part of a date at position $position: $t""" })
     } yield result
   }
+
+  /**
+   * This is not epoch! It will take a long which was created from Date.addSeconds and
+   * pull the original Date and seconds out.
+   */
+  def fromSeconds(s: Long): (Date, Int) =
+    (fromInt(((s >>> 32) & 0xffffffff).toInt), (s & 0xffff).toInt)
 }

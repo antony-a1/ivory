@@ -5,7 +5,6 @@ import org.specs2.matcher.FileMatchers
 import scalaz.{DList => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
-import org.joda.time.LocalDate
 import com.nicta.scoobi.testing.mutable._
 import com.nicta.scoobi.testing.SimpleJobs
 import com.nicta.scoobi.testing.TestFiles._

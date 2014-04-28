@@ -3,7 +3,7 @@ package com.ambiata.ivory.ingest
 import org.specs2._
 import org.specs2.matcher.FileMatchers
 import scalaz.{DList => _, _}, Scalaz._, \&/._
-import org.joda.time.{DateTimeZone, LocalDate}
+import org.joda.time.DateTimeZone
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.testing.mutable._
 import com.nicta.scoobi.testing.TestFiles._

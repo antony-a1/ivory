@@ -19,7 +19,7 @@ object FactDiff {
       val errors = first_errs ++ second_errs
       val facts = first_facts ++ second_facts
       
-      val grp = facts.groupBy({ case (flag, fact) => (fact.entity, fact.featureId.toString, fact.time.toString("yyyy/MM/dd HH:mm:ss"), fact.value.stringValue) })
+      val grp = facts.groupBy({ case (flag, fact) => (fact.entity, fact.featureId.toString, fact.date.int, fact.seconds, fact.value.stringValue) })
 
       val diff: DList[List[(Boolean, Fact)]] = grp.mapFlatten({ case (_, vs) =>
         vs.toList match {

@@ -3,8 +3,6 @@ package com.ambiata.ivory.chord
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, Scalaz._, effect._
 import scala.math.{Ordering => SOrdering}
-import org.joda.time.{LocalDate, LocalDateTime, LocalTime}
-import org.joda.time.format.DateTimeFormat
 import java.util.HashMap
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.io._
@@ -28,9 +26,8 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
   type Mappings   = HashMap[String, Array[PackedDate]]
 
   // lexical order for a pair (Fact, Priority) so that
-  // p1 < p2 <==> f1.time > f2.time || f1.time == f2 && priority1 < priority2
-  implicit val latestOrder: Order[LocalDateTime] = DateTimex.LocalDateTimeHasOrder.reverseOrder
-  implicit val ord: Order[(Fact, Priority)] = Order.orderBy { case (f, p) => (f.time, p) }
+  // p1 < p2 <==> f1.datetime > f2.datetime || f1.datetime == f2.datetime && priority1 < priority2
+  implicit val ord: Order[(Fact, Priority)] = Order.orderBy { case (f, p) => (-f.datetime, p) }
 
 
   def withStorer(newStorer: IvoryScoobiStorer[Fact, DList[_]]): HdfsChord =

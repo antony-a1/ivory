@@ -1,10 +1,7 @@
 package com.ambiata.ivory.core
 
-import org.joda.time.LocalDate
-import org.joda.time.LocalDateTime
-import com.ambiata.mundane.parse._
-
 import scalaz._, Scalaz._
+import com.ambiata.mundane.parse._
 
 import com.ambiata.ivory.core.thrift._
 
@@ -18,17 +15,15 @@ trait Fact {
 
   def toThrift: FatThriftFact
 
-  lazy val time: LocalDateTime =
-    date.localDate.toDateTimeAtStartOfDay.toLocalDateTime.plusSeconds(seconds)
-
-  lazy val epoch: Long =
-    time.toDateTime.getMillis / 1000
+  /** This is not epoch, just a comparable long containing date and time */
+  lazy val datetime: Long =
+    date.addSeconds(seconds)
 
   lazy val stringValue: Option[String] =
     value.stringValue
 
   def coordinateString(delim: Char): String = {
-    val fields = List(s"$entity", s"$featureId", s"${time.toString("yyyy-MM-dd hh:mm:ss")}")
+    val fields = List(s"$entity", s"$featureId", s"${date.int}-${seconds}}")
     fields.mkString(delim.toString)
   }
 

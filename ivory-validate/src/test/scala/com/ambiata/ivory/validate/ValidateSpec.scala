@@ -3,7 +3,6 @@ package com.ambiata.ivory.validate
 import org.specs2._
 import org.specs2.matcher.FileMatchers
 import scalaz.{DList => _, _}, Scalaz._
-import org.joda.time.LocalDate
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.testing.mutable._
 import com.nicta.scoobi.testing.SimpleJobs
