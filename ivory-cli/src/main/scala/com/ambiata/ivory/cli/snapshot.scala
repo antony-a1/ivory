@@ -20,7 +20,7 @@ import scalaz.{DList => _, _}, Scalaz._
 
 object snapshot extends ScoobiApp {
 
-  case class CliArguments(repo: String, output: String, date: LocalDate, storer: SnapStorer)
+  case class CliArguments(repo: String, output: String, date: LocalDate, storer: SnapStorer, incremental: Option[(String, LocalDate)])
 
   implicit val snapStorerRead: scopt.Read[SnapStorer] =
   scopt.Read.reads(str => str match {
@@ -40,6 +40,7 @@ object snapshot extends ScoobiApp {
     help("help") text "shows this usage text"
     opt[String]('r', "repo")       action { (x, c) => c.copy(repo = x) }   required() text "Path to an ivory repository."
     opt[String]('o', "output")     action { (x, c) => c.copy(output = x) } required() text "Path to store snapshot."
+    opt[(String, Calendar)]('i', "incremental")   action { (x, c) => c.copy(incremental = Some(x.map(LocalDate.fromCalendarFields))) } required() text "Path to store snapshot."
     opt[Calendar]('d', "date")     action { (x, c) => c.copy(date = LocalDate.fromCalendarFields(x)) } text
       s"Optional date to take snapshot from, default is now."
     opt[SnapStorer]('s', "storer") action { (x, c) => c.copy(storer = x) }            text "Name of storer to use 'eavttext', or 'denserowtext'"
@@ -47,7 +48,7 @@ object snapshot extends ScoobiApp {
 
   def run {
     val runId = UUID.randomUUID
-    parser.parse(args, CliArguments("", "", LocalDate.now(), EavtTextSnapStorer)).map(c => {
+    parser.parse(args, CliArguments("", "", LocalDate.now(), EavtTextSnapStorer, None)).map(c => {
       val errors = s"${c.repo}/errors/snapshot/${runId}"
       val banner = s"""======================= snapshot =======================
                       |
@@ -72,7 +73,7 @@ object snapshot extends ScoobiApp {
       }
     })
   }
-  // FIX add date....
+
   def onHdfs(repo: Path, output: Path, errors: Path, date: LocalDate, storer: SnapStorer): ScoobiAction[(String, String)] =
     fatrepo.ExtractLatestWorkflow.onHdfs(repo, extractLatest(output, errors, storer), date)
 
