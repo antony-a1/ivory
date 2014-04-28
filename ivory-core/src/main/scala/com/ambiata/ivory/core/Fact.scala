@@ -6,7 +6,6 @@ import com.ambiata.mundane.parse._
 
 import scalaz._, Scalaz._
 
-
 case class Fact(entity: String, featureId: FeatureId, date: LocalDate, seconds: Int, value: Value) {
   lazy val time: LocalDateTime =
     date.toDateTimeAtStartOfDay.toLocalDateTime.plusSeconds(seconds)
