@@ -6,7 +6,7 @@ import java.io._
 import org.joda.time.LocalDate
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.thrift._
+import com.ambiata.ivory.core.thrift._
 
 import scala.collection.JavaConverters._
 
@@ -23,26 +23,21 @@ trait WireFormats {
   }
 
   implicit def FactFmt = new WireFormat[Fact] {
-    def toWire(f: Fact, out: DataOutput) = {
-      StringFmt.toWire(f.entity, out)
-      StringFmt.toWire(f.featureId.namespace, out)
-      StringFmt.toWire(f.featureId.name, out)
-      LocalDateFmt.toWire(f.date, out)
-      if(f.seconds != 0) {
-        BooleanFmt.toWire(true, out)
-        IntFmt.toWire(f.seconds, out)
-      } else {
-        BooleanFmt.toWire(false, out)
-      }
-      ValueFmt.toWire(f.value, out)
-    }
-    
+    def toWire(f: Fact, out: DataOutput) =
+      FatThriftFactFmt.toWire(f.toThrift, out)
     def fromWire(in: DataInput): Fact =
-      Fact(StringFmt.fromWire(in),
-           FeatureId(StringFmt.fromWire(in), StringFmt.fromWire(in)),
-           LocalDateFmt.fromWire(in),
-           if(BooleanFmt.fromWire(in)) IntFmt.fromWire(in) else 0,
-           ValueFmt.fromWire(in))
+      FatThriftFactFmt.fromWire(in)
+  }
+
+  implicit def FatThriftFactFmt = new WireFormat[FatThriftFact] {
+    lazy val tfFmt = mkThriftFmt(new ThriftFact())
+    def toWire(tf: FatThriftFact, out: DataOutput) = {
+      StringFmt.toWire(tf.ns, out)
+      IntFmt.toWire(tf.date.int, out)
+      tfFmt.toWire(tf.tfact, out)
+    }
+    def fromWire(in: DataInput): FatThriftFact =
+      FatThriftFact(StringFmt.fromWire(in), Date.fromInt(IntFmt.fromWire(in)), tfFmt.fromWire(in))
   }
 
   implicit def BooleanValueFmt = new WireFormat[BooleanValue] {

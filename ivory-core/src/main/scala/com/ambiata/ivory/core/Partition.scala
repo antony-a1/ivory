@@ -10,25 +10,26 @@ object Partition {
   type FactSetName = String
   type Namespace = String
 
-  def parseFilename(file: File): Validation[String, (FactSetName, Namespace, LocalDate)] =
+  def parseFilename(file: File): Validation[String, (FactSetName, Namespace, Date)] =
     parseWith(file.toURI.getPath)
 
-  def parseWith(f: => String): Validation[String, (FactSetName, Namespace, LocalDate)] =
+  def parseWith(f: => String): Validation[String, (FactSetName, Namespace, Date)] =
     pathParser.run(f.split("/").toList.reverse)
 
-  def pathParser: ListParser[(FactSetName, Namespace, LocalDate)] = {
+  def pathParser: ListParser[(FactSetName, Namespace, Date)] = {
     import ListParser._
     for {
       _       <- consume(1)
-      day     <- int
-      month   <- int
-      year    <- int
+      day     <- short
+      month   <- short
+      year    <- short
       ns      <- string
       factset <- string
       _       <- consumeRest
-    } yield (factset, ns, new LocalDate(year, month, day))
+    } yield (factset, ns, Date(year, month.toByte, day.toByte))
   }
 
-  def path(ns: Namespace, date: LocalDate): String =
-    ns + "/" + date.toString("yyyy/MM/dd")
+  def path(ns: Namespace, date: Date): String = {
+    ns + "/" + "%4d/%02d/%02d".format(date.year, date.month, date.day)
+  }
 }

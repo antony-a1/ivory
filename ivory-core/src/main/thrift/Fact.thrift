@@ -1,4 +1,4 @@
-namespace java com.ambiata.ivory.thrift
+namespace java com.ambiata.ivory.core.thrift
 
 struct ThriftTombstone {
 

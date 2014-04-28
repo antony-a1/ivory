@@ -5,7 +5,7 @@ import java.io._
 import org.joda.time.LocalDate
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.thrift._
+import com.ambiata.ivory.core.thrift._
 import SeqSchemas._
 
 import scala.collection.JavaConverters._

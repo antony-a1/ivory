@@ -65,8 +65,8 @@ class FactsetS3ImporterSpec extends HadoopSpecification with ThrownExpectations 
   }
 
   val expected = List(
-    BooleanFact("6207777", FeatureId("customer", "has.email"), new LocalDate(1979, 10, 17), 10, true),
-    BooleanFact("3916666", FeatureId("customer", "has.email"), new LocalDate(1979, 10, 17), 20, false))
+    BooleanFact("6207777", FeatureId("customer", "has.email"), Date(1979, 10, 17), 10, true),
+    BooleanFact("3916666", FeatureId("customer", "has.email"), Date(1979, 10, 17), 20, false))
 
   val emails =
     """|6207777|has.email|true|1979-10-17 00:00:10

@@ -64,7 +64,7 @@ object EavtTextImporter {
     f => (f.entity, f.featureId.name)
 
   val keyedByPartition: KeyedBy[String] =
-    f => s"${f.featureId.namespace}/${f.date.toString("yyyy/MM/dd")}"
+    f => s"${f.featureId.namespace}/${f.date.string("/")}"
 
   // FIX lots of duplication with RawFeatureThriftImporter and below
   def compoundScoobiJob(

@@ -77,7 +77,7 @@ case class RandomFacts(rand: Random) {
   }
 
   def fact(eid: Int, fid: FeatureId, meta: FeatureMeta, date: LocalDate): Fact =
-    Fact("ID%08d".format(eid), fid, date, rand.nextInt(86400), value(meta))
+    Fact.newFact("ID%08d".format(eid), fid, Date.fromLocalDate(date), rand.nextInt(86400), value(meta))
 
   def value(meta: FeatureMeta): IValue = meta match {
     case FeatureMeta(BooleanEncoding, _, _, _)   => BooleanValue(rand.nextBoolean)

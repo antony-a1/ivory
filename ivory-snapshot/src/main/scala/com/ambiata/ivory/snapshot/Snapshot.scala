@@ -10,9 +10,10 @@ import com.ambiata.mundane.io._
 import com.ambiata.mundane.time.DateTimex
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.scoobi.WireFormats._
+import com.ambiata.ivory.scoobi.SeqSchemas._
 import com.ambiata.ivory.scoobi._
-import com.ambiata.ivory.thrift._
 import com.ambiata.ivory.storage._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
@@ -24,6 +25,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
   type Priority = Short
 
   val SnapshotName: String = "ivory-incremental-snapshot"
+  lazy val snapshotDate = Date.fromLocalDate(snapshot)
 
   def withStorer(newStorer: IvoryScoobiStorer[Fact, DList[_]]): HdfsSnapshot =
     copy(storer = newStorer)
@@ -57,11 +59,6 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
         case None =>
           DList[String \/ (Int, String, Fact)]()
         case Some((p, _)) =>
-          import com.ambiata.ivory.scoobi._
-          import com.ambiata.ivory.thrift._
-          import WireFormats._
-          import SeqSchemas._
-
           implicit val fmt = mkThriftFmt(new ThriftFact)
           implicit val sch = mkThriftSchema(new ThriftFact)
           PartitionFactThriftStorageV2.loadScoobiWith[(Int, String, Fact)](p, (_, fact) => (Short.MaxValue.toInt, SnapshotName, fact).right[String])
@@ -75,7 +72,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
         }
 
         val facts: DList[(Priority, Fact)] = input.collect {
-          case \/-((p, _, f)) if f.date.isBefore(snapshot) && entities.map(_.contains(f.entity)).getOrElse(true) => (p.toShort, f)
+          case \/-((p, _, f)) if f.date.isBefore(snapshotDate) && entities.map(_.contains(f.entity)).getOrElse(true) => (p.toShort, f)
         }
 
         /*
@@ -104,7 +101,6 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
         implicit val ThriftWireFormat = WireFormats.mkThriftFmt(new ThriftFact)
         implicit val ThriftSchema = SeqSchemas.mkThriftSchema(new ThriftFact)
         import PartitionFactThriftStorageV2._
-
 
         val thrift = PartitionedFactThriftStorer(new Path(outputPath, "thrift").toString, Some(new SnappyCodec)).storeScoobi(good)
 

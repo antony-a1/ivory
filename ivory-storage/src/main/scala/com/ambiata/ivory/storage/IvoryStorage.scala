@@ -9,7 +9,7 @@ import com.ambiata.ivory.metadata._
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.ScoobiS3Action._
-import com.ambiata.ivory.thrift._
+import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.alien.hdfs.HdfsS3Action._
 import com.ambiata.saws.s3.S3
 import ScoobiS3Action._

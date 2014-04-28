@@ -18,7 +18,6 @@ import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.storage._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
-import DateMap.localDateToInt
 
 case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: Path, tmpPath: Path, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]]) {
   import IvoryStorage._
@@ -70,7 +69,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
         val facts: DList[(Priority, Fact)] =
           input
             .collect { case \/-((p, _, fact)) => (p.toShort, fact) }
-            .filter  { case (p, f) => DateMap.keep(map, f.entity, f.date.getYear.toShort, f.date.getMonthOfYear.toByte, f.date.getDayOfMonth.toByte) }
+            .filter  { case (p, f) => DateMap.keep(map, f.entity, f.date.year, f.date.month, f.date.day) }
 
         /**
          * 1. group by entity and feature id
@@ -86,7 +85,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
               // we traverse all facts and for each required date
               // we keep the "best" fact which date is just before that date
               fs.foldLeft(dates.map((_, Short.MinValue, None)): Array[(Int, Short, Option[Fact])]) { case (ds, (priority, fact)) =>
-                val factDate = localDateToInt(fact.date)
+                val factDate = fact.date.int
 
                 ds.map {
                   case previous @ (date, p, None)    =>
@@ -99,7 +98,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
                     if (factDate <= date && (fact, priority) < ((f, p))) (date, priority, Some(fact))
                     else                                               previous
                 }
-              }.collect { case (d, p, Some(f)) => (p, f.copy(entity = f.entity + ":" + DateMap.intToStringDate(d))) }.toIterable
+              }.collect { case (d, p, Some(f)) => (p, f.withEntity(f.entity + ":" + Date.fromInt(d).string())) }.toIterable
             }.collect { case (p, f) if !f.isTombstone => (p, f) }
 
         val validated: DList[String \/ Fact] = latest.map { case (p, f) =>

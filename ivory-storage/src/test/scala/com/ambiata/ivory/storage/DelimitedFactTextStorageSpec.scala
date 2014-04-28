@@ -19,7 +19,7 @@ class DelimitedFactTextStorageSpec extends Specification { def is = s2"""
     val entry = "928340|widgets:inbound.count.1W|35|2014-01-08 12:00:00"
     val dict = Dictionary("dict", Map(FeatureId("widgets", "inbound.count.1W") -> FeatureMeta(IntEncoding, NumericalType, "whatever")))
     DelimitedFactTextStorage.parseFact(dict, entry) must_==
-      IntFact("928340", FeatureId("widgets", "inbound.count.1W"), new LocalDate(2014, 1, 8), 43200, 35).right
+      IntFact("928340", FeatureId("widgets", "inbound.count.1W"), Date(2014, 1, 8), 43200, 35).right
   }
 
   def e2 = {

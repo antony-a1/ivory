@@ -12,9 +12,9 @@ object build extends Build {
     id = "ivory"
   , base = file(".")
   , settings = standardSettings ++ promulgate.library(s"com.ambiata.ivory", "ambiata-oss")
-  , aggregate = Seq(api, cli, chord, core, data, example, generate, ingest, metadata, repository, scoobi, snapshot, storage, thrift, validate, alien_hdfs)
+  , aggregate = Seq(api, cli, chord, core, data, example, generate, ingest, metadata, repository, scoobi, snapshot, storage, validate, alien_hdfs)
   )
-  .dependsOn(api, cli, chord, core, example, generate, ingest, metadata, repository, scoobi, snapshot, storage, thrift, validate, alien_hdfs)
+  .dependsOn(api, cli, chord, core, example, generate, ingest, metadata, repository, scoobi, snapshot, storage, validate, alien_hdfs)
 
   lazy val standardSettings = Defaults.defaultSettings ++
                               projectSettings          ++
@@ -65,6 +65,14 @@ object build extends Build {
   )
   .dependsOn(core, scoobi, storage, validate)
 
+  lazy val core = Project(
+    id = "core"
+  , base = file("ivory-core")
+  , settings = standardSettings ++ lib("core") ++ Seq[Settings](
+      name := "ivory-core"
+    ) ++ Seq[Settings](libraryDependencies ++= depend.trove ++ depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++ depend.thrift ++ depend.hadoop(version.value)) // TODO: remove hadoop dep when a place to put repository Hdfs path handling is found
+  )
+
   lazy val data = Project(
     id = "data"
   , base = file("ivory-data")
@@ -75,15 +83,7 @@ object build extends Build {
         "org.scala-lang" % "scala-compiler" % "2.10.4"
       , "org.scala-lang" % "scala-reflect" % "2.10.4"
       , "org.scalamacros" % "quasiquotes_2.10.3" % "2.0.0-M3"
-))
-  )
-
-  lazy val core = Project(
-    id = "core"
-  , base = file("ivory-core")
-  , settings = standardSettings ++ lib("core") ++ Seq[Settings](
-      name := "ivory-core"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.trove ++ depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++ depend.hadoop(version.value)) // TODO: remove hadoop dep when a place to put repository Hdfs path handling is found
+    ))
   )
 
   lazy val example = Project(
@@ -138,7 +138,7 @@ object build extends Build {
       name := "ivory-scoobi"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.scoobi(version.value) ++ depend.saws)
   )
-  .dependsOn(core, thrift, alien_hdfs)
+  .dependsOn(core, alien_hdfs)
 
   lazy val snapshot = Project(
     id = "snapshot"
@@ -156,15 +156,7 @@ object build extends Build {
       name := "ivory-storage"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.saws)
   )
-  .dependsOn(core, metadata, thrift, scoobi, alien_hdfs)
-
-  lazy val thrift = Project(
-    id = "thrift"
-  , base = file("ivory-thrift")
-  , settings = standardSettings ++ lib("thrift") ++ Seq[Settings](
-      name := "ivory-thrift"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.thrift)
-  )
+  .dependsOn(core, metadata, scoobi, alien_hdfs)
 
   lazy val validate = Project(
     id = "validate"

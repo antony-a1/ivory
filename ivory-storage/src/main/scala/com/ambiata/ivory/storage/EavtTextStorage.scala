@@ -26,7 +26,7 @@ object EavtTextStorageV1 {
   case class EavtTextStorer(base: String, delim: String = "|", tombstoneValue: Option[String] = None) extends IvoryScoobiStorer[Fact, DList[(Namespace, String)]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[(Namespace, String)] =
       dlist.mapFlatten(f =>
-        DelimitedFactTextStorage.valueToString(f.value, tombstoneValue).map(v => (f.featureId.namespace, f.entity + delim + f.featureId.name + delim + v + delim + f.date.toString("yyyy-MM-dd")))
+        DelimitedFactTextStorage.valueToString(f.value, tombstoneValue).map(v => (f.featureId.namespace, f.entity + delim + f.featureId.name + delim + v + delim + f.date.string("-")))
       ).toPartitionedTextFile(base, identity)
 
   }
@@ -54,13 +54,13 @@ object EavtTextStorageV1 {
       fid     = FeatureId(namespace, name)
       rawv   <- string
       v      <- value(dict.meta.get(fid).map(fm => DelimitedFactTextStorage.valueFromString(fm, rawv)).getOrElse(s"Could not find dictionary entry for '$fid'".failure))
-      time   <- either(localDatetime("yyyy-MM-dd HH:mm:ss"), localDate("yyyy-MM-dd"))
+      time   <- either(localDatetime("yyyy-MM-dd HH:mm:ss"), localDate("yyyy-MM-dd")) // TODO replace with something that doesn't use joda
     } yield time match {
       case -\/(t) =>
         // FIX this looks wrong, it is getting the date with timezone, but millisOfDay without
-        Fact(entity, fid, t.toDateTime(timezone).toLocalDate, t.getMillisOfDay / 1000, v)
+        Fact.newFact(entity, fid, Date.fromLocalDate(t.toDateTime(timezone).toLocalDate), t.getMillisOfDay / 1000, v)
       case \/-(t) =>
-        Fact(entity, fid, t, 0, v)
+        Fact.newFact(entity, fid, Date.fromLocalDate(t), 0, v)
     }
   }.preprocess(preprocessor)
 

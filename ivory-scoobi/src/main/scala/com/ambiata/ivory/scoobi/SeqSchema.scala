@@ -3,7 +3,7 @@ package com.ambiata.ivory.scoobi
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.io.BytesWritable
 
-import com.ambiata.ivory.thrift.ThriftSerialiser
+import com.ambiata.ivory.core.thrift.ThriftSerialiser
 
 object SeqSchemas {
 

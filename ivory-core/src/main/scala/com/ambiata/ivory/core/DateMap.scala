@@ -28,19 +28,6 @@ object DateMap {
 
   @inline def toInt(y: Short, m: Byte, d: Byte)  =
     (y.toInt << 16) | (m.toInt << 8) | d.toInt
-
-  @inline def localDateToInt(d: LocalDate): Int =
-    toInt(d.getYear.toShort, d.getMonthOfYear.toByte, d.getDayOfMonth.toByte)
-
-  @inline def localDateFromInt(date: Int): LocalDate = {
-    val (y, m, d) = fromInt(date)
-    new LocalDate(y.toInt, m.toInt, d.toInt)
-  }
-
-  @inline def intToStringDate(date: Int): String = {
-    val (y, m, d) = fromInt(date)
-    "%4d-%02d-%02d".format(y, m, d)
-  }
 }
 
 
