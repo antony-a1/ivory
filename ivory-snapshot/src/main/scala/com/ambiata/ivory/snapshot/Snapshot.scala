@@ -16,7 +16,7 @@ import com.ambiata.ivory.storage._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
 
-case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: LocalDate, outputPath: Path, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]]) {
+case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: LocalDate, outputPath: Path, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]], inncremental: Option[(String, String)]) {
   import IvoryStorage._
 
   type Priority = Short

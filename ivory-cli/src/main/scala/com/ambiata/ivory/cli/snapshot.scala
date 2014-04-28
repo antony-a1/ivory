@@ -20,7 +20,7 @@ import scalaz.{DList => _, _}, Scalaz._
 
 object snapshot extends ScoobiApp {
 
-  case class CliArguments(repo: String, output: String, date: LocalDate, storer: SnapStorer, incremental: Option[(String, LocalDate)])
+  case class CliArguments(repo: String, output: String, date: LocalDate, storer: SnapStorer, incremental: Option[(String, String)])
 
   implicit val snapStorerRead: scopt.Read[SnapStorer] =
   scopt.Read.reads(str => str match {
@@ -40,7 +40,7 @@ object snapshot extends ScoobiApp {
     help("help") text "shows this usage text"
     opt[String]('r', "repo")       action { (x, c) => c.copy(repo = x) }   required() text "Path to an ivory repository."
     opt[String]('o', "output")     action { (x, c) => c.copy(output = x) } required() text "Path to store snapshot."
-    opt[(String, Calendar)]('i', "incremental")   action { (x, c) => c.copy(incremental = Some(x.map(LocalDate.fromCalendarFields))) } required() text "Path to store snapshot."
+    opt[(String, String)]('i', "incremental")   action { (x, c) => c.copy(incremental = Some(x)) } required() text "Path to of a snapshot to add in, and the version of the store to diff against."
     opt[Calendar]('d', "date")     action { (x, c) => c.copy(date = LocalDate.fromCalendarFields(x)) } text
       s"Optional date to take snapshot from, default is now."
     opt[SnapStorer]('s', "storer") action { (x, c) => c.copy(storer = x) }            text "Name of storer to use 'eavttext', or 'denserowtext'"
@@ -63,7 +63,7 @@ object snapshot extends ScoobiApp {
                       |
                       |""".stripMargin
       println(banner)
-      val res = onHdfs(new Path(c.repo), new Path(c.output), new Path(errors), c.date, c.storer)
+      val res = onHdfs(new Path(c.repo), new Path(c.output), new Path(errors), c.date, c.storer, c.incremental)
       res.run(configuration).run.unsafePerformIO() match {
         case Ok(_) =>
           println(banner)
@@ -74,16 +74,16 @@ object snapshot extends ScoobiApp {
     })
   }
 
-  def onHdfs(repo: Path, output: Path, errors: Path, date: LocalDate, storer: SnapStorer): ScoobiAction[(String, String)] =
-    fatrepo.ExtractLatestWorkflow.onHdfs(repo, extractLatest(output, errors, storer), date)
+  def onHdfs(repo: Path, output: Path, errors: Path, date: LocalDate, storer: SnapStorer, incremental: Option[(String, String)]): ScoobiAction[(String, String)] =
+    fatrepo.ExtractLatestWorkflow.onHdfs(repo, extractLatest(output, errors, storer, incremental), date)
 
-  def extractLatest(outputPath: Path, errorPath: Path, storer: SnapStorer)(repo: HdfsRepository, store: String, dictName: String, date: LocalDate): ScoobiAction[Unit] = for {
+  def extractLatest(outputPath: Path, errorPath: Path, storer: SnapStorer, incremental: Option[(String, String)])(repo: HdfsRepository, store: String, dictName: String, date: LocalDate): ScoobiAction[Unit] = for {
     d  <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dictName))
     s   = storer match {
       case DenseRowTextSnapStorer => DenseRowTextStorageV1.DenseRowTextStorer(outputPath.toString + "/dense", d)
       case EavtTextSnapStorer     => EavtTextStorageV1.EavtTextStorer(outputPath.toString + "/eavt")
     }
-    _  <- HdfsSnapshot(repo.path, store, dictName, None, date, outputPath, errorPath, s).run
+    _  <- HdfsSnapshot(repo.path, store, dictName, None, date, outputPath, errorPath, s, incremental).run
   } yield ()
 }
 
