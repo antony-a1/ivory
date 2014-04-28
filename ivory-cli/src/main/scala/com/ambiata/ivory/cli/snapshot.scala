@@ -14,12 +14,13 @@ import org.apache.hadoop.fs.Path
 import org.apache.commons.logging.LogFactory
 import org.joda.time.LocalDate
 import java.util.Calendar
+import java.util.UUID
 
 import scalaz.{DList => _, _}, Scalaz._
 
 object snapshot extends ScoobiApp {
 
-  case class CliArguments(repo: String, output: String, errors: String, date: LocalDate, storer: SnapStorer)
+  case class CliArguments(repo: String, output: String, date: LocalDate, storer: SnapStorer)
 
   implicit val snapStorerRead: scopt.Read[SnapStorer] =
   scopt.Read.reads(str => str match {
@@ -39,35 +40,56 @@ object snapshot extends ScoobiApp {
     help("help") text "shows this usage text"
     opt[String]('r', "repo")       action { (x, c) => c.copy(repo = x) }   required() text "Path to an ivory repository."
     opt[String]('o', "output")     action { (x, c) => c.copy(output = x) } required() text "Path to store snapshot."
-    opt[String]('e', "errors")     action { (x, c) => c.copy(errors = x) } required() text "Path to store any errors."
     opt[Calendar]('d', "date")     action { (x, c) => c.copy(date = LocalDate.fromCalendarFields(x)) } text
       s"Optional date to take snapshot from, default is now."
     opt[SnapStorer]('s', "storer") action { (x, c) => c.copy(storer = x) }            text "Name of storer to use 'eavttext', or 'denserowtext'"
   }
 
   def run {
-    parser.parse(args, CliArguments("", "", "", LocalDate.now(), EavtTextSnapStorer)).map(c => {
-      val res = onHdfs(new Path(c.repo), new Path(c.output), new Path(c.errors), c.date, c.storer)
+    val runId = UUID.randomUUID
+    parser.parse(args, CliArguments("", "", LocalDate.now(), EavtTextSnapStorer)).map(c => {
+      val errors = s"${c.repo}/errors/snapshot/${runId}"
+      val banner = s"""======================= snapshot =======================
+                      |
+                      |Arguments --
+                      |
+                      |  Run ID                  : ${runId}
+                      |  Ivory Repository        : ${c.repo}
+                      |  Extract At Date         : ${c.date.toString("yyyy/MM/dd")}
+                      |  Output Format           : ${c.storer.toString}
+                      |  Output Path             : ${c.output}
+                      |  Errors                  : ${errors}
+                      |
+                      |""".stripMargin
+      println(banner)
+      val res = onHdfs(new Path(c.repo), new Path(c.output), new Path(errors), c.date, c.storer)
       res.run(configuration).run.unsafePerformIO() match {
-        case Ok(_)    => println(s"Successfully extracted snapshot from '${c.repo}' with date '${c.date}' and stored to '${c.output}'")
-        case Error(e) => println(s"Failed! - ${e}")
+        case Ok(_) =>
+          println(banner)
+          println("Status -- SUCCESS")
+        case Error(e) =>
+          println(s"Failed! - ${e}")
       }
     })
   }
-
+  // FIX add date....
   def onHdfs(repo: Path, output: Path, errors: Path, date: LocalDate, storer: SnapStorer): ScoobiAction[(String, String)] =
     fatrepo.ExtractLatestWorkflow.onHdfs(repo, extractLatest(output, errors, storer), date)
 
   def extractLatest(outputPath: Path, errorPath: Path, storer: SnapStorer)(repo: HdfsRepository, store: String, dictName: String, date: LocalDate): ScoobiAction[Unit] = for {
     d  <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dictName))
     s   = storer match {
-      case DenseRowTextSnapStorer => DenseRowTextStorageV1.DenseRowTextStorer(outputPath.toString, d)
-      case EavtTextSnapStorer     => EavtTextStorageV1.EavtTextStorer(outputPath.toString)
+      case DenseRowTextSnapStorer => DenseRowTextStorageV1.DenseRowTextStorer(outputPath.toString + "/dense", d)
+      case EavtTextSnapStorer     => EavtTextStorageV1.EavtTextStorer(outputPath.toString + "/eavt")
     }
-    _  <- HdfsSnapshot(repo.path, store, dictName, None, date, errorPath, s).run
+    _  <- HdfsSnapshot(repo.path, store, dictName, None, date, outputPath, errorPath, s).run
   } yield ()
 }
 
 sealed trait SnapStorer
-case object DenseRowTextSnapStorer extends SnapStorer
-case object EavtTextSnapStorer extends SnapStorer
+case object DenseRowTextSnapStorer extends SnapStorer {
+  override def toString = "denserowtext"
+}
+case object EavtTextSnapStorer extends SnapStorer {
+  override def toString = "eavttext"
+}

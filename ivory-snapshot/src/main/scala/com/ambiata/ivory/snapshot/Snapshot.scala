@@ -10,12 +10,13 @@ import com.ambiata.mundane.time.DateTimex
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.WireFormats._
-import com.ambiata.ivory.scoobi.ScoobiAction
+import com.ambiata.ivory.scoobi._
+import com.ambiata.ivory.thrift._
 import com.ambiata.ivory.storage._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
 
-case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: LocalDate, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]]) {
+case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: LocalDate, outputPath: Path, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]]) {
   import IvoryStorage._
 
   type Priority = Short
@@ -71,17 +72,16 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
           case \/-(f) => f
         }
 
+        // FIX ME when we are using a single view of "Fact" everywhere.
+        implicit val ThriftWireFormat = WireFormats.mkThriftFmt(new ThriftFact)
+        implicit val ThriftSchema = SeqSchemas.mkThriftSchema(new ThriftFact)
+        import PartitionFactThriftStorageV1._
+        val thrift = good.map(_.asThrift).valueToSequenceFile(new Path(outputPath, "thrift").toString)
         persist(errors.toTextFile((new Path(errorPath, "parse")).toString),
                 valErrors.toTextFile((new Path(errorPath, "validation")).toString),
+                thrift,
                 storer.storeScoobi(good))
         ()
       })
     }).flatten
-}
-
-object Snapshot {
-  import DelimitedFactTextStorage._
-
-  def onHdfs(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: LocalDate, output: Path, errorPath: Path): ScoobiAction[Unit] =
-    HdfsSnapshot(repoPath, store, dictName, entities, snapshot, errorPath, DelimitedFactTextStorer(output)).run
 }
