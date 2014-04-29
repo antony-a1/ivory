@@ -16,11 +16,11 @@ Date Tests
 """
   def int = {
     val d = Date(2012, 10, 1)
-    Date.fromInt(d.int) must_== d
+    Date.fromInt(d.int) must_== Some(d)
   }
 
   def sec = prop((n: Int) => n < (24 * 60 * 60) ==> {
     val d = Date(2012, 10, 1)
-    d.addTime(Time.unsafe(n)).zip must_== ((d, 1234))
+    d.addTime(Time.unsafe(n)).zip must_== ((d, n))
   })
 }
