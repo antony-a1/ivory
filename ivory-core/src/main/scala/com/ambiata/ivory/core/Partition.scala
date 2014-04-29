@@ -19,13 +19,11 @@ object Partition {
     import ListParser._
     for {
       _       <- consume(1)
-      day     <- short
-      month   <- short
-      year    <- short
+      date    <- Date.listParser
       ns      <- string
       factset <- string
       _       <- consumeRest
-    } yield (factset, ns, Date(year, month.toByte, day.toByte))
+    } yield (factset, ns, date)
   }
 
   def path(ns: Namespace, date: Date): String = {

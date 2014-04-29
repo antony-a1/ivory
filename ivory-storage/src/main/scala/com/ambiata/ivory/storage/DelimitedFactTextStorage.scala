@@ -10,7 +10,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.WireFormats._
 
 object DelimitedFactTextStorage {
-  
+
   case class DelimitedFactTextLoader(path: String, dict: Dictionary) extends IvoryScoobiLoader[Fact] {
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[String \/ Fact] = {
       fromTextFile(path).map(line => parseFact(dict, line))
@@ -20,7 +20,7 @@ object DelimitedFactTextStorage {
   case class DelimitedFactTextStorer(path: Path, delim: String = "|", tombstoneValue: Option[String] = Some("☠")) extends IvoryScoobiStorer[Fact, DList[String]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[String] =
     dlist.mapFlatten(f =>
-      valueToString(f.value, tombstoneValue).map(v => f.entity + delim + f.featureId.namespace + ":" + f.featureId.name + delim + v + delim + time(f.date, f.seconds).toString("yyyy-MM-dd HH:mm:ss"))
+      valueToString(f.value, tombstoneValue).map(v => f.entity + delim + f.featureId.namespace + ":" + f.featureId.name + delim + v + delim + time(f.date, f.time.seconds).toString("yyyy-MM-dd HH:mm:ss"))
     ).toTextFile(path.toString)
 
     def time(d: Date, s: Int): LocalDateTime =
@@ -39,7 +39,7 @@ object DelimitedFactTextStorage {
       rawv   <- string
       v      <- value(dict.meta.get(fid).map(fm => valueFromString(fm, rawv)).getOrElse(s"Could not find dictionary entry for '${fid}'".failure))
       date   <- localDatetime("yyyy-MM-dd HH:mm:ss") // TODO replace with something that doesn't convert to joda
-    } yield Fact.newFact(entity, fid, Date.fromLocalDate(date.toLocalDate), date.getMillisOfDay / 1000, v)
+    } yield Fact.newFact(entity, fid, Date.fromLocalDate(date.toLocalDate), Time.unsafe(date.getMillisOfDay / 1000), v)
   }
 
   def featureIdParser: ListParser[FeatureId] = {
@@ -68,4 +68,3 @@ object DelimitedFactTextStorage {
     case StringEncoding                          => StringValue(raw).success[String]
   }
 }
-

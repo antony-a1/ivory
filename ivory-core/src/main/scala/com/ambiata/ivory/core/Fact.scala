@@ -9,21 +9,18 @@ trait Fact {
 
   def entity: String
   def featureId: FeatureId
-  def date: Date
-  def seconds: Int
+  def datetime: DateTime
+  def date: Date = datetime.date
+  def time: Time = datetime.time
   def value: Value
 
   def toThrift: FatThriftFact
-
-  /** This is not epoch, just a comparable long containing date and time */
-  lazy val datetime: Long =
-    date.addSeconds(seconds)
 
   lazy val stringValue: Option[String] =
     value.stringValue
 
   def coordinateString(delim: Char): String = {
-    val fields = List(s"$entity", s"$featureId", s"${date.int}-${seconds}}")
+    val fields = List(s"$entity", s"$featureId", s"${date.int}-${time}}")
     fields.mkString(delim.toString)
   }
 
@@ -33,25 +30,25 @@ trait Fact {
   }
 
   def withEntity(newEntity: String): Fact =
-    Fact.newFact(newEntity, featureId, date, seconds, value)
+    Fact.newFact(newEntity, featureId, date, time, value)
 
   def withFeatureId(newFeatureId: FeatureId): Fact =
-    Fact.newFact(entity, newFeatureId, date, seconds, value)
+    Fact.newFact(entity, newFeatureId, date, time, value)
 
   def withDate(newDate: Date): Fact =
-    Fact.newFact(entity, featureId, newDate, seconds, value)
+    Fact.newFact(entity, featureId, newDate, time, value)
 
-  def withSeconds(newSeconds: Int): Fact =
-    Fact.newFact(entity, featureId, date, newSeconds, value)
+  def withTime(newTime: Time): Fact =
+    Fact.newFact(entity, featureId, date, newTime, value)
 
   def withValue(newValue: Value): Fact =
-    Fact.newFact(entity, featureId, date, seconds, newValue)
+    Fact.newFact(entity, featureId, datetime, newValue)
 }
 
 object Fact {
 
-  def newFact(entity: String, featureId: FeatureId, date: Date, seconds: Int, value: Value): Fact =
-    FatThriftFact.factWith(entity, featureId, date, seconds, value match {
+  def newFact(entity: String, featureId: FeatureId, datetime: DateTime, value: Value): Fact =
+    FatThriftFact.factWith(entity, featureId, datetime.date, datetime.time, value match {
       case StringValue(s)   => ThriftFactValue.s(s)
       case BooleanValue(b)  => ThriftFactValue.b(b)
       case IntValue(i)      => ThriftFactValue.i(i)
@@ -59,17 +56,22 @@ object Fact {
       case DoubleValue(d)   => ThriftFactValue.d(d)
       case TombstoneValue() => ThriftFactValue.t(new ThriftTombstone())
     })
+
+  def newFact(entity: String, featureId: FeatureId, date: Date, seconds: Time, value: Value): Fact =
+    newFact(entity, featureId, date.addTime(seconds), value)
 }
 
-case class FatThriftFact(ns: String, date: Date, tfact: ThriftFact) extends Fact {
+case class FatThriftFact(ns: String, override val date: Date, tfact: ThriftFact) extends Fact {
+  def datetime =
+    date.addTime(Time.unsafe(seconds))
 
-  lazy val entity: String =
+  def entity: String =
     tfact.getEntity
 
   lazy val featureId: FeatureId =
     FeatureId(ns, tfact.getAttribute)
 
-  lazy val seconds: Int =
+  def seconds: Int =
     Option(tfact.getSeconds).getOrElse(0)
 
   lazy val value: Value = tfact.getValue match {
@@ -86,51 +88,50 @@ case class FatThriftFact(ns: String, date: Date, tfact: ThriftFact) extends Fact
 }
 
 object FatThriftFact {
-
-  def factWith(entity: String, featureId: FeatureId, date: Date, seconds: Int, value: => ThriftFactValue): FatThriftFact = {
+  def factWith(entity: String, featureId: FeatureId, date: Date, time: Time, value: => ThriftFactValue): FatThriftFact = {
     val tfact = new ThriftFact(entity, featureId.name, value)
-    FatThriftFact(featureId.namespace, date, tfact.setSeconds(seconds))
+    FatThriftFact(featureId.namespace, date, tfact.setSeconds(time.seconds))
   }
 }
 
 object BooleanFact {
-  def apply(entity: String, featureId: FeatureId, date: Date, seconds: Int, value: Boolean): Fact =
-    FatThriftFact.factWith(entity, featureId, date, seconds, ThriftFactValue.b(value))
+  def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Boolean): Fact =
+    FatThriftFact.factWith(entity, featureId, date, time, ThriftFactValue.b(value))
 
   val fromTuple = apply _ tupled
 }
 
 object IntFact {
-  def apply(entity: String, featureId: FeatureId, date: Date, seconds: Int, value: Int): Fact =
-    FatThriftFact.factWith(entity, featureId, date, seconds, ThriftFactValue.i(value))
+  def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Int): Fact =
+    FatThriftFact.factWith(entity, featureId, date, time, ThriftFactValue.i(value))
 
   val fromTuple = apply _ tupled
 }
 
 object LongFact {
-  def apply(entity: String, featureId: FeatureId, date: Date, seconds: Int, value: Long): Fact =
-    FatThriftFact.factWith(entity, featureId, date, seconds, ThriftFactValue.l(value))
+  def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Long): Fact =
+    FatThriftFact.factWith(entity, featureId, date, time, ThriftFactValue.l(value))
 
   val fromTuple = apply _ tupled
 }
 
 object DoubleFact {
-  def apply(entity: String, featureId: FeatureId, date: Date, seconds: Int, value: Double): Fact =
-    FatThriftFact.factWith(entity, featureId, date, seconds, ThriftFactValue.d(value))
+  def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Double): Fact =
+    FatThriftFact.factWith(entity, featureId, date, time, ThriftFactValue.d(value))
 
   val fromTuple = apply _ tupled
 }
 
 object StringFact {
-  def apply(entity: String, featureId: FeatureId, date: Date, seconds: Int, value: String): Fact =
-    FatThriftFact.factWith(entity, featureId, date, seconds, ThriftFactValue.s(value))
+  def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: String): Fact =
+    FatThriftFact.factWith(entity, featureId, date, time, ThriftFactValue.s(value))
 
   val fromTuple = apply _ tupled
 }
 
 object TombstoneFact {
-  def apply(entity: String, featureId: FeatureId, date: Date, seconds: Int): Fact =
-    FatThriftFact.factWith(entity, featureId, date, seconds, ThriftFactValue.t(new ThriftTombstone()))
+  def apply(entity: String, featureId: FeatureId, date: Date, time: Time): Fact =
+    FatThriftFact.factWith(entity, featureId, date, time, ThriftFactValue.t(new ThriftTombstone()))
 
   val fromTuple = apply _ tupled
 }

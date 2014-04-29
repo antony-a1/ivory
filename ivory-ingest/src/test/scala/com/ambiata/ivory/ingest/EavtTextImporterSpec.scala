@@ -48,9 +48,9 @@ class EavtTextImporterSpec extends HadoopSpecification with SimpleJobs with File
     EavtTextImporter.onHdfs(repository, dict, "factset1", "ns1", new Path(input), errors, DateTimeZone.getDefault, None, identity).run(sc) must beOk
 
     val expected = List(
-      StringFact("pid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), 10, "v1"),
-      IntFact("pid1", FeatureId("ns1", "fid2"), Date(2012, 10, 15), 20, 2),
-      DoubleFact("pid1", FeatureId("ns1", "fid3"), Date(2012, 3, 20), 30, 3.0))
+      StringFact("pid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(10), "v1"),
+      IntFact("pid1", FeatureId("ns1", "fid2"), Date(2012, 10, 15), Time(20), 2),
+      DoubleFact("pid1", FeatureId("ns1", "fid3"), Date(2012, 3, 20), Time(30), 3.0))
 
     (for {
       dl <- factsFromIvoryFactset(repository, "factset1").run(sc).run.unsafePerformIO().toEither

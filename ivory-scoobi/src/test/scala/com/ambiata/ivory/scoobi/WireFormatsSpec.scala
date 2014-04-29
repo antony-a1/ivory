@@ -47,12 +47,12 @@ class WireFormatsSpec extends Specification { def is = s2"""
   }
 
   def e3 = {
-    val expected = List(StringFact("eid1", FeatureId("ns1", "nm1"), Date(2012, 1, 30), 0, "value1"),
-                        IntFact("eid1", FeatureId("ns1", "nm2"), Date(2012, 1, 30), 123, 9),
-                        LongFact("eid2", FeatureId("ns1", "nm4"), Date(2012, 2, 20), 0, 456l),
-                        BooleanFact("eid2", FeatureId("ns1", "nm3"), Date(2012, 2, 1), 1, true),
-                        DoubleFact("eid3", FeatureId("ns1", "nm4"), Date(2012, 3, 1), 0, 3.2),
-                        TombstoneFact("eid3", FeatureId("ns1", "nm5"), Date(2012, 3, 15), 987))
+    val expected = List(StringFact("eid1", FeatureId("ns1", "nm1"), Date(2012, 1, 30), Time(0), "value1"),
+                        IntFact("eid1", FeatureId("ns1", "nm2"), Date(2012, 1, 30), Time(123), 9),
+                        LongFact("eid2", FeatureId("ns1", "nm4"), Date(2012, 2, 20), Time(0), 456l),
+                        BooleanFact("eid2", FeatureId("ns1", "nm3"), Date(2012, 2, 1), Time(1), true),
+                        DoubleFact("eid3", FeatureId("ns1", "nm4"), Date(2012, 3, 1), Time(0), 3.2),
+                        TombstoneFact("eid3", FeatureId("ns1", "nm5"), Date(2012, 3, 15), Time(987)))
 
     val bos = new ByteArrayOutputStream
     val out = new DataOutputStream(bos)

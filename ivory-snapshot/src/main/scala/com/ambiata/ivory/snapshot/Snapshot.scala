@@ -79,7 +79,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
          * 1. group by entity and feature id
          * 2. take the minimum fact in the group using fact time then priority to determine order
          */
-        val ord: Order[(Priority, Fact)] = Order.orderBy { case (p, f) => (-f.datetime, p) }
+        val ord: Order[(Priority, Fact)] = Order.orderBy { case (p, f) => (-f.datetime.long, p) }
         val latest: DList[(Priority, Fact)] = facts.groupBy { case (p, f) => (f.entity, f.featureId.toString) }
                                                    .reduceValues(Reduction.minimum(ord))
                                                    .collect { case (_, (p, f)) if !f.isTombstone => (p, f) }

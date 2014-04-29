@@ -88,7 +88,12 @@ object build extends Build {
   , base = file("ivory-core")
   , settings = standardSettings ++ lib("core") ++ Seq[Settings](
       name := "ivory-core"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.trove ++ depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++ depend.thrift ++ depend.hadoop(version.value))
+    , addCompilerPlugin("org.scalamacros" % "paradise" % "2.0.0-M3" cross CrossVersion.full)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.trove ++ depend.scalaz ++ depend.mundane ++ depend.joda ++ depend.specs2 ++ depend.thrift ++ depend.hadoop(version.value) ++ Seq(
+        "org.scala-lang" % "scala-compiler" % "2.10.4"
+      , "org.scala-lang" % "scala-reflect" % "2.10.4"
+      , "org.scalamacros" % "quasiquotes_2.10.3" % "2.0.0-M3"
+    ))
   )
 
   lazy val data = Project(

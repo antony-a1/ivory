@@ -18,8 +18,8 @@ object FactDiff {
 
       val errors = first_errs ++ second_errs
       val facts = first_facts ++ second_facts
-      
-      val grp = facts.groupBy({ case (flag, fact) => (fact.entity, fact.featureId.toString, fact.date.int, fact.seconds, fact.value.stringValue) })
+
+      val grp = facts.groupBy({ case (flag, fact) => (fact.entity, fact.featureId.toString, fact.date.int, fact.time.seconds, fact.value.stringValue) })
 
       val diff: DList[List[(Boolean, Fact)]] = grp.mapFlatten({ case (_, vs) =>
         vs.toList match {
@@ -28,7 +28,7 @@ object FactDiff {
           case other                            => Some(other)
         }
       })
-      
+
       val out: DList[String] = diff.map({
         case (true, fact) :: Nil  => s"Fact '${fact}' does not exist in ${input2}"
         case (false, fact) :: Nil => s"Fact '${fact}' does not exist in ${input1}"

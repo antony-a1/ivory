@@ -35,14 +35,14 @@ class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers
 
     dictionaryToIvory(repo, dict, dict.name).run(configuration).run.unsafePerformIO().toEither must beRight
 
-    val facts1 = DList(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), 0, "abc"),
-                       IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), 0, 10),
-                       BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), 0, true))
-    val facts2 = DList(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), 0, "def"))
+    val facts1 = DList(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
+                       IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
+                       BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true))
+    val facts2 = DList(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "def"))
 
     persist(facts1.toIvoryFactset(repo, "factset1"), facts2.toIvoryFactset(repo, "factset2"))
     writeFactsetVersion(repo, List("factset1", "factset2")).run(sc) must beOk
-    
+
     storeToIvory(repo, FeatureStore(List(FactSet("factset1", 1), FactSet("factset2", 2))), "store1").run(sc) must beOk
 
     Validate.validateHdfsStore(repo.path, "store1", "dict1", new Path(outpath), false).run(sc) must beOk
@@ -70,9 +70,9 @@ class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers
 
     dictionaryToIvory(repo, dict, dict.name).run(configuration).run.unsafePerformIO().toEither must beRight
 
-    val facts1 = DList(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), 0, "abc"),
-                       IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), 0, 10),
-                       BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), 0, true))
+    val facts1 = DList(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
+                       IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
+                       BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true))
 
     facts1.toIvoryFactset(repo, "factset1").persist
     writeFactsetVersion(repo, List("factset1")).run(sc) must beOk

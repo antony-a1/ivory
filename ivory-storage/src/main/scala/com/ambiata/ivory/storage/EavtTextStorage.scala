@@ -58,9 +58,9 @@ object EavtTextStorageV1 {
     } yield time match {
       case -\/(t) =>
         // FIX this looks wrong, it is getting the date with timezone, but millisOfDay without
-        Fact.newFact(entity, fid, Date.fromLocalDate(t.toDateTime(timezone).toLocalDate), t.getMillisOfDay / 1000, v)
+        Fact.newFact(entity, fid, Date.fromLocalDate(t.toDateTime(timezone).toLocalDate), Time.unsafe(t.getMillisOfDay / 1000), v)
       case \/-(t) =>
-        Fact.newFact(entity, fid, Date.fromLocalDate(t), 0, v)
+        Fact.newFact(entity, fid, Date.fromLocalDate(t), Time(0), v)
     }
   }.preprocess(preprocessor)
 

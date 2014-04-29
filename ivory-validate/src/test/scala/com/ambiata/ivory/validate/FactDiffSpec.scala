@@ -23,13 +23,13 @@ class FactDiffSpec extends HadoopSpecification with SimpleJobs with FileMatchers
 
   "FactDiff finds difference with all facts" >> { implicit sc: ScoobiConfiguration =>
     val facts1 = fromLazySeq(
-                   Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), 0, "abc"),
-                       IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), 0, 10),
-                       BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), 0, true)))
+                   Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
+                       IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
+                       BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)))
     val facts2 = fromLazySeq(
-                   Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), 0, "abcd"),
-                       IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), 0, 101),
-                       BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), 0, false)))
+                   Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abcd"),
+                       IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 101),
+                       BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), false)))
 
     val directory: String = path(TempFiles.createTempDir("factdiff").getPath).pp
     val input1 = directory + "/1"
@@ -50,9 +50,9 @@ class FactDiffSpec extends HadoopSpecification with SimpleJobs with FileMatchers
 
   "FactDiff finds no difference" >> { implicit sc: ScoobiConfiguration =>
     val facts1 = fromLazySeq(
-                   Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), 0, "abc"),
-                       IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), 0, 10),
-                       BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), 0, true)))
+                   Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
+                       IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
+                       BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)))
 
     val directory: String = path(TempFiles.createTempDir("factdiff").getPath).pp
     val input1 = directory + "/1"

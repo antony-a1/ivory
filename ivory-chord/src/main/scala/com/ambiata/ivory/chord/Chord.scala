@@ -27,7 +27,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
 
   // lexical order for a pair (Fact, Priority) so that
   // p1 < p2 <==> f1.datetime > f2.datetime || f1.datetime == f2.datetime && priority1 < priority2
-  implicit val ord: Order[(Fact, Priority)] = Order.orderBy { case (f, p) => (-f.datetime, p) }
+  implicit val ord: Order[(Fact, Priority)] = Order.orderBy { case (f, p) => (-f.datetime.long, p) }
 
 
   def withStorer(newStorer: IvoryScoobiStorer[Fact, DList[_]]): HdfsChord =
@@ -95,7 +95,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
                     if (factDate <= date && (fact, priority) < ((f, p))) (date, priority, Some(fact))
                     else                                               previous
                 }
-              }.collect { case (d, p, Some(f)) => (p, f.withEntity(f.entity + ":" + Date.fromInt(d).string())) }.toIterable
+              }.collect { case (d, p, Some(f)) => (p, f.withEntity(f.entity + ":" + Date.unsafeFromInt(d).hyphenated)) }.toIterable
             }.collect { case (p, f) if !f.isTombstone => (p, f) }
 
         val validated: DList[String \/ Fact] = latest.map { case (p, f) =>

@@ -37,12 +37,12 @@ trait WireFormats {
       tfFmt.toWire(tf.tfact, out)
     }
     def fromWire(in: DataInput): FatThriftFact =
-      FatThriftFact(StringFmt.fromWire(in), Date.fromInt(IntFmt.fromWire(in)), tfFmt.fromWire(in))
+      FatThriftFact(StringFmt.fromWire(in), Date.unsafeFromInt(IntFmt.fromWire(in)), tfFmt.fromWire(in))
   }
 
   implicit def BooleanValueFmt = new WireFormat[BooleanValue] {
     def toWire(v: BooleanValue, out: DataOutput) =
-      BooleanFmt.toWire(v.value, out)    
+      BooleanFmt.toWire(v.value, out)
     def fromWire(in: DataInput): BooleanValue =
       BooleanValue(BooleanFmt.fromWire(in))
   }
@@ -89,7 +89,7 @@ trait WireFormats {
         case Success(b) => { out.writeBoolean(true); bwf.toWire(b, out) }
       }
     }
-  
+
     def fromWire(in: DataInput): Validation[A, B] = {
       in.readBoolean match {
         case false => awf.fromWire(in).failure

@@ -19,8 +19,8 @@ Date Tests
     Date.fromInt(d.int) must_== d
   }
 
-  def sec = {
+  def sec = prop((n: Int) => n < (24 * 60 * 60) ==> {
     val d = Date(2012, 10, 1)
-    Date.fromSeconds(d.addSeconds(1234)) must_== ((d, 1234))
-  }
+    d.addTime(Time.unsafe(n)).zip must_== ((d, 1234))
+  })
 }
