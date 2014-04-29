@@ -200,8 +200,9 @@ object build extends Build {
 
   lazy val compilationSettings: Seq[Settings] = Seq(
     javaOptions ++= Seq("-Xmx3G", "-Xms512m", "-Xss4m")
+  , javacOptions ++= Seq("-source", "1.6", "-target", "1.6")
   , maxErrors := 20
-  , scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature", "-language:_", "-Ywarn-all", "-Xlint", "-Xfatal-warnings", "-Yinline-warnings")
+  , scalacOptions ++= Seq("-target:jvm-1.6", "-deprecation", "-unchecked", "-feature", "-language:_", "-Ywarn-all", "-Xlint", "-Xfatal-warnings", "-Yinline-warnings")
   )
 
   lazy val testingSettings: Seq[Settings] = Seq(
