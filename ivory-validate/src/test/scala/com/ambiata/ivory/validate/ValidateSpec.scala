@@ -48,6 +48,7 @@ class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers
     Validate.validateHdfsStore(repo.path, "store1", "dict1", new Path(outpath), false).run(sc) must beOk
 
     val res = fromTextFile(outpath).run.toList
+                               println(res)
     res must have size(1)
     res must contain("Not a valid double!")
     res must contain("eid1")

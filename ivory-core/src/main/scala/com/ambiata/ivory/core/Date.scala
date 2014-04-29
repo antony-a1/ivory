@@ -36,6 +36,9 @@ class Date private(val underlying: Int) extends AnyVal {
 
   def addTime(t: Time): DateTime =
     DateTime.unsafeFromLong(int.toLong << 32 | t.seconds)
+
+  override def toString: String =
+    s"Date($year,$month,$day)"
 }
 
 
@@ -113,6 +116,9 @@ object Date {
 class Time private(val underlying: Int) extends AnyVal {
   def seconds =
     underlying
+
+  override def toString: String =
+    seconds.toString
 }
 
 object Time {
@@ -160,6 +166,9 @@ class DateTime private(val underlying: Long) extends AnyVal {
 
   def long: Long =
     underlying
+
+  override def toString: String =
+    s"DateTime(${date.year},${date.month},${date.day},$time)"
 }
 
 object DateTime {
