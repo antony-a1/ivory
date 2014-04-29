@@ -83,7 +83,6 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
               // we keep the "best" fact which date is just before that date
               fs.foldLeft(dates.map((_, Short.MinValue, None)): Array[(Int, Short, Option[Fact])]) { case (ds, (priority, fact)) =>
                 val factDate = fact.date.int
-
                 ds.map {
                   case previous @ (date, p, None)    =>
                     // we found a first suitable fact for that date

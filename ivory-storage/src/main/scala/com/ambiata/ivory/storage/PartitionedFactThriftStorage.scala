@@ -29,7 +29,7 @@ object PartitionFactThriftStorageV1 {
       } yield a
     }
   }
-  
+
   case class PartitionedFactThriftLoader(path: String) extends IvoryScoobiLoader[Fact] {
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[String \/ Fact] =
       loadScoobiWith(path+"/*/*/*/*/*", (_, fact) => fact.right)
@@ -57,7 +57,7 @@ object PartitionFactThriftStorageV1 {
 }
 
 object PartitionFactThriftStorageV2 {
-  
+
   type FactsetName = String
 
   def loadScoobiWith[A : WireFormat](path: String, f: (FactsetName, Fact) => String \/ A): DList[String \/ A] = {
@@ -72,7 +72,7 @@ object PartitionFactThriftStorageV2 {
       } yield a
     }
   }
-  
+
   case class PartitionedFactThriftLoader(path: String) extends IvoryScoobiLoader[Fact] {
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[String \/ Fact] =
       loadScoobiWith(path+"/*/*/*/*/*", (_, fact) => fact.right)
@@ -86,7 +86,7 @@ object PartitionFactThriftStorageV2 {
         factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(s"Factset '${fs}' not found in expected list '${factsets}'".left))
     }
   }
-  
+
   case class PartitionedFactThriftStorer(base: String, codec: Option[CompressionCodec] = None) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] = {
       implicit val fmt = mkThriftFmt(new ThriftFact)

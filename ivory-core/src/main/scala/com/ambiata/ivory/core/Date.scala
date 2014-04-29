@@ -72,7 +72,7 @@ object Date {
       m        <- short
       d        <- short
       result   <- create(y, m.toByte, d.toByte) match {
-        case None => ListParser((position, _) => s"""Not a valid date at position [$position]""".failure)
+        case None => ListParser((position, _) => s"""Not a valid date ($y-$m-$d) at position [$position]""".failure)
         case Some(d) => d.point[ListParser]
       }
     } yield result
@@ -107,6 +107,8 @@ object Date {
   }
 }
 
+
+
 /* Seconds since start of day */
 class Time private(val underlying: Int) extends AnyVal {
   def seconds =
@@ -121,7 +123,7 @@ object Time {
     new Time(seconds)
 
   def create(seconds: Int): Option[Time] =
-    (seconds >= 0 && seconds < (60 * 60 * 25)).option(unsafe(seconds))
+    (seconds >= 0 && seconds < (60 * 60 * 24)).option(unsafe(seconds))
 
   object Macros {
     import scala.reflect.macros.Context

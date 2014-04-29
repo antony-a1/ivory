@@ -19,7 +19,13 @@ object Partition {
     import ListParser._
     for {
       _       <- consume(1)
-      date    <- Date.listParser
+      d        <- short
+      m        <- short
+      y        <- short
+      date     <- Date.create(y, m.toByte, d.toByte) match {
+        case None => ListParser((position, _) => s"""Not a valid date ($y-$m-$d) at position [$position]""".failure)
+        case Some(d) => d.point[ListParser]
+      }
       ns      <- string
       factset <- string
       _       <- consumeRest
