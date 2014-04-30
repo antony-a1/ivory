@@ -18,7 +18,7 @@ import com.ambiata.ivory.storage._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
 
-case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: LocalDate, outputPath: Path, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]], incremental: Option[(String, String)]) {
+case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: LocalDate, outputPath: Path, errorPath: Path, incremental: Option[(String, String)]) {
   import IvoryStorage._
 
   // FIX this is inconsistent, sometimes a short, sometimes an int
@@ -26,9 +26,6 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
 
   val SnapshotName: String = "ivory-incremental-snapshot"
   lazy val snapshotDate = Date.fromLocalDate(snapshot)
-
-  def withStorer(newStorer: IvoryScoobiStorer[Fact, DList[_]]): HdfsSnapshot =
-    copy(storer = newStorer)
 
   def run: ScoobiAction[Unit] = for {
     r  <- ScoobiAction.value(Repository.fromHdfsPath(repoPath))
@@ -39,7 +36,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
       s  <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
     } yield (path, s)  })
     _  <- scoobiJob(r, d, s, es, in)
-    _  <- storer.storeMeta
+    _  <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextStorer(new Path(outputPath, "dictionary")).store(d))
   } yield ()
 
   def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Option[Set[String]], incremental: Option[(String, FeatureStore)]): ScoobiAction[Unit] =
@@ -101,12 +98,9 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
         implicit val ThriftSchema = SeqSchemas.mkThriftSchema(new ThriftFact)
         import PartitionFactThriftStorageV2._
 
-        val thrift = PartitionedFactThriftStorer(new Path(outputPath, "thrift").toString, Some(new SnappyCodec)).storeScoobi(good)
-
         persist(errors.toTextFile((new Path(errorPath, "parse")).toString),
                 valErrors.toTextFile((new Path(errorPath, "validation")).toString),
-                thrift,
-                storer.storeScoobi(good))
+                PartitionedFactThriftStorer(new Path(outputPath, "thrift").toString, Some(new SnappyCodec)).storeScoobi(good))
         ()
       })
     }).flatten

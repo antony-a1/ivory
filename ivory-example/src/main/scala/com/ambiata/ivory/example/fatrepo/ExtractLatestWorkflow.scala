@@ -1,12 +1,14 @@
 package com.ambiata.ivory.example.fatrepo
 
-import scalaz._, Scalaz._
+import com.nicta.scoobi.Scoobi._
+import scalaz.{DList => _, _}, Scalaz._
 import org.apache.hadoop.fs.Path
 import org.joda.time.LocalDate
 import org.apache.commons.logging.LogFactory
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.snapshot._
+import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.repository._
 import com.ambiata.ivory.storage._
@@ -30,8 +32,24 @@ object ExtractLatestWorkflow {
     fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(outputPath, errorPath), date)
 
   def extractLatest(outputPath: Path, errorPath: Path)(repo: HdfsRepository, store: String, dictName: String, date: LocalDate): ScoobiAction[Unit] = for {
-    _    <- ScoobiAction.value(logger.info(s"Extracting latest features from '${date.toString("yyyy-MM-dd")}' using the store '${store}' and dictionary '${dictName}', from the '${repo.path}' repository. Output '${outputPath}'. Errors '${errorPath}'"))
-    _    <- HdfsSnapshot(repo.path, store, dictName, None, date, outputPath, errorPath, EavtTextStorageV1.EavtTextStorer(outputPath.toString), None).run
-    _     = logger.info(s"Successfully extracted latest features to '${outputPath}'")
+    _ <- ScoobiAction.value(logger.info(s"Extracting latest features from '${date.toString("yyyy-MM-dd")}' using the store '${store}' and dictionary '${dictName}', from the '${repo.path}' repository. Output '${outputPath}'. Errors '${errorPath}'"))
+    _ <- HdfsSnapshot(repo.path, store, dictName, None, date, outputPath, errorPath, None).run
+    _ <- storeInFormat(new Path(outputPath, "thrift"), new Path(outputPath, "eavt"), new Path(errorPath, "snapshot"))
+    _  = logger.info(s"Successfully extracted latest features to '${outputPath}'")
   } yield ()
+
+  def storeInFormat(inputPath: Path, outputPath: Path, errorPath: Path): ScoobiAction[Unit] =
+    ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
+      val in: DList[String \/ Fact] = PartitionFactThriftStorageV2.PartitionedFactThriftLoader(inputPath.toString).loadScoobi
+
+      val errors: DList[String] = in.collect({
+        case -\/(e) => e
+      })
+
+      val good: DList[Fact] = in.collect({
+        case \/-(f) => f
+      })
+
+      persist(EavtTextStorageV1.EavtTextStorer(outputPath.toString).storeScoobi(good), errors.toTextFile(errorPath.toString))
+    })
 }
