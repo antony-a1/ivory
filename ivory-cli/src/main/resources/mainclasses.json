@@ -34,9 +34,5 @@
 {
   "service-name" : "extract-chord",
   "class-name"   : "com.ambiata.ivory.cli.chord"
-},
-{
-  "service-name" : "pivot",
-  "class-name"   : "com.ambiata.ivory.cli.pivot"
 }
 ]
