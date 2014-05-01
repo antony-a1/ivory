@@ -46,7 +46,7 @@ object pivot extends ScoobiApp {
 
   def run {
     parser.parse(args, CliArguments("", "", "", "", '|', "NA")).map(c => {
-      val banner = s"""======================= snapshot =======================
+      val banner = s"""======================= pivot =======================
                       |
                       |Arguments --
                       |

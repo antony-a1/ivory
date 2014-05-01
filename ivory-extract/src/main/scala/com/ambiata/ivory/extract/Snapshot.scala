@@ -65,7 +65,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
         val input = base ++ additional
 
         val facts: DList[(Priority, Fact)] = input.map({
-          case -\/(e) => sys.error("A critical error has occured: " + e)
+          case -\/(e) => sys.error("A critical error has occured, where we could not determine priority and namespace from partitioning: " + e)
           case \/-(v) => v
         }).collect({
           case (p, _, f) if f.date.isBefore(snapshotDate) && entities.map(_.contains(f.entity)).getOrElse(true) => (p.toShort, f)
@@ -80,20 +80,14 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
                                                    .reduceValues(Reduction.minimum(ord))
                                                    .collect { case (_, (p, f)) if !f.isTombstone => (p, f) }
 
-        val validated: DList[String \/ Fact] = latest.map({ case (p, f) =>
+        val validated: DList[Fact] = latest.map({ case (p, f) =>
           Validate.validateFact(f, dict).disjunction.leftMap(e => e + " - Factset " + factsetMap.get(p).getOrElse("Unknown, priority " + p))
+        }).map({
+          case -\/(e) => sys.error("A critical error has occured, a value in ivory no longer matches the dictionary: " + e)
+          case \/-(v) => v
         })
 
-        val valErrors = validated.collect {
-          case -\/(e) => e
-        }
-
-        val good: DList[Fact] = validated.collect {
-          case \/-(f) => f
-        }
-
-        persist(valErrors.toTextFile((new Path(errorPath, "validation")).toString).compressWith(new SnappyCodec),
-                good.valueToSequenceFile(new Path(outputPath, "thrift").toString).compressWith(new SnappyCodec))
+        persist(validated.valueToSequenceFile(new Path(outputPath, "thrift").toString).compressWith(new SnappyCodec))
         ()
       })
     }).flatten
