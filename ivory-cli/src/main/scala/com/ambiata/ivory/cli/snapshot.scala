@@ -54,7 +54,7 @@ object snapshot extends ScoobiApp {
                       |
                       |""".stripMargin
       println(banner)
-      val res = onHdfs(new Path(c.repo), new Path(c.output), new Path(errors), c.date, c.incremental)
+      val res = HdfsSnapshot.takeSnapshot(new Path(c.repo), new Path(c.output), new Path(errors), c.date, c.incremental)
       res.run(configuration).run.unsafePerformIO() match {
         case Ok(_) =>
           println(banner)
@@ -65,11 +65,4 @@ object snapshot extends ScoobiApp {
     })
   }
 
-  def onHdfs(repo: Path, output: Path, errors: Path, date: LocalDate, incremental: Option[(String, String)]): ScoobiAction[(String, String)] =
-    fatrepo.ExtractLatestWorkflow.onHdfs(repo, extractLatest(output, errors, incremental), date)
-
-  def extractLatest(outputPath: Path, errorPath: Path, incremental: Option[(String, String)])(repo: HdfsRepository, store: String, dictName: String, date: LocalDate): ScoobiAction[Unit] = for {
-    d  <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dictName))
-    _  <- HdfsSnapshot(repo.path, store, dictName, None, date, outputPath, errorPath, incremental).run
-  } yield ()
 }

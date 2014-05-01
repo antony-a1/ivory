@@ -1,7 +1,7 @@
 package com.ambiata.ivory.extract
 
 import org.specs2._
-import org.specs2.matcher.FileMatchers
+import org.specs2.matcher.{MustThrownMatchers, FileMatchers}
 import scalaz.{DList => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.testing.mutable._
@@ -20,7 +20,7 @@ import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.storage._
 import IvoryStorage._
 
-class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
+class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers with SampleFacts {
   override def isCluster = false
 
   "Can extract expected facts" >> { implicit sc: ScoobiConfiguration =>
@@ -38,6 +38,12 @@ class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
     Set("eid1:2012-09-15|ns1:fid1|def|2012-09-01 00:00:00", "eid1:2012-11-01|ns1:fid1|abc|2012-10-01 00:00:00", "eid2:2012-12-01|ns1:fid2|11|2012-11-01 00:00:00")
   }
 
+
+}
+
+trait SampleFacts extends MustThrownMatchers {
+  val DICTIONARY_NAME = "dict1"
+
   def createEntitiesFiles(directory: String)(implicit sc: ScoobiConfiguration) = {
     implicit val fs = sc.fileSystem
     val entities = Seq("eid1|2012-09-15", "eid2|2012-12-01", "eid1|2012-11-01")
@@ -47,7 +53,7 @@ class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
   }
 
   def createDictionary(repo: HdfsRepository)(implicit sc: ScoobiConfiguration) = {
-    val dict = Dictionary("dict1", Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, CategoricalType, "desc"),
+    val dict = Dictionary(DICTIONARY_NAME, Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, CategoricalType, "desc"),
       FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding, NumericalType, "desc"),
       FeatureId("ns2", "fid3") -> FeatureMeta(BooleanEncoding, CategoricalType, "desc")))
 
@@ -57,10 +63,10 @@ class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
   def createFacts(repo: HdfsRepository)(implicit sc: ScoobiConfiguration) = {
     val facts1 =
       fromLazySeq(Seq(StringFact ("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
-            StringFact ("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1),  Time(0), "def"),
-            IntFact    ("eid2", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
-            IntFact    ("eid2", FeatureId("ns1", "fid2"), Date(2012, 11, 1), Time(0), 11),
-            BooleanFact("eid3", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)))
+        StringFact ("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1),  Time(0), "def"),
+        IntFact    ("eid2", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
+        IntFact    ("eid2", FeatureId("ns1", "fid2"), Date(2012, 11, 1), Time(0), 11),
+        BooleanFact("eid3", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)))
 
     val facts2 =
       fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1), Time(0), "ghi")))

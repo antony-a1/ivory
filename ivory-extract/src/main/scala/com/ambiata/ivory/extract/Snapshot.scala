@@ -18,6 +18,7 @@ import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.ivory.repository.fatrepo
 
 case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: LocalDate, outputPath: Path, errorPath: Path, incremental: Option[(String, String)]) {
   import IvoryStorage._
@@ -96,4 +97,16 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
         ()
       })
     }).flatten
+}
+
+
+object HdfsSnapshot {
+  def takeSnapshot(repo: Path, output: Path, errors: Path, date: LocalDate, incremental: Option[(String, String)]): ScoobiAction[(String, String)] =
+    fatrepo.ExtractLatestWorkflow.onHdfs(repo, extractLatest(output, errors, incremental), date)
+
+  def extractLatest(outputPath: Path, errorPath: Path, incremental: Option[(String, String)])(repo: HdfsRepository, store: String, dictName: String, date: LocalDate): ScoobiAction[Unit] = for {
+    d  <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dictName))
+    _  <- HdfsSnapshot(repo.path, store, dictName, None, date, outputPath, errorPath, incremental).run
+  } yield ()
+
 }
