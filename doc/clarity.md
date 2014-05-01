@@ -84,7 +84,7 @@ Mapping this onto a more direct project structure.
 
  * `ivory-extract`: Apis and tooling for getting data _out of_ an ivory store. Depends on core/storage for heavy lifting. Exposed via api.
 
- * `ivory-core`: fundamental data structures and interfaces that make ivory a feature store. Stores/Dictionaries/Facts, should depend on ivory storage interfaces for
+ * `ivory-core`: fundamental data structures and interfaces that make ivory a feature store. Stores/Dictionaries/Facts, should depend on ivory data interfaces for
                  actual implementations.
 
  * `ivory-data`:  metadata, data storage interfaces, abstracts over HDFS/S3/HDFS+S3-SYNC/LOCAL/LOCAL+S3-SYNC/LOCAL+HDFS-SYNC, nothing specific to a feature store.
