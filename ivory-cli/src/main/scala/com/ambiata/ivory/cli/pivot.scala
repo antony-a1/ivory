@@ -3,7 +3,7 @@ package com.ambiata.ivory.cli
 import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.snapshot._
+import com.ambiata.ivory.extract._
 
 import com.nicta.scoobi.Scoobi._
 
