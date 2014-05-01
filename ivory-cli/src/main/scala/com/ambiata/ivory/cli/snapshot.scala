@@ -55,7 +55,15 @@ object snapshot extends ScoobiApp {
                       |""".stripMargin
       println(banner)
       val res = HdfsSnapshot.takeSnapshot(new Path(c.repo), new Path(c.output), new Path(errors), c.date, c.incremental)
-      res.run(configuration <| { _.set("mapred.compress.map.output", "true") }).run.unsafePerformIO() match {
+      res.run(configuration <| { c =>
+        // MR1
+        c.set("mapred.compress.map.output", "true")
+        c.set("mapred.map.output.compression.codec", "org.apache.hadoop.io.compress.SnappyCodec")
+
+        // YARN
+        c.set("mapreduce.map.output.compress", "true")
+        c.set("mapred.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec")
+      }).run.unsafePerformIO() match {
         case Ok(_) =>
           println(banner)
           println("Status -- SUCCESS")
