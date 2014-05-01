@@ -7,7 +7,7 @@ import org.joda.time.LocalDate
 import org.apache.commons.logging.LogFactory
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.snapshot._
+import com.ambiata.ivory.extract._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.ScoobiAction

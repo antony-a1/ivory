@@ -16,16 +16,15 @@ object build extends Build {
   , aggregate = Seq(
       api
     , cli
-    , chord
     , core
     , data
     , example
+    , extract
     , generate
     , ingest
     , metadata
     , repository
     , scoobi
-    , snapshot
     , storage
     , validate
     , alien_hdfs
@@ -63,7 +62,7 @@ object build extends Build {
       name := "ivory-api"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz)
   )
-  .dependsOn(generate, ingest, repository, snapshot, validate, chord)
+  .dependsOn(generate, ingest, repository, validate, extract)
 
   lazy val cli = Project(
     id = "cli"
@@ -73,15 +72,6 @@ object build extends Build {
     ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz)
   )
   .dependsOn(api)
-
-  lazy val chord = Project(
-    id = "chord"
-  , base = file("ivory-chord")
-  , settings = standardSettings ++ app("chord") ++ Seq[Settings](
-      name := "ivory-chord"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz)
-  )
-  .dependsOn(core, scoobi, storage, validate)
 
   lazy val core = Project(
     id = "core"
@@ -118,12 +108,21 @@ object build extends Build {
   )
   .dependsOn(api, cli)
 
+  lazy val extract = Project(
+    id = "extract"
+  , base = file("ivory-extract")
+  , settings = standardSettings ++ lib("extract") ++ Seq[Settings](
+      name := "ivory-extract"
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz)
+  )
+  .dependsOn(core, scoobi, storage, validate)
+
   lazy val generate = Project(
     id = "generate"
   , base = file("ivory-generate")
   , settings = standardSettings ++ lib("generate") ++ Seq[Settings](
       name := "ivory-generate"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.joda)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda)
   )
   .dependsOn(core, storage)
 
@@ -132,7 +131,7 @@ object build extends Build {
   , base = file("ivory-ingest")
   , settings = standardSettings ++ lib("ingest") ++ Seq[Settings](
       name := "ivory-ingest"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.joda ++ depend.specs2 ++ depend.saws)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.specs2 ++ depend.saws)
   )
   .dependsOn(core, storage, metadata, alien_hdfs, scoobi)
 
@@ -141,7 +140,7 @@ object build extends Build {
   , base = file("ivory-metadata")
   , settings = standardSettings ++ lib("metadata") ++ Seq[Settings](
       name := "ivory-metadata"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.hadoop(version.value))
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value))
   )
   .dependsOn(core, alien_hdfs)
 
@@ -150,34 +149,25 @@ object build extends Build {
   , base = file("ivory-repository")
   , settings = standardSettings ++ lib("repository") ++ Seq[Settings](
       name := "ivory-repository"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.saws)
+    ) ++ Seq[Settings](libraryDependencies ++=  depend.scalaz ++ depend.saws)
   )
-  .dependsOn(core, ingest, storage, snapshot, alien_hdfs)
+  .dependsOn(core, ingest, storage, alien_hdfs)
 
   lazy val scoobi = Project(
     id = "scoobi"
   , base = file("ivory-scoobi")
   , settings = standardSettings ++ lib("scoobi") ++ Seq[Settings](
       name := "ivory-scoobi"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.scoobi(version.value) ++ depend.saws)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.saws)
   )
   .dependsOn(core, alien_hdfs)
-
-  lazy val snapshot = Project(
-    id = "snapshot"
-  , base = file("ivory-snapshot")
-  , settings = standardSettings ++ lib("snapshot") ++ Seq[Settings](
-      name := "ivory-snapshot"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz)
-  )
-  .dependsOn(core, scoobi, storage, validate)
 
   lazy val storage = Project(
     id = "storage"
   , base = file("ivory-storage")
   , settings = standardSettings ++ lib("storage") ++ Seq[Settings](
       name := "ivory-storage"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.saws)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.saws)
   )
   .dependsOn(core, metadata, scoobi, alien_hdfs)
 
@@ -186,7 +176,7 @@ object build extends Build {
   , base = file("ivory-validate")
   , settings = standardSettings ++ lib("validate") ++ Seq[Settings](
       name := "ivory-validate"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.specs2)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.specs2)
   )
   .dependsOn(core, scoobi, storage)
 
@@ -195,7 +185,7 @@ object build extends Build {
   , base = file("ivory-alien-hdfs")
   , settings = standardSettings ++ lib("alien.hdfs") ++ Seq[Settings](
       name := "ivory-alien-hdfs"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.hadoop(version.value) ++ depend.mundane ++ depend.saws ++ depend.specs2)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.mundane ++ depend.saws ++ depend.specs2)
   )
 
   lazy val compilationSettings: Seq[Settings] = Seq(

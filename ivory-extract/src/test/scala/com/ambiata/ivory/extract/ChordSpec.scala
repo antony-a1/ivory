@@ -1,4 +1,4 @@
-package com.ambiata.ivory.chord
+package com.ambiata.ivory.extract
 
 import org.specs2._
 import org.specs2.matcher.FileMatchers

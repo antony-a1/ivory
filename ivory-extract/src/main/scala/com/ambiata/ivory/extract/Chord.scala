@@ -1,4 +1,4 @@
-package com.ambiata.ivory.chord
+package com.ambiata.ivory.extract
 
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, Scalaz._, effect._

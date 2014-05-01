@@ -1,4 +1,4 @@
-package com.ambiata.ivory.snapshot
+package com.ambiata.ivory.extract
 
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, Scalaz._

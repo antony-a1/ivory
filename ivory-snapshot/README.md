@@ -1,2 +1,0 @@
-ivory-snapshot
-=============
