@@ -72,7 +72,7 @@ class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers
 
     dictionaryToIvory(repo, dict, dict.name).run(configuration).run.unsafePerformIO().toEither must beRight
 
-    val facts1 = fromLazySeq(Seq((StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
+    val facts1 = fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
                        IntFact("eid1", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
                        BooleanFact("eid1", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)))
 
