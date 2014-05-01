@@ -12,12 +12,11 @@ import java.util.Random
 
 import com.ambiata.ivory.core.{Value => IValue, _}
 import com.ambiata.ivory.alien.hdfs._
-import com.ambiata.ivory.scoobi.WireFormats, WireFormats._
+import com.ambiata.ivory.scoobi.FactFormats._
+import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.storage._
 
 case class HdfsGenerateFacts(entities: Int, dictPath: Path, flags: Path, start: LocalDate, end: LocalDate, storer: IvoryScoobiStorer[Fact, DList[_]]) {
-  implicit val FactWireFormat = WireFormats.FactWireFormat
-
   def withStorer(newStorer: IvoryScoobiStorer[Fact, DList[_]]): HdfsGenerateFacts =
     copy(storer = newStorer)
 

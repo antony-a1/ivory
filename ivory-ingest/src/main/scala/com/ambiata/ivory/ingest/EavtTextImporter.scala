@@ -13,7 +13,7 @@ import metadata.Versions
 import storage.EavtTextStorageV1._
 import ScoobiS3EMRAction._
 import ScoobiAction._
-import WireFormats._
+import WireFormats._, FactFormats._
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.FilePath
 import com.ambiata.saws.emr._
@@ -141,8 +141,6 @@ object EavtTextImporter {
     sc: ScoobiConfiguration,
     A: WireFormat[A]
   ) {
-    implicit val FactWireFormat = WireFormats.FactWireFormat
-
     val errors: DList[String] = dlist.collect { case -\/(err) => err + " - path " + path }
     val facts: DList[Fact]    = dlist.collect { case \/-(f) => f }
 

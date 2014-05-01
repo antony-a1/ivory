@@ -10,7 +10,7 @@ import com.nicta.scoobi.testing.TempFiles
 import org.specs2._
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.scoobi.WireFormats, WireFormats._
+import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
 
 class DenseRowTextStorageSpec extends HadoopSpecification with SimpleJobs {
   override def isCluster = false
@@ -28,8 +28,6 @@ class DenseRowTextStorageSpec extends HadoopSpecification with SimpleJobs {
   }
 
   "Dense rows stored correctly" >> { implicit sc: ScoobiConfiguration =>
-    implicit val FactWireFormat = WireFormats.FactWireFormat
-
     val directory = path(TempFiles.createTempDir("denserowtextstorer").getPath)
 
     val dict = Dictionary("dict", Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, CategoricalType, ""),

@@ -17,6 +17,7 @@ import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.IvoryStorage._
 import com.ambiata.ivory.scoobi.WireFormats._
+import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.mundane.io._
 
 class EavtTextImporterSpec extends HadoopSpecification with SimpleJobs with FileMatchers {

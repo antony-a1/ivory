@@ -10,6 +10,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.alien.hdfs._
 import WireFormats._
+import FactFormats._
 
 object DenseRowTextStorageV1 {
 
@@ -22,8 +23,6 @@ object DenseRowTextStorageV1 {
       dict.meta.toList.sortBy(_._1.toString(".")).zipWithIndex.map({ case ((f, m), i) => (i, f, m) })
 
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[String] = {
-      implicit val FactWireFormat = WireFormats.FactWireFormat
-
       val byKey: DList[((Entity, Attribute), Iterable[Fact])] =
         dlist.by(f => (f.entity, f.featureId.toString("."))).groupByKeyWith(Groupings.sortGrouping)
 

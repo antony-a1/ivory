@@ -7,12 +7,10 @@ import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.parse._
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.scoobi.WireFormats, WireFormats._
+import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
 
 object DelimitedFactTextStorage {
-
   case class DelimitedFactTextLoader(path: String, dict: Dictionary) extends IvoryScoobiLoader[Fact] {
-    implicit val FactWireFormat = WireFormats.FactWireFormat
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[String \/ Fact] = {
       fromTextFile(path).map(line => parseFact(dict, line))
     }

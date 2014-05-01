@@ -15,13 +15,13 @@ import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.scoobi.WireFormats, WireFormats._
+import com.ambiata.ivory.scoobi.FactFormats._
+import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.storage._
 import IvoryStorage._
 
 class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
   override def isCluster = false
-  implicit val FactWireFormat = WireFormats.FactWireFormat
 
   "Can extract expected facts" >> { implicit sc: ScoobiConfiguration =>
     val directory = path(TempFiles.createTempDir("chord").getPath)

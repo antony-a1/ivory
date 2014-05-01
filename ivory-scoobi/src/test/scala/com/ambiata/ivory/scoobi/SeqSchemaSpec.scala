@@ -19,8 +19,7 @@ class SeqSchemaSpec extends Specification { def is = s2"""
                         new ThriftFact("eid4", "fid4", ThriftFactValue.l(123l)),
                         new ThriftFact("eid5", "fid5", ThriftFactValue.d(1.0)),
                         new ThriftFact("eid6", "fid6", ThriftFactValue.t(new ThriftTombstone)))
-    val sch = mkThriftSchema(new ThriftFact())
+    val sch = SeqSchemas.thriftFactSeqSchema
     expected.map(tf => sch.fromWritable(sch.toWritable(tf)) must_== tf)
   }
 }
-

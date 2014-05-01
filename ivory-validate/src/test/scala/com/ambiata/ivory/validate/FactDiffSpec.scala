@@ -17,10 +17,10 @@ import com.ambiata.ivory.storage._
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.alien.hdfs._
 import WireFormats._
+import FactFormats._
 
 class FactDiffSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
   override def isCluster = false
-  implicit val FactWireFormat = WireFormats.FactWireFormat
 
   "FactDiff finds difference with all facts" >> { implicit sc: ScoobiConfiguration =>
     val facts1 = fromLazySeq(
@@ -69,4 +69,5 @@ class FactDiffSpec extends HadoopSpecification with SimpleJobs with FileMatchers
     Hdfs.readWith(new Path(output), is => Streams.read(is)).run(sc) must beOkValue("")
     Hdfs.readWith(new Path(errors), is => Streams.read(is)).run(sc) must beOkValue("")
   }
+
 }

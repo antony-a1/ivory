@@ -9,8 +9,7 @@ import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.alien.hdfs._
-import com.ambiata.ivory.scoobi.WireFormats, WireFormats._
-import com.ambiata.ivory.scoobi.ScoobiAction
+import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
 import com.ambiata.ivory.storage.IvoryStorage._
 
 
@@ -43,8 +42,6 @@ sealed trait Validate {
 }
 
 case class ValidateStoreHdfs(repo: HdfsRepository, store: FeatureStore, dict: Dictionary, includeOverridden: Boolean)(implicit sc: ScoobiConfiguration) extends Validate {
-  implicit val FactWireFormat = WireFormats.FactWireFormat
-
   def scoobiJob: ScoobiAction[DList[String]] =
     factsFromIvoryStore(repo, store).map(input => {
       val errors: DList[String] = countRecords(input.collect {
@@ -84,8 +81,6 @@ case class ValidateFactSetHdfs(repo: HdfsRepository, factset: String, dict: Dict
 
   def scoobiJob: ScoobiAction[DList[String]] =
     factsFromIvoryFactset(repo, factset).map(input => {
-      implicit val FactWireFormat = WireFormats.FactWireFormat
-
       val errors: DList[String] = countRecords(input.collect {
         case -\/(e) => e
       }, counterGroup, parseErrorCounterName)

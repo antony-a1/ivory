@@ -3,7 +3,7 @@ package com.ambiata.ivory.storage
 import scalaz.{DList => _, Value => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.scoobi.WireFormats, WireFormats._
+import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
 import com.nicta.scoobi.Scoobi._
 import com.ambiata.mundane.parse.ListParser
 import com.ambiata.mundane.parse.ListParser._
@@ -19,8 +19,6 @@ object EavtTextStorageV1 {
   type Namespace = String
 
   case class EavtTextLoader(path: String, dict: Dictionary, namespace: String, timezone: DateTimeZone, preprocess: String => String) extends IvoryScoobiLoader[Fact] {
-    implicit val FactWireFormat = WireFormats.FactWireFormat
-
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[String \/ Fact] =
       fromTextFile(path).map(l => parseFact(dict, namespace, timezone, preprocess).run(splitLine(l)).disjunction)
   }

@@ -12,6 +12,7 @@ import com.ambiata.mundane.time.DateTimex
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.scoobi.WireFormats._
+import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.SeqSchemas._
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage._
@@ -41,8 +42,6 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
 
   def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Option[Set[String]], incremental: Option[(String, FeatureStore)]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-      implicit val FactWireFormat = WireFormats.FactWireFormat
-
       // disable combiners as it's just overhead. The data is partitioned by date, so each mapper will have
       // only one date in it
       sc.disableCombiners
@@ -91,9 +90,6 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
         val good: DList[Fact] = validated.collect {
           case \/-(f) => f
         }
-
-        implicit val fmt = WireFormats.FactWireFormat
-        implicit val sch = SeqSchemas.FactSeqSchema
 
         persist(valErrors.toTextFile((new Path(errorPath, "validation")).toString).compressWith(new SnappyCodec),
                 good.valueToSequenceFile(new Path(outputPath, "thrift").toString).compressWith(new SnappyCodec))

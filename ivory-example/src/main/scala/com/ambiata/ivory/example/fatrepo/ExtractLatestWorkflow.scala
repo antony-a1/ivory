@@ -8,7 +8,8 @@ import org.apache.commons.logging.LogFactory
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.snapshot._
-import com.ambiata.ivory.scoobi.WireFormats, WireFormats._
+import com.ambiata.ivory.scoobi.FactFormats._
+import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.repository._
 import com.ambiata.ivory.storage._
@@ -40,8 +41,6 @@ object ExtractLatestWorkflow {
 
   def storeInFormat(inputPath: Path, outputPath: Path, errorPath: Path): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-      implicit val FactWireFormat = WireFormats.FactWireFormat
-
       val in: DList[String \/ Fact] = PartitionFactThriftStorageV2.PartitionedFactThriftLoader(inputPath.toString).loadScoobi
 
       val errors: DList[String] = in.collect({

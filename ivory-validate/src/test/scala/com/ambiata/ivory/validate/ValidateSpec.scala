@@ -15,13 +15,12 @@ import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.scoobi.WireFormats, WireFormats._
+import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
 import com.ambiata.ivory.storage._
 import IvoryStorage._
 
 class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
   override def isCluster = false
-  implicit val FactWireFormat = WireFormats.FactWireFormat
 
   "Validate feature store" >> { implicit sc: ScoobiConfiguration =>
     implicit val fs = sc.fileSystem
@@ -55,7 +54,6 @@ class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers
     res must contain("eid1")
     res must contain("ns1")
     res must contain("fid1")
-    res must contain("Date(2012,10,1)")
     res must contain("factset1")
   }
 
@@ -87,6 +85,5 @@ class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers
     res must contain("eid1")
     res must contain("ns1")
     res must contain("fid1")
-    res must contain("Date(2012,10,1)")
   }
 }

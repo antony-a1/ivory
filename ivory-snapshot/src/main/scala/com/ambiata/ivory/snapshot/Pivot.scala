@@ -6,7 +6,7 @@ import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi._
-import com.ambiata.ivory.scoobi.WireFormats, WireFormats._
+import com.ambiata.ivory.scoobi.WireFormats, WireFormats._, FactFormats._
 import com.ambiata.ivory.storage._
 import com.ambiata.ivory.alien.hdfs._
 
@@ -21,8 +21,6 @@ object Pivot {
 
   def scoobiJob(input: Path, storer: DenseRowTextStorageV1.DenseRowTextStorer, errorPath: Path): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-      implicit val FactWireFormat = WireFormats.FactWireFormat
-
       val in: DList[String \/ Fact] = PartitionFactThriftStorageV2.PartitionedFactThriftLoader(input.toString).loadScoobi
 
       val errors: DList[String] = in.collect({

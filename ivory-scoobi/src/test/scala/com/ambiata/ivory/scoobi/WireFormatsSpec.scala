@@ -6,6 +6,9 @@ import org.joda.time.LocalDate
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
+import com.nicta.scoobi._, Scoobi._
+
+import FactFormats._
 import WireFormats._
 
 import scala.collection.JavaConverters._
@@ -21,7 +24,7 @@ class WireFormatsSpec extends Specification { def is = s2"""
                         new ThriftFact("eid4", "fid4", ThriftFactValue.l(123l)),
                         new ThriftFact("eid5", "fid5", ThriftFactValue.d(1.0)),
                         new ThriftFact("eid6", "fid6", ThriftFactValue.t(new ThriftTombstone)))
-    val fmt = mkThriftFmt(new ThriftFact())
+    val fmt = implicitly[WireFormat[ThriftFact]]
     expected.map(tf => {
       val bos = new ByteArrayOutputStream(2048)
       val out = new DataOutputStream(bos)
@@ -45,10 +48,10 @@ class WireFormatsSpec extends Specification { def is = s2"""
     val out = new DataOutputStream(bos)
     expected.map(f => {
       bos.reset()
-      FactWireFormat.toWire(f, out)
+      WireFormats.factWireFormat.toWire(f, out)
       out.flush()
 
-      val actual = FactWireFormat.fromWire(new DataInputStream(new ByteArrayInputStream(bos.toByteArray)))
+      val actual = WireFormats.factWireFormat.fromWire(new DataInputStream(new ByteArrayInputStream(bos.toByteArray)))
       actual must_== f
     })
   }
