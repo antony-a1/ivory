@@ -11,7 +11,9 @@ import WireFormats._
 
 object FactDiff {
 
-  def scoobiJob(input1: String, input2: String, outputPath: String, errorPath: String): ScoobiAction[Unit] =
+  def scoobiJob(input1: String, input2: String, outputPath: String, errorPath: String): ScoobiAction[Unit] = {
+    implicit val FactWireFormat = WireFormats.FactWireFormat
+
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       val (first_errs, first_facts) = byflag(PartitionFactThriftStorageV1.PartitionedFactThriftLoader(input1).loadScoobi, true)
       val (second_errs, second_facts) = byflag(PartitionFactThriftStorageV1.PartitionedFactThriftLoader(input2).loadScoobi, false)
@@ -42,8 +44,11 @@ object FactDiff {
 
       persist(error_out.toTextFile(errorPath), out.toTextFile(outputPath))
     })
+  }
 
   def byflag(dlist: DList[String \/ Fact], flag: Boolean): (DList[(Boolean, String)], DList[(Boolean, Fact)]) = {
+    implicit val FactWireFormat = WireFormats.FactWireFormat
+
     val errs = dlist.collect {
       case -\/(e) => (flag, e)
     }

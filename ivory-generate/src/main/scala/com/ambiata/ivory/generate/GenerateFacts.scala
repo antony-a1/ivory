@@ -12,10 +12,11 @@ import java.util.Random
 
 import com.ambiata.ivory.core.{Value => IValue, _}
 import com.ambiata.ivory.alien.hdfs._
-import com.ambiata.ivory.scoobi.WireFormats._
+import com.ambiata.ivory.scoobi.WireFormats, WireFormats._
 import com.ambiata.ivory.storage._
 
 case class HdfsGenerateFacts(entities: Int, dictPath: Path, flags: Path, start: LocalDate, end: LocalDate, storer: IvoryScoobiStorer[Fact, DList[_]]) {
+  implicit val FactWireFormat = WireFormats.FactWireFormat
 
   def withStorer(newStorer: IvoryScoobiStorer[Fact, DList[_]]): HdfsGenerateFacts =
     copy(storer = newStorer)
@@ -77,7 +78,7 @@ case class RandomFacts(rand: Random) {
   }
 
   def fact(eid: Int, fid: FeatureId, meta: FeatureMeta, date: LocalDate): Fact =
-    Fact.newFact("ID%08d".format(eid), fid, Date.fromLocalDate(date), Time.unsafe(rand.nextInt(86400)), value(meta))
+    Fact.newFact("ID%08d".format(eid), fid.namespace, fid.name, Date.fromLocalDate(date), Time.unsafe(rand.nextInt(86400)), value(meta))
 
   def value(meta: FeatureMeta): IValue = meta match {
     case FeatureMeta(BooleanEncoding, _, _, _)   => BooleanValue(rand.nextBoolean)

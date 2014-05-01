@@ -15,12 +15,13 @@ import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.scoobi.WireFormats._
+import com.ambiata.ivory.scoobi.WireFormats, WireFormats._
 import com.ambiata.ivory.storage._
 import IvoryStorage._
 
 class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
   override def isCluster = false
+  implicit val FactWireFormat = WireFormats.FactWireFormat
 
   "Can extract expected facts" >> { implicit sc: ScoobiConfiguration =>
     val directory = path(TempFiles.createTempDir("chord").getPath)
@@ -55,14 +56,14 @@ class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
 
   def createFacts(repo: HdfsRepository)(implicit sc: ScoobiConfiguration) = {
     val facts1 =
-      DList(StringFact ("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
+      fromLazySeq(Seq(StringFact ("eid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
             StringFact ("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1),  Time(0), "def"),
             IntFact    ("eid2", FeatureId("ns1", "fid2"), Date(2012, 10, 1), Time(0), 10),
             IntFact    ("eid2", FeatureId("ns1", "fid2"), Date(2012, 11, 1), Time(0), 11),
-            BooleanFact("eid3", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true))
+            BooleanFact("eid3", FeatureId("ns2", "fid3"), Date(2012, 3, 20), Time(0), true)))
 
     val facts2 =
-      DList(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1), Time(0), "ghi"))
+      fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1), Time(0), "ghi")))
 
     persist(facts1.toIvoryFactset(repo, "factset1"), facts2.toIvoryFactset(repo, "factset2"))
     writeFactsetVersion(repo, List("factset1", "factset2")).run(sc) must beOk

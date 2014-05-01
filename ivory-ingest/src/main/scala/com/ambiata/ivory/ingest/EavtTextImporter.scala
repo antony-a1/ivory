@@ -64,7 +64,7 @@ object EavtTextImporter {
     f => (f.entity, f.featureId.name)
 
   val keyedByPartition: KeyedBy[String] =
-    f => s"${f.featureId.namespace}/${f.date.string("/")}"
+    f => s"${f.namespace}/${f.date.string("/")}"
 
   // FIX lots of duplication with RawFeatureThriftImporter and below
   def compoundScoobiJob(
@@ -141,6 +141,7 @@ object EavtTextImporter {
     sc: ScoobiConfiguration,
     A: WireFormat[A]
   ) {
+    implicit val FactWireFormat = WireFormats.FactWireFormat
 
     val errors: DList[String] = dlist.collect { case -\/(err) => err + " - path " + path }
     val facts: DList[Fact]    = dlist.collect { case \/-(f) => f }

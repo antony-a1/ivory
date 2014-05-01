@@ -6,15 +6,17 @@ import com.ambiata.mundane.parse._
 import com.ambiata.ivory.core.thrift._
 
 trait Fact {
-
   def entity: String
+  def namespace: String
+  def feature: String
   def featureId: FeatureId
+  def date: Date
+  def time: Time
   def datetime: DateTime
-  def date: Date = datetime.date
-  def time: Time = datetime.time
   def value: Value
+  def toThrift: ThriftFact
 
-  def toThrift: FatThriftFact
+  def toNamespacedThrift: NamespacedThriftFact with NamespacedThriftFactDerived
 
   lazy val stringValue: Option[String] =
     value.stringValue
@@ -30,25 +32,24 @@ trait Fact {
   }
 
   def withEntity(newEntity: String): Fact =
-    Fact.newFact(newEntity, featureId, date, time, value)
+    Fact.newFact(newEntity, namespace, feature, date, time, value)
 
   def withFeatureId(newFeatureId: FeatureId): Fact =
-    Fact.newFact(entity, newFeatureId, date, time, value)
+    Fact.newFact(entity, namespace, feature, date, time, value)
 
   def withDate(newDate: Date): Fact =
-    Fact.newFact(entity, featureId, newDate, time, value)
+    Fact.newFact(entity, namespace, feature, newDate, time, value)
 
   def withTime(newTime: Time): Fact =
-    Fact.newFact(entity, featureId, date, newTime, value)
+    Fact.newFact(entity, namespace, feature, date, newTime, value)
 
   def withValue(newValue: Value): Fact =
-    Fact.newFact(entity, featureId, datetime, newValue)
+    Fact.newFact(entity, namespace, feature, date, time, newValue)
 }
 
 object Fact {
-
-  def newFact(entity: String, featureId: FeatureId, datetime: DateTime, value: Value): Fact =
-    FatThriftFact.factWith(entity, featureId, datetime.date, datetime.time, value match {
+  def newFact(entity: String, namespace: String, feature: String, date: Date, time: Time, value: Value): Fact =
+    FatThriftFact.factWith(entity, namespace, feature, date, time, value match {
       case StringValue(s)   => ThriftFactValue.s(s)
       case BooleanValue(b)  => ThriftFactValue.b(b)
       case IntValue(i)      => ThriftFactValue.i(i)
@@ -56,82 +57,95 @@ object Fact {
       case DoubleValue(d)   => ThriftFactValue.d(d)
       case TombstoneValue() => ThriftFactValue.t(new ThriftTombstone())
     })
-
-  def newFact(entity: String, featureId: FeatureId, date: Date, seconds: Time, value: Value): Fact =
-    newFact(entity, featureId, date.addTime(seconds), value)
 }
 
-case class FatThriftFact(ns: String, override val date: Date, tfact: ThriftFact) extends Fact {
-  def datetime =
-    date.addTime(Time.unsafe(seconds))
+trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
+    def namespace =
+      nspace
 
-  def entity: String =
-    tfact.getEntity
+    def feature =
+      fact.attribute
 
-  lazy val featureId: FeatureId =
-    FeatureId(ns, tfact.getAttribute)
+    def date =
+      Date.unsafeFromInt(yyyyMMdd)
 
-  def seconds: Int =
-    Option(tfact.getSeconds).getOrElse(0)
+    def time =
+      Time.unsafe(seconds)
 
-  lazy val value: Value = tfact.getValue match {
-    case tv if(tv.isSetS) => StringValue(tv.getS)
-    case tv if(tv.isSetB) => BooleanValue(tv.getB)
-    case tv if(tv.isSetI) => IntValue(tv.getI)
-    case tv if(tv.isSetL) => LongValue(tv.getL)
-    case tv if(tv.isSetD) => DoubleValue(tv.getD)
-    case tv if(tv.isSetT) => TombstoneValue()
-    case _                => sys.error(s"Something went really wrong, i found a thrift fact which i dont understand! - '${tfact.toString}'")
-  }
+    def datetime =
+      date.addTime(time)
 
-  def toThrift = this
+    def entity: String =
+      fact.getEntity
+
+    def featureId: FeatureId =
+      FeatureId(nspace, fact.getAttribute)
+
+    def seconds: Int =
+      Option(fact.getSeconds).getOrElse(0)
+
+    def value: Value = fact.getValue match {
+      case tv if(tv.isSetD) => DoubleValue(tv.getD)
+      case tv if(tv.isSetS) => StringValue(tv.getS)
+      case tv if(tv.isSetI) => IntValue(tv.getI)
+      case tv if(tv.isSetL) => LongValue(tv.getL)
+      case tv if(tv.isSetB) => BooleanValue(tv.getB)
+      case tv if(tv.isSetT) => TombstoneValue()
+      case _                => sys.error(s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${fact.toString}].'")
+    }
+
+    def toThrift = fact
+
+    def toNamespacedThrift = this
 }
 
 object FatThriftFact {
-  def factWith(entity: String, featureId: FeatureId, date: Date, time: Time, value: => ThriftFactValue): FatThriftFact = {
-    val tfact = new ThriftFact(entity, featureId.name, value)
-    FatThriftFact(featureId.namespace, date, tfact.setSeconds(time.seconds))
+  def apply(ns: String, date: Date, tfact: ThriftFact): Fact = new NamespacedThriftFact(tfact, ns, date.int) with NamespacedThriftFactDerived
+
+  def factWith(entity: String, namespace: String, feature: String, date: Date, time: Time, value: ThriftFactValue): Fact = {
+    val tfact = new ThriftFact(entity, feature, value)
+    FatThriftFact(namespace, date, tfact.setSeconds(time.seconds))
   }
 }
 
 object BooleanFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Boolean): Fact =
-    FatThriftFact.factWith(entity, featureId, date, time, ThriftFactValue.b(value))
+    FatThriftFact.factWith(entity, featureId.namespace, featureId.name, date, time, ThriftFactValue.b(value))
 
   val fromTuple = apply _ tupled
 }
 
 object IntFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Int): Fact =
-    FatThriftFact.factWith(entity, featureId, date, time, ThriftFactValue.i(value))
+    FatThriftFact.factWith(entity, featureId.namespace, featureId.name, date, time, ThriftFactValue.i(value))
 
   val fromTuple = apply _ tupled
 }
 
 object LongFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Long): Fact =
-    FatThriftFact.factWith(entity, featureId, date, time, ThriftFactValue.l(value))
+    FatThriftFact.factWith(entity, featureId.namespace, featureId.name, date, time, ThriftFactValue.l(value))
 
   val fromTuple = apply _ tupled
 }
 
 object DoubleFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: Double): Fact =
-    FatThriftFact.factWith(entity, featureId, date, time, ThriftFactValue.d(value))
+    FatThriftFact.factWith(entity, featureId.namespace, featureId.name, date, time, ThriftFactValue.d(value))
 
   val fromTuple = apply _ tupled
 }
 
 object StringFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time, value: String): Fact =
-    FatThriftFact.factWith(entity, featureId, date, time, ThriftFactValue.s(value))
+    FatThriftFact.factWith(entity, featureId.namespace, featureId.name, date, time, ThriftFactValue.s(value))
 
   val fromTuple = apply _ tupled
 }
 
 object TombstoneFact {
   def apply(entity: String, featureId: FeatureId, date: Date, time: Time): Fact =
-    FatThriftFact.factWith(entity, featureId, date, time, ThriftFactValue.t(new ThriftTombstone()))
+    FatThriftFact.factWith(entity, featureId.namespace, featureId.name, date, time, ThriftFactValue.t(new ThriftTombstone()))
 
   val fromTuple = apply _ tupled
 }

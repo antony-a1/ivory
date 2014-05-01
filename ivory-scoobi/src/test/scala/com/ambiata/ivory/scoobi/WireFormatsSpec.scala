@@ -12,8 +12,7 @@ import scala.collection.JavaConverters._
 
 class WireFormatsSpec extends Specification { def is = s2"""
   Can serialise/deserialise thrift             $e1
-  Can serialise/deserialise LocalDate          $e2
-  Can serialise/desrialise Facts               $e3
+  Can serialise/desrialise Facts               $e2
                                                """
   def e1 = {
     val expected = List(new ThriftFact("eid1", "fid1", ThriftFactValue.s("abc")),
@@ -35,18 +34,6 @@ class WireFormatsSpec extends Specification { def is = s2"""
   }
 
   def e2 = {
-    val date = new LocalDate(2012, 1, 30)
-
-    val bos = new ByteArrayOutputStream
-    val out = new DataOutputStream(bos)
-    LocalDateFmt.toWire(date, out)
-    out.flush()
-
-    val actual = LocalDateFmt.fromWire(new DataInputStream(new ByteArrayInputStream(bos.toByteArray)))
-    actual.toString("yyyy-MM-dd") must_== date.toString("yyyy-MM-dd")
-  }
-
-  def e3 = {
     val expected = List(StringFact("eid1", FeatureId("ns1", "nm1"), Date(2012, 1, 30), Time(0), "value1"),
                         IntFact("eid1", FeatureId("ns1", "nm2"), Date(2012, 1, 30), Time(123), 9),
                         LongFact("eid2", FeatureId("ns1", "nm4"), Date(2012, 2, 20), Time(0), 456l),
@@ -58,10 +45,10 @@ class WireFormatsSpec extends Specification { def is = s2"""
     val out = new DataOutputStream(bos)
     expected.map(f => {
       bos.reset()
-      FactFmt.toWire(f, out)
+      FactWireFormat.toWire(f, out)
       out.flush()
 
-      val actual = FactFmt.fromWire(new DataInputStream(new ByteArrayInputStream(bos.toByteArray)))
+      val actual = FactWireFormat.fromWire(new DataInputStream(new ByteArrayInputStream(bos.toByteArray)))
       actual must_== f
     })
   }

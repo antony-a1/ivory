@@ -11,7 +11,7 @@ import com.ambiata.mundane.parse._
 import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.scoobi.WireFormats._
+import com.ambiata.ivory.scoobi.WireFormats, WireFormats._
 import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.storage._
 import com.ambiata.ivory.validate.Validate
@@ -49,6 +49,8 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
    */
   def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, chordPath: Path): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
+      implicit val FactWireFormat = WireFormats.FactWireFormat
+
       lazy val factsetMap = store.factSets.map(fs => (fs.priority.toShort, fs.name)).toMap
 
       factsFromIvoryStore(repo, store).map { input =>

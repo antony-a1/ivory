@@ -55,7 +55,7 @@ object HdfsDirectEavtTextImporter {
               SequenceFile.createWriter(conf, opts:_*)
             })
 
-            writer.append(NullWritable.get, new BytesWritable(serializer.toBytes(fact.toThrift.tfact)))
+            writer.append(NullWritable.get, new BytesWritable(serializer.toBytes(fact.toThrift)))
           }
           case Failure(e) =>
             err.write(e); err.newLine

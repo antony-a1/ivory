@@ -41,6 +41,8 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
 
   def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Option[Set[String]], incremental: Option[(String, FeatureStore)]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
+      implicit val FactWireFormat = WireFormats.FactWireFormat
+
       // disable combiners as it's just overhead. The data is partitioned by date, so each mapper will have
       // only one date in it
       sc.disableCombiners
@@ -56,21 +58,18 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
         case None =>
           DList[String \/ (Int, String, Fact)]()
         case Some((p, _)) =>
-          implicit val fmt = mkThriftFmt(new ThriftFact)
-          implicit val sch = mkThriftSchema(new ThriftFact)
           PartitionFactThriftStorageV2.loadScoobiWith[(Int, String, Fact)](p, (_, fact) => (Short.MaxValue.toInt, SnapshotName, fact).right[String])
       }
 
       factsFromIvoryStore(repo, store).map(base => {
         val input = base ++ additional
 
-        val errors: DList[String] = input.collect {
-          case -\/(e) => e
-        }
-
-        val facts: DList[(Priority, Fact)] = input.collect {
-          case \/-((p, _, f)) if f.date.isBefore(snapshotDate) && entities.map(_.contains(f.entity)).getOrElse(true) => (p.toShort, f)
-        }
+        val facts: DList[(Priority, Fact)] = input.map({
+          case -\/(e) => sys.error("A critical error has occured: " + e)
+          case \/-(v) => v
+        }).collect({
+          case (p, _, f) if f.date.isBefore(snapshotDate) && entities.map(_.contains(f.entity)).getOrElse(true) => (p.toShort, f)
+        })
 
         /*
          * 1. group by entity and feature id
@@ -89,18 +88,15 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
           case -\/(e) => e
         }
 
-        val good = validated.collect {
+        val good: DList[Fact] = validated.collect {
           case \/-(f) => f
         }
 
-        // FIX ME when we are using a single view of "Fact" everywhere.
-        implicit val ThriftWireFormat = WireFormats.mkThriftFmt(new ThriftFact)
-        implicit val ThriftSchema = SeqSchemas.mkThriftSchema(new ThriftFact)
-        import PartitionFactThriftStorageV2._
+        implicit val fmt = WireFormats.FactWireFormat
+        implicit val sch = SeqSchemas.FactSeqSchema
 
-        persist(errors.toTextFile((new Path(errorPath, "parse")).toString),
-                valErrors.toTextFile((new Path(errorPath, "validation")).toString),
-                PartitionedFactThriftStorer(new Path(outputPath, "thrift").toString, Some(new SnappyCodec)).storeScoobi(good))
+        persist(valErrors.toTextFile((new Path(errorPath, "validation")).toString).compressWith(new SnappyCodec)
+                good.valueToSequenceFile[Fact](new Path(outputPath, "thrift").toString).compressWith(new SnappyCodec))
         ()
       })
     }).flatten

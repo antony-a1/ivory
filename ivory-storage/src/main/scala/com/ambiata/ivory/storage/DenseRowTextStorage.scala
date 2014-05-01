@@ -16,12 +16,13 @@ object DenseRowTextStorageV1 {
   type Entity = String
   type Attribute = String
   type StringValue = String
-  
+
   case class DenseRowTextStorer(path: String, dict: Dictionary, delim: Char = '|', tombstone: String = "NA") extends IvoryScoobiStorer[Fact, DList[String]] {
     lazy val features: List[(Int, FeatureId, FeatureMeta)] =
       dict.meta.toList.sortBy(_._1.toString(".")).zipWithIndex.map({ case ((f, m), i) => (i, f, m) })
 
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[String] = {
+      implicit val FactWireFormat = WireFormats.FactWireFormat
 
       val byKey: DList[((Entity, Attribute), Iterable[Fact])] =
         dlist.by(f => (f.entity, f.featureId.toString("."))).groupByKeyWith(Groupings.sortGrouping)
@@ -66,4 +67,3 @@ object DenseRowTextStorageV1 {
     case TombstoneValue() => tombstoneValue
   }
 }
-

@@ -20,6 +20,7 @@ import WireFormats._
 
 class FactDiffSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
   override def isCluster = false
+  implicit val FactWireFormat = WireFormats.FactWireFormat
 
   "FactDiff finds difference with all facts" >> { implicit sc: ScoobiConfiguration =>
     val facts1 = fromLazySeq(

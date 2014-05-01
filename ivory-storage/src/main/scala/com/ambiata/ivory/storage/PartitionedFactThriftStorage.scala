@@ -18,24 +18,27 @@ object PartitionFactThriftStorageV1 {
   type Priority = Int
 
   def loadScoobiWith[A : WireFormat](path: String, f: (FactsetName, Fact) => String \/ A)(implicit sc: ScoobiConfiguration): DList[String \/ A] = {
-    implicit val fmt = mkThriftFmt(new ThriftFact)
-    implicit val sch = mkThriftSchema(new ThriftFact)
+     implicit val fmt = WireFormats.ThriftFactWireFormat
+     implicit val sch = SeqSchemas.ThriftFactSeqSchema
      valueFromSequenceFileWithPath[ThriftFact](path).map { case (partition, tfact) =>
       for {
         p          <- Partition.parseWith(new java.net.URI(partition).getPath).disjunction
         (fs, ns, d) = p
-        fact        = FatThriftFact(ns, d, tfact)
+        fact        =  FatThriftFact(ns, d, tfact)
         a          <- f(fs, fact)
       } yield a
     }
   }
 
   case class PartitionedFactThriftLoader(path: String) extends IvoryScoobiLoader[Fact] {
+    implicit val FactWireFormat = WireFormats.FactWireFormat
+
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[String \/ Fact] =
       loadScoobiWith(path+"/*/*/*/*/*", (_, fact) => fact.right)
   }
 
   case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[FactSet]) extends IvoryScoobiLoader[(Priority, FactsetName, Fact)] {
+    implicit val FactWireFormat = WireFormats.FactWireFormat
     lazy val factsetMap: Map[String, Int] = factsets.map(fs => (fs.name, fs.priority)).toMap
 
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[String \/ (Int, String, Fact)] = {
@@ -46,10 +49,10 @@ object PartitionFactThriftStorageV1 {
 
   case class PartitionedFactThriftStorer(base: String, codec: Option[CompressionCodec] = None) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] = {
-      implicit val fmt = mkThriftFmt(new ThriftFact)
-      implicit val sch = mkThriftSchema(new ThriftFact)
-      val partitioned = dlist.by(f => Partition.path(f.featureId.namespace, f.date))
-                             .mapValues((f: Fact) => f.toThrift.tfact)
+      implicit val fmt = WireFormats.ThriftFactWireFormat
+      implicit val sch = SeqSchemas.ThriftFactSeqSchema
+      val partitioned = dlist.by(f => Partition.path(f.namespace, f.date))
+                             .mapValues((f: Fact) => f.toThrift)
                              .valueToPartitionedSequenceFile[PartitionKey, ThriftFact](base, identity, overwrite = true)
       codec.map(c => partitioned.compressWith(c)).getOrElse(partitioned)
     }
@@ -61,8 +64,9 @@ object PartitionFactThriftStorageV2 {
   type FactsetName = String
 
   def loadScoobiWith[A : WireFormat](path: String, f: (FactsetName, Fact) => String \/ A): DList[String \/ A] = {
-    implicit val fmt = mkThriftFmt(new ThriftFact)
-    implicit val sch = mkThriftSchema(new ThriftFact)
+     implicit val fmt = WireFormats.ThriftFactWireFormat
+     implicit val sch = SeqSchemas.ThriftFactSeqSchema
+
      valueFromSequenceFileWithPath[ThriftFact](path).map { case (partition, tfact) =>
       for {
         p          <- Partition.parseWith(new java.net.URI(partition).getPath).disjunction
@@ -74,11 +78,15 @@ object PartitionFactThriftStorageV2 {
   }
 
   case class PartitionedFactThriftLoader(path: String) extends IvoryScoobiLoader[Fact] {
+    implicit val FactWireFormat = WireFormats.FactWireFormat
+
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[String \/ Fact] =
       loadScoobiWith(path+"/*/*/*/*/*", (_, fact) => fact.right)
   }
 
   case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[FactSet]) extends IvoryScoobiLoader[(Int, String, Fact)] {
+    implicit val FactWireFormat = WireFormats.FactWireFormat
+
     lazy val factsetMap: Map[String, Int] = factsets.map(fs => (fs.name, fs.priority)).toMap
 
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[String \/ (Int, String, Fact)] = {
@@ -89,10 +97,10 @@ object PartitionFactThriftStorageV2 {
 
   case class PartitionedFactThriftStorer(base: String, codec: Option[CompressionCodec] = None) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] = {
-      implicit val fmt = mkThriftFmt(new ThriftFact)
-      implicit val sch = mkThriftSchema(new ThriftFact)
-      val partitioned = dlist.by(f => Partition.path(f.featureId.namespace, f.date))
-                             .mapValues((f: Fact) => f.toThrift.tfact)
+      implicit val fmt = WireFormats.ThriftFactWireFormat
+      implicit val sch = SeqSchemas.ThriftFactSeqSchema
+      val partitioned = dlist.by(f => Partition.path(f.namespace, f.date))
+                             .mapValues((f: Fact) => f.toThrift)
                              .valueToPartitionedSequenceFile[PartitionKey, ThriftFact](base, identity, overwrite = true)
       codec.map(c => partitioned.compressWith(c)).getOrElse(partitioned)
     }
