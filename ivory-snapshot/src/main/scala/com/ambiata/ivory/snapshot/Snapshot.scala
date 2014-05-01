@@ -95,8 +95,8 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
         implicit val fmt = WireFormats.FactWireFormat
         implicit val sch = SeqSchemas.FactSeqSchema
 
-        persist(valErrors.toTextFile((new Path(errorPath, "validation")).toString).compressWith(new SnappyCodec)
-                good.valueToSequenceFile[Fact](new Path(outputPath, "thrift").toString).compressWith(new SnappyCodec))
+        persist(valErrors.toTextFile((new Path(errorPath, "validation")).toString).compressWith(new SnappyCodec),
+                good.valueToSequenceFile(new Path(outputPath, "thrift").toString).compressWith(new SnappyCodec))
         ()
       })
     }).flatten
