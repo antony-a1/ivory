@@ -1,7 +1,7 @@
 package com.ambiata.ivory.ingest
 
 import org.specs2.mutable.Specification
-import com.ambiata.ivory.core.Repository
+import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
 import com.ambiata.saws.s3.S3
 import com.ambiata.saws.testing.AwsMatcher._

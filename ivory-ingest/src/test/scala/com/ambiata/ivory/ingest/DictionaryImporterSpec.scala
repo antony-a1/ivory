@@ -4,6 +4,7 @@ import org.specs2.Specification
 import org.apache.hadoop.fs.Path
 import com.ambiata.ivory.alien.hdfs
 import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.ivory.storage.repository._
 import HdfsS3Action._
 import org.apache.hadoop.conf.Configuration
 import com.ambiata.saws.testing.AwsMatcher._

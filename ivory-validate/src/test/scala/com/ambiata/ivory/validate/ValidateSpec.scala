@@ -17,6 +17,7 @@ import org.apache.hadoop.fs.Path
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.repository._
 import IvoryStorage._
 
 class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers {

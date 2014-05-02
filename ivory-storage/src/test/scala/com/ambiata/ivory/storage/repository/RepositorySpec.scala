@@ -1,4 +1,4 @@
-package com.ambiata.ivory.core
+package com.ambiata.ivory.storage.repository
 
 import org.specs2._, matcher._, specification._
 import org.scalacheck._, Arbitrary._

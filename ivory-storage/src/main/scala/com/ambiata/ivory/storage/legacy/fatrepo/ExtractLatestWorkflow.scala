@@ -9,6 +9,7 @@ import org.apache.commons.logging.LogFactory
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
 
 /**

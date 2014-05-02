@@ -5,6 +5,7 @@ import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.ivory.storage.repository._
 import HdfsS3Action._
 
 object CreateFeatureStore {

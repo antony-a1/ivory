@@ -9,6 +9,7 @@ import com.nicta.scoobi.core.ScoobiConfiguration
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.repository._
 import IvoryStorage._
 import ScoobiAction._
 import scalaz._, Scalaz._

@@ -1,6 +1,7 @@
 package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.storage.repository._
 import com.nicta.scoobi._, Scoobi._
 import scalaz.{DList => _, _}, Scalaz._
 import scalaz.concurrent._

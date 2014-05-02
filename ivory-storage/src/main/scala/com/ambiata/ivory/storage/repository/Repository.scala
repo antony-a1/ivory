@@ -1,4 +1,4 @@
-package com.ambiata.ivory.core
+package com.ambiata.ivory.storage.repository
 
 import scalaz._, Scalaz._
 import org.apache.hadoop.fs.Path

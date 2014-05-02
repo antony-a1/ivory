@@ -12,6 +12,7 @@ import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
 
 /**

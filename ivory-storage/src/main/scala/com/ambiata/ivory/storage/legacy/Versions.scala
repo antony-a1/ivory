@@ -9,7 +9,7 @@ import com.ambiata.saws.core._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.alien.hdfs._
-import com.ambiata.ivory.core.HdfsRepository
+import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs.HdfsS3Action
 import com.ambiata.ivory.alien.hdfs.HdfsS3Action._
 

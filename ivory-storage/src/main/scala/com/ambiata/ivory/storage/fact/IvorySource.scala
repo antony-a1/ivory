@@ -3,6 +3,7 @@ package com.ambiata.ivory.storage.fact
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.alien.hdfs._
 import com.ambiata.ivory.scoobi._
+import com.ambiata.ivory.storage.repository._
 import com.nicta.scoobi._, Scoobi._
 
 import scalaz.{DList => _, _}, Scalaz._

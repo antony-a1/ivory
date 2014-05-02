@@ -4,10 +4,10 @@ package example
 import com.ambiata.mundane.cli.OptionsParser
 import scalaz._, Scalaz._
 import org.apache.hadoop.fs.Path
-import com.ambiata.ivory.core.{Dictionary, S3Repository, Repository}
-import com.ambiata.saws.core.S3Action
-import S3Action._
+import com.ambiata.ivory.core.Dictionary
+import com.ambiata.saws.core.S3Action, S3Action._
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.ingest._
 import com.ambiata.ivory.alien.hdfs._
 import scoobi._

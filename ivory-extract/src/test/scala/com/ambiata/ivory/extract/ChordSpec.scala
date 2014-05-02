@@ -18,6 +18,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.repository._
 import IvoryStorage._
 
 class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers with SampleFacts {

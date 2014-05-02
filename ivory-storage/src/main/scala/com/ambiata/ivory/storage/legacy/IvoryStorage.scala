@@ -6,6 +6,7 @@ import org.apache.hadoop.fs.Path
 import com.ambiata.saws.core._
 
 import com.ambiata.ivory.scoobi._
+import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.ScoobiS3Action._
 import com.ambiata.ivory.core.thrift._

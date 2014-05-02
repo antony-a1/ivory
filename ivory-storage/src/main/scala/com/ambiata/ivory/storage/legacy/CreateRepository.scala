@@ -4,6 +4,7 @@ import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.alien.hdfs._
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.storage.repository._
 import com.ambiata.saws.core._
 import com.ambiata.saws.s3._
 import java.io.File

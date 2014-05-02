@@ -8,6 +8,7 @@ import com.ambiata.ivory.core._
 import com.ambiata.ivory.ingest.{DictionaryImporter, EavtTextImporter}
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
 import org.joda.time.DateTimeZone
 
