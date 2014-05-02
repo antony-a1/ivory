@@ -13,7 +13,7 @@ import com.ambiata.mundane.testing.ResultTIOMatcher._
 import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage._
+import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.alien.hdfs._
 import WireFormats._

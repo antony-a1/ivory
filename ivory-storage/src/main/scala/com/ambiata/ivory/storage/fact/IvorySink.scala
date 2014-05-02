@@ -1,4 +1,4 @@
-package com.ambiata.ivory.storage
+package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core._
 import com.nicta.scoobi._, Scoobi._

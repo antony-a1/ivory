@@ -8,7 +8,7 @@ import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage._
+import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.alien.hdfs._
 
 object GenerateDictionary {

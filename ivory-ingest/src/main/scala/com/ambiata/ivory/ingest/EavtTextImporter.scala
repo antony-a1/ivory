@@ -4,13 +4,13 @@ package ingest
 import org.apache.hadoop.fs.Path
 import com.nicta.scoobi.Scoobi._
 import core._
-import storage.IvoryStorage
-import storage.Versions
-import storage.IvoryStorage._
+import storage.legacy.IvoryStorage
+import storage.legacy.Versions
+import storage.legacy.IvoryStorage._
+import storage.legacy.EavtTextStorageV1._
 import scoobi._
 import scalaz.{DList => _, _}, Scalaz._, effect.IO
 import alien.hdfs._
-import storage.EavtTextStorageV1._
 import ScoobiS3EMRAction._
 import ScoobiAction._
 import WireFormats._, FactFormats._

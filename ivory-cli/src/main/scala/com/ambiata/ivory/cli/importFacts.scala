@@ -8,7 +8,7 @@ import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.core._
 import com.ambiata.mundane.io.FilePath
 import scala.Some
-import com.ambiata.ivory.storage._
+import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.ingest.EavtTextImporter
 import com.ambiata.mundane.control.{Error, Ok}
 import scalaz._, Scalaz._

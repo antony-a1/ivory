@@ -24,7 +24,7 @@ import com.ambiata.ivory.scoobi.ScoobiS3EMRAction
 import ScoobiS3EMRAction._
 import org.specs2.specification.{BeforeAfterExample, BeforeExample}
 import com.amazonaws.services.s3.AmazonS3Client
-import com.ambiata.ivory.storage.IvoryStorage._
+import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.core.S3Repository
 import com.ambiata.mundane.io.FilePath
 import com.ambiata.ivory.core.Fact

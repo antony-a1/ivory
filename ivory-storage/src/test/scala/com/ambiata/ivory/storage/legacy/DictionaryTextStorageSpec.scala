@@ -1,4 +1,4 @@
-package com.ambiata.ivory.storage
+package com.ambiata.ivory.storage.legacy
 
 import org.specs2._
 import scalaz._, Scalaz._, \&/._

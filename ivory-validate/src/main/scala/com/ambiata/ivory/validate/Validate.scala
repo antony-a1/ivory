@@ -10,7 +10,7 @@ import com.ambiata.mundane.control._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.alien.hdfs._
 import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
-import com.ambiata.ivory.storage.IvoryStorage._
+import com.ambiata.ivory.storage.legacy.IvoryStorage._
 
 
 sealed trait Validate {

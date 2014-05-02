@@ -5,7 +5,7 @@ import scalaz.{DList => _, _}, Scalaz._
 import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage._
+import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.scoobi._
 import WireFormats._
 import FactFormats._

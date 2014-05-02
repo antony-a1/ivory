@@ -1,4 +1,4 @@
-package com.ambiata.ivory.storage.fatrepo
+package com.ambiata.ivory.storage.legacy.fatrepo
 
 import scalaz._, Scalaz._
 import org.apache.hadoop.fs.Path

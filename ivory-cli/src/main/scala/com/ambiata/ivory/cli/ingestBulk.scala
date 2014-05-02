@@ -5,7 +5,7 @@ import com.ambiata.mundane.control._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.ingest.{DictionaryImporter, EavtTextImporter}
 import com.ambiata.ivory.scoobi._
-import com.ambiata.ivory.storage._
+import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.alien.hdfs._
 
 import com.nicta.scoobi.Scoobi._

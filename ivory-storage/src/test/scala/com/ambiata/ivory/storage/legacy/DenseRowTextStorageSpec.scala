@@ -1,4 +1,4 @@
-package com.ambiata.ivory.storage
+package com.ambiata.ivory.storage.legacy
 
 import scalaz.{DList => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._

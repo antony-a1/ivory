@@ -1,4 +1,4 @@
-package com.ambiata.ivory.storage
+package com.ambiata.ivory.storage.legacy
 
 import org.joda.time.LocalDate
 import org.joda.time.LocalDateTime

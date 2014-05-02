@@ -1,4 +1,4 @@
-package com.ambiata.ivory.storage
+package com.ambiata.ivory.storage.fact
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.alien.hdfs._
@@ -10,7 +10,7 @@ import scalaz.concurrent._
 import scalaz.stream._
 
 sealed trait IvorySource {
-  def toDList: DList[(Priority, Fact)]
+  def toDList: DList[(Int, Fact)]
 //  def toProcess: Process[Task, (Priority, Fact)]
 }
 

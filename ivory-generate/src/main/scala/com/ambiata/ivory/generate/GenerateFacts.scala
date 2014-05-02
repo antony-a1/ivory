@@ -14,7 +14,7 @@ import com.ambiata.ivory.core.{Value => IValue, _}
 import com.ambiata.ivory.alien.hdfs._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.WireFormats._
-import com.ambiata.ivory.storage._
+import com.ambiata.ivory.storage.legacy._
 
 case class HdfsGenerateFacts(entities: Int, dictPath: Path, flags: Path, start: LocalDate, end: LocalDate, storer: IvoryScoobiStorer[Fact, DList[_]]) {
   def withStorer(newStorer: IvoryScoobiStorer[Fact, DList[_]]): HdfsGenerateFacts =
