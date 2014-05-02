@@ -22,8 +22,6 @@ object build extends Build {
     , extract
     , generate
     , ingest
-    , metadata
-    , repository
     , scoobi
     , storage
     , validate
@@ -62,7 +60,7 @@ object build extends Build {
       name := "ivory-api"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz)
   )
-  .dependsOn(generate, ingest, repository, validate, extract)
+  .dependsOn(generate, ingest, validate, extract)
 
   lazy val cli = Project(
     id = "cli"
@@ -115,7 +113,7 @@ object build extends Build {
       name := "ivory-extract"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz)
   )
-  .dependsOn(core, scoobi, storage, validate, repository)
+  .dependsOn(core, scoobi, storage, validate)
 
   lazy val generate = Project(
     id = "generate"
@@ -133,25 +131,7 @@ object build extends Build {
       name := "ivory-ingest"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.specs2 ++ depend.saws)
   )
-  .dependsOn(core, storage, metadata, alien_hdfs, scoobi)
-
-  lazy val metadata = Project(
-    id = "metadata"
-  , base = file("ivory-metadata")
-  , settings = standardSettings ++ lib("metadata") ++ Seq[Settings](
-      name := "ivory-metadata"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value))
-  )
-  .dependsOn(core, alien_hdfs)
-
-  lazy val repository = Project(
-    id = "repository"
-  , base = file("ivory-repository")
-  , settings = standardSettings ++ lib("repository") ++ Seq[Settings](
-      name := "ivory-repository"
-    ) ++ Seq[Settings](libraryDependencies ++=  depend.scalaz ++ depend.saws)
-  )
-  .dependsOn(core, ingest, storage, alien_hdfs)
+  .dependsOn(core, storage, alien_hdfs, scoobi)
 
   lazy val scoobi = Project(
     id = "scoobi"
@@ -169,7 +149,7 @@ object build extends Build {
       name := "ivory-storage"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.saws)
   )
-  .dependsOn(core, metadata, scoobi, alien_hdfs)
+  .dependsOn(core, scoobi, alien_hdfs)
 
   lazy val validate = Project(
     id = "validate"

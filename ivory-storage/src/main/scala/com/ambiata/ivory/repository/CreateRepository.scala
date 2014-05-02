@@ -1,4 +1,4 @@
-package com.ambiata.ivory.repository
+package com.ambiata.ivory.storage
 
 import org.apache.hadoop.fs.Path
 

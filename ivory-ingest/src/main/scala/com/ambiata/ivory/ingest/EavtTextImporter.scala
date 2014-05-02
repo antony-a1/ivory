@@ -5,11 +5,11 @@ import org.apache.hadoop.fs.Path
 import com.nicta.scoobi.Scoobi._
 import core._
 import storage.IvoryStorage
+import storage.Versions
 import storage.IvoryStorage._
 import scoobi._
 import scalaz.{DList => _, _}, Scalaz._, effect.IO
 import alien.hdfs._
-import metadata.Versions
 import storage.EavtTextStorageV1._
 import ScoobiS3EMRAction._
 import ScoobiAction._

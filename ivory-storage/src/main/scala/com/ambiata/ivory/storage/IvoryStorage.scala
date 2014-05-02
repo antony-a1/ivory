@@ -5,7 +5,6 @@ import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
 import com.ambiata.saws.core._
 
-import com.ambiata.ivory.metadata._
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.ScoobiS3Action._

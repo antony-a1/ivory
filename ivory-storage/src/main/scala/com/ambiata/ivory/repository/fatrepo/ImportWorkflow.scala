@@ -1,4 +1,4 @@
-package com.ambiata.ivory.repository.fatrepo
+package com.ambiata.ivory.storage.fatrepo
 
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, Scalaz._
@@ -10,7 +10,7 @@ import org.apache.commons.logging.LogFactory
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.ScoobiAction
-import com.ambiata.ivory.repository._
+import com.ambiata.ivory.storage._
 import com.ambiata.ivory.alien.hdfs._
 
 /**

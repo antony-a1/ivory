@@ -5,7 +5,6 @@ import com.ambiata.mundane.io.FilePath
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
-import com.ambiata.ivory.metadata.Versions
 import com.ambiata.ivory.storage._, PartitionFactThriftStorageV1._, IvoryStorage._, EavtTextStorageV1._
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.alien.hdfs._

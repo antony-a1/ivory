@@ -4,7 +4,6 @@ import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.extract._
-import com.ambiata.ivory.repository._
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage._
 

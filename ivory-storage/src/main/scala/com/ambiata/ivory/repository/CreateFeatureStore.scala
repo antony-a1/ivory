@@ -1,10 +1,9 @@
-package com.ambiata.ivory.repository
+package com.ambiata.ivory.storage
 
 import scalaz._, Scalaz._
 import org.apache.hadoop.fs.Path
 
 import com.ambiata.ivory.core._
-import com.ambiata.ivory.storage._
 import com.ambiata.ivory.alien.hdfs._
 import HdfsS3Action._
 

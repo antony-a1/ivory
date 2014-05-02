@@ -18,7 +18,6 @@ import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
-import com.ambiata.ivory.repository.fatrepo
 
 case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: LocalDate, outputPath: Path, errorPath: Path, incremental: Option[(String, String)]) {
   import IvoryStorage._

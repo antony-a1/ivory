@@ -1,4 +1,4 @@
-package com.ambiata.ivory.repository.fatrepo
+package com.ambiata.ivory.storage.fatrepo
 
 import scalaz._, Scalaz._
 import scala.math.{Ordering => SOrdering}
@@ -8,7 +8,7 @@ import org.apache.commons.logging.LogFactory
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.ScoobiAction
-import com.ambiata.ivory.repository._
+import com.ambiata.ivory.storage._
 import com.ambiata.ivory.alien.hdfs._
 
 /**
