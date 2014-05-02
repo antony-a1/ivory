@@ -29,7 +29,7 @@ object DenseRowTextStorageV1 {
       val row: DList[(Entity, List[StringValue])] = byKey.map({ case ((eid, _), fs) =>
         (eid, makeDense(fs, features, tombstone))
       })
-      row.map({ case (eid, vs) => eid + delim + vs.mkString(delim.toString) }).toTextFile(path.toString)
+      row.map({ case (eid, vs) => eid + delim + vs.mkString(delim.toString) }).toTextFile(path.toString, overwrite = true)
     }
 
     override def storeMeta: ScoobiAction[Unit] =

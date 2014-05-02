@@ -50,6 +50,6 @@ object ExtractLatestWorkflow {
         case \/-(f) => f
       })
 
-      persist(EavtTextStorageV1.EavtTextStorer(outputPath.toString).storeScoobi(good), errors.toTextFile(errorPath.toString))
+      persist(EavtTextStorageV1.EavtTextStorer(outputPath.toString).storeScoobi(good), errors.toTextFile(errorPath.toString, overwrite = true))
     })
 }

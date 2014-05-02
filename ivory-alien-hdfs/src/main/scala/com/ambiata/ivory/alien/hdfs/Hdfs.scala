@@ -6,6 +6,7 @@ import org.apache.hadoop.fs.{FileSystem, FileUtil, Path}
 import java.io._
 
 import com.ambiata.mundane.control._
+import com.ambiata.mundane.io.Streams
 
 case class Hdfs[+A](action: ActionT[IO, Unit, Configuration, A]) {
   def run(conf: Configuration): ResultTIO[A] =
@@ -110,6 +111,15 @@ object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
                }
              })
   } yield a
+
+  def readContentAsString(p: Path): Hdfs[String] =
+    readWith(p, is =>  Streams.read(is))
+
+  def readLines(p: Path): Hdfs[Iterator[String]] =
+    readContentAsString(p).map(_.lines)
+
+  def globLines(p: Path, glob: String = "*"): Hdfs[Iterator[String]] =
+    Hdfs.globFiles(p, glob).flatMap(_.map(Hdfs.readLines).sequenceU.map(_.toIterator.flatten))
 
   def writeWith[A](p: Path, f: OutputStream => ResultT[IO, A]): Hdfs[A] = for {
     _ <- mustexist(p) ||| mkdir(p.getParent)

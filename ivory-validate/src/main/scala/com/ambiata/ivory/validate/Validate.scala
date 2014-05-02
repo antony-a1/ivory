@@ -35,7 +35,7 @@ sealed trait Validate {
 
   def exec(output: Path)(implicit sc: ScoobiConfiguration): ScoobiAction[Long] = for {
     j <- scoobiJob
-    _ <- ScoobiAction.safe(j.toTextFile(output.toString).persist)
+    _ <- ScoobiAction.safe(j.toTextFile(output.toString, overwrite = true).persist)
   } yield getCounter(parseErrorCounterName) + getCounter(encodingErrorCounterName)
 
   def scoobiJob: ScoobiAction[DList[String]]

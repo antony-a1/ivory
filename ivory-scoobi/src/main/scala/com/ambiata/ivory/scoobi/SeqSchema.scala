@@ -19,10 +19,10 @@ object SeqSchemas {
   /* WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
   def factSeqSchema: SeqSchema[Fact] = new SeqSchema[Fact] {
     type SeqType = BytesWritable
-    val empty = new NamespacedThriftFact with NamespacedThriftFactDerived
+    def empty = new NamespacedThriftFact with NamespacedThriftFactDerived
     val serialiser = ThriftSerialiser()
     def toWritable(x: Fact) = new BytesWritable(serialiser.toBytes(x.toNamespacedThrift))
-    def fromWritable(x: BytesWritable): Fact = serialiser.fromBytes(empty, x.getBytes)
+    def fromWritable(x: BytesWritable): Fact = serialiser.fromBytes1(() => empty, x.getBytes)
     val mf: Manifest[SeqType] = implicitly
   }
 

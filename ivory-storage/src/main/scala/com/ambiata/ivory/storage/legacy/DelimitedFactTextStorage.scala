@@ -20,7 +20,7 @@ object DelimitedFactTextStorage {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[String] =
     dlist.mapFlatten(f =>
       valueToString(f.value, tombstoneValue).map(v => f.entity + delim + f.namespace + ":" + f.featureId.name + delim + v + delim + time(f.date, f.time.seconds).toString("yyyy-MM-dd HH:mm:ss"))
-    ).toTextFile(path.toString)
+    ).toTextFile(path.toString, overwrite = true)
 
     def time(d: Date, s: Int): LocalDateTime =
       d.localDate.toDateTimeAtStartOfDay.toLocalDateTime.plusSeconds(s)

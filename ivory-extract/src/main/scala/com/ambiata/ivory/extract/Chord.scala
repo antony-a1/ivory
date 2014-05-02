@@ -105,8 +105,8 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
         val valErrors = validated.collect { case -\/(e) => e }
         val good      = validated.collect { case \/-(f) => f }
 
-        persist(errors.toTextFile(new Path(errorPath, "parse").toString),
-                valErrors.toTextFile(new Path(errorPath, "validation").toString),
+        persist(errors.toTextFile(new Path(errorPath, "parse").toString, overwrite = true),
+                valErrors.toTextFile(new Path(errorPath, "validation").toString, overwrite = true),
                 storer.storeScoobi(good))
         ()
       }

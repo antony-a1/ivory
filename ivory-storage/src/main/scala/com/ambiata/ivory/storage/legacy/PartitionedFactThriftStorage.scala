@@ -91,3 +91,4 @@ object PartitionFactThriftStorageV2 {
     }
   }
 }
+

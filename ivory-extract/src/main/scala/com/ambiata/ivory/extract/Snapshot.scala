@@ -32,11 +32,11 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
     r  <- ScoobiAction.value(Repository.fromHdfsPath(repoPath))
     d  <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dictName))
     s  <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
-    es <- ScoobiAction.fromHdfs(entities.traverseU(e => Hdfs.readWith(e, is =>  Streams.read(is)).map(_.lines.toSet)))
+    es <- ScoobiAction.fromHdfs(entities.traverseU(e => Hdfs.readLines(e)))
     in <- incremental.traverseU({ case (path, store) => for {
       s  <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
     } yield (path, s)  })
-    _  <- scoobiJob(r, d, s, es, in)
+    _  <- scoobiJob(r, d, s, es.map(_.toSet), in)
     _  <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextStorer(new Path(outputPath, "dictionary")).store(d))
   } yield ()
 
@@ -82,11 +82,16 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
         val validated: DList[Fact] = latest.map({ case (p, f) =>
           Validate.validateFact(f, dict).disjunction.leftMap(e => e + " - Factset " + factsetMap.get(p).getOrElse("Unknown, priority " + p))
         }).map({
-          case -\/(e) => sys.error("A critical error has occured, a value in ivory no longer matches the dictionary: " + e)
+          case -\/(e) => sys.error("A critical error has occurred, a value in ivory no longer matches the dictionary: " + e)
           case \/-(v) => v
         })
 
-        persist(validated.valueToSequenceFile(new Path(outputPath, "thrift").toString).compressWith(new SnappyCodec))
+        // only compress for "big" jobs not local or test ones
+        if (sc.isRemote)
+          persist(validated.valueToSequenceFile(new Path(outputPath, "thrift").toString, overwrite = true).compressWith(new SnappyCodec))
+        else
+          persist(validated.valueToSequenceFile(new Path(outputPath, "thrift").toString, overwrite = true))
+
         ()
       })
     }).flatten

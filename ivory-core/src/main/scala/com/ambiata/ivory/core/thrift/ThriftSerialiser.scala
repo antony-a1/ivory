@@ -16,4 +16,11 @@ case class ThriftSerialiser() {
     deserialiser.deserialize(e, bytes)
     e.asInstanceOf[A]
   }
+
+  def fromBytes1[A](empty: () => A, bytes: Array[Byte])(implicit ev: A <:< TBase[_ <: TBase[_, _], _ <: TFieldIdEnum]): A = {
+    val e = empty()
+    deserialiser.deserialize(e, bytes)
+    e.asInstanceOf[A]
+  }
+
 }

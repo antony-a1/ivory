@@ -41,7 +41,7 @@ object FactDiff {
         case (false, e) => s"${e} - ${input2}"
       })
 
-      persist(error_out.toTextFile(errorPath), out.toTextFile(outputPath))
+      persist(error_out.toTextFile(errorPath, overwrite = true), out.toTextFile(outputPath, overwrite = true))
     })
   }
 

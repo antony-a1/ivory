@@ -3,10 +3,16 @@ package com.ambiata.ivory.extract
 import com.nicta.scoobi.testing.TestFiles._
 import com.nicta.scoobi.testing.{HadoopSpecification, TempFiles}
 import com.ambiata.ivory.core._
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{Path}
 import org.joda.time.LocalDate
 import com.nicta.scoobi.core.ScoobiConfiguration
 import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.ivory.scoobi.ScoobiAction
+import com.ambiata.ivory.storage.legacy._
+import IvoryStorage._
+import ScoobiAction._
+import scalaz._, Scalaz._
+import com.ambiata.ivory.alien.hdfs.Hdfs
 
 class PivotSpec extends HadoopSpecification with SampleFacts { def is = s2"""
 
@@ -23,13 +29,26 @@ class PivotSpec extends HadoopSpecification with SampleFacts { def is = s2"""
     createFacts(repo)
 
     val testDir = "target/"+getClass.getSimpleName+"/"
-    val snapshot = new Path(s"$testDir/snapshot")
-    val errors = new Path(s"testDir/errors")
-    val output = new Path(s"testDir/output")
-    val dictionary = new Path(s"testDir/dictionary")
-    val snapshot1 = HdfsSnapshot.takeSnapshot(repo.path, snapshot, errors, LocalDate.now, None)
+    val snapshotPath = new Path(s"$testDir/snapshot")
+    val errors = new Path(s"$testDir/errors")
+    val takeSnapshot = HdfsSnapshot.takeSnapshot(repo.path, snapshotPath, errors, LocalDate.now, None)
 
-    Pivot.onHdfs(snapshot, output, errors, dictionary, '|', "NA").run(sc) must beOk
-  }.pendingUntilFixed
+    val pivot = new Path(s"$testDir/pivot")
+    val action =
+      takeSnapshot >>
+      fromHdfs(dictionaryFromIvory(repo, DICTIONARY_NAME)).flatMap { dictionary =>
+        Pivot.onHdfs(snapshotPath, pivot, errors, dictionary, '|', "NA")
+      } >> fromHdfs(Hdfs.globLines(pivot, "ch*"))
 
+    action.run(sc) must beOkLike { lines =>
+      lines.mkString("\n").trim must_==
+      """|eid1|abc|NA|NA
+         |eid2|NA|11|NA
+         |eid3|NA|NA|true
+      """.stripMargin.trim
+    }
+
+  }
+
+  override def isCluster = false
 }
