@@ -37,15 +37,15 @@ object FactDiff {
       })
 
       val error_out: DList[String] = errors.map({
-        case (true, e)  => s"${e} - ${input1}"
-        case (false, e) => s"${e} - ${input2}"
+        case (true, e)  => s"${e.message} - ${input1}"
+        case (false, e) => s"${e.message} - ${input2}"
       })
 
       persist(error_out.toTextFile(errorPath, overwrite = true), out.toTextFile(outputPath, overwrite = true))
     })
   }
 
-  def byflag(dlist: DList[ParseError \/ Fact], flag: Boolean): (DList[(Boolean, String)], DList[(Boolean, Fact)]) = {
+  def byflag(dlist: DList[ParseError \/ Fact], flag: Boolean): (DList[(Boolean, ParseError)], DList[(Boolean, Fact)]) = {
     val errs = dlist.collect {
       case -\/(e) => (flag, e)
     }

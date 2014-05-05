@@ -61,7 +61,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
           case Error(e) => sys.error("Can not deserialise chord map - " + Result.asString(e))
         }
 
-        val errors: DList[String] = input.collect { case -\/(e) => e }
+        val errors: DList[ParseError] = input.collect { case -\/(e) => e }
 
         // filter out the facts which are not in the entityMap or
         // which date are greater than the required dates for this entity
@@ -99,7 +99,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
               }.collect { case (d, p, Some(f)) => (p, f.withEntity(f.entity + ":" + Date.unsafeFromInt(d).hyphenated)) }.toIterable
             }.collect { case (p, f) if !f.isTombstone => (p, f) }
 
-        val validated: DList[ParseError \/ Fact] = latest.map { case (p, f) =>
+        val validated: DList[String \/ Fact] = latest.map { case (p, f) =>
           Validate.validateFact(f, dict).disjunction.leftMap(_ + " - Factset " + factsetMap.get(p).getOrElse("Unknown, priority " + p))
         }
 

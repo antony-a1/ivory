@@ -45,7 +45,7 @@ case class ValidateStoreHdfs(repo: HdfsRepository, store: FeatureStore, dict: Di
   def scoobiJob: ScoobiAction[DList[String]] =
     factsFromIvoryStore(repo, store).map(input => {
       val errors: DList[String] = countRecords(input.collect {
-        case -\/(e) => e
+        case -\/(e) => e.message
       }, counterGroup, parseErrorCounterName)
 
       val facts: DList[(Priority, FactSetName, Fact)] = input.collect {
@@ -82,7 +82,7 @@ case class ValidateFactSetHdfs(repo: HdfsRepository, factset: String, dict: Dict
   def scoobiJob: ScoobiAction[DList[String]] =
     factsFromIvoryFactset(repo, factset).map(input => {
       val errors: DList[String] = countRecords(input.collect {
-        case -\/(e) => e
+        case -\/(e) => e.message
       }, counterGroup, parseErrorCounterName)
 
       val facts: DList[Fact] = input.collect {

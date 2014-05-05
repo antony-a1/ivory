@@ -54,11 +54,11 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
 
       }
 
-      val additional: DList[String \/ (Int, String, Fact)] = incremental match {
+      val additional: DList[ParseError \/ (Int, String, Fact)] = incremental match {
         case None =>
-          DList[String \/ (Int, String, Fact)]()
+          DList[ParseError \/ (Int, String, Fact)]()
         case Some((p, _)) =>
-          PartitionFactThriftStorageV2.loadScoobiWith[(Int, String, Fact)](p, (_, fact) => (Short.MaxValue.toInt, SnapshotName, fact).right[String])
+          PartitionFactThriftStorageV2.loadScoobiWith[(Int, String, Fact)](p, (_, fact) => (Short.MaxValue.toInt, SnapshotName, fact).right[ParseError])
       }
 
       factsFromIvoryStore(repo, store).map(base => {
