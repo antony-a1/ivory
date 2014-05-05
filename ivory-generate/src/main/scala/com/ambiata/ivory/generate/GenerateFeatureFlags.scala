@@ -42,7 +42,7 @@ object FeatureFlags {
       frequency <- for {
         s <- string
         p <- getPosition
-        r <- value(Frequency.parse(s).leftMap(_ => s"""Not a valid frequency at position $p: '$s'"""))
+        r <- value(Frequency.parse(s).leftMap(_ => s"""Not a valid frequency: '$s'"""))
       } yield r
     } yield FeatureFlags(namespace, name, sparcity, frequency)
     parser.run(Delimited.parsePsv(line)).disjunction

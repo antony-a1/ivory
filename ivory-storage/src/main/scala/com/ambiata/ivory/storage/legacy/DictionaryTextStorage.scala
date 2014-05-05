@@ -92,13 +92,11 @@ object DictionaryTextStorage {
       name      <- string
       encoding  <- for {
         s <- string
-        p <- getPosition
-        r <- value(parseEncoding(s).leftMap(_ => s"""Not a valid encoding at position $p: '$s'"""))
+        r <- value(parseEncoding(s).leftMap(_ => s"""not a valid encoding at position: '$s'"""))
       } yield r
       ty        <- for {
         s <- string
-        p <- getPosition
-        r <- value(parseType(s).leftMap(_ => s"""Not a valid feature type at position $p: '$s'"""))
+        r <- value(parseType(s).leftMap(_ => s"""not a valid feature type at position: '$s'"""))
       } yield r
       desc      <- string
       tombstone <- string

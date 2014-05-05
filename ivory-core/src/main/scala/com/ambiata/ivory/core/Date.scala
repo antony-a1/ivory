@@ -75,7 +75,7 @@ object Date {
       m        <- short
       d        <- short
       result   <- create(y, m.toByte, d.toByte) match {
-        case None => ListParser((position, _) => s"""Not a valid date ($y-$m-$d) at position [$position]""".failure)
+        case None => ListParser((position, _) => (position, s"""not a valid date ($y-$m-$d)""").failure)
         case Some(d) => d.point[ListParser]
       }
     } yield result
