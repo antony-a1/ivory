@@ -24,6 +24,6 @@ object ImportWorkflow {
 
   def importFeed(input: Path, namespace: String)(repo: HdfsRepository, factset: String, dname: String, tmpPath: Path, errorPath: Path, timezone: DateTimeZone): ScoobiAction[Unit] = for {
     dict <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dname))
-    _    <- EavtTextImporter.onHdfs(repo, dict, factset, namespace, input, errorPath, timezone, None)
+    _    <- EavtTextImporter.onHdfs(repo, dict, factset, namespace, input, errorPath, timezone)
   } yield ()
 }

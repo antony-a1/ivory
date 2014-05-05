@@ -43,7 +43,7 @@ class FactsetS3ImporterSpec extends HadoopSpecification with ThrownExpectations 
     for {
       dictionary <- createDictionary(repository)
       path       <- saveFactsetFile
-      _          <- EavtTextImporter.onS3(repository, dictionary, "factset1", "customer", new FilePath(path.toString), DateTimeZone.getDefault, None)
+      _          <- EavtTextImporter.onS3(repository, dictionary, "factset1", "customer", new FilePath(path.toString), DateTimeZone.getDefault)
     } yield ()
 
     actions.runScoobi(sc) must beOk
