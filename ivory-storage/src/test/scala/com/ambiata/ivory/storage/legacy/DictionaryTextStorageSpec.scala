@@ -24,12 +24,12 @@ class DictionaryTextStorageSpec extends Specification { def is = s2"""
 
   def e2 = {
     val entry = "demo|postcode|strin|categorical|Postcode|☠"
-    DictionaryTextStorage.parseDictionaryEntry(entry) must_== "Not a valid encoding at position 3: 'strin'".left
+    DictionaryTextStorage.parseDictionaryEntry(entry).toEither must beLeft(contain("not a valid encoding: 'strin'"))
   }
 
   def e3 = {
     val entry = "demo|postcode|string|cat|Postcode|☠"
-    DictionaryTextStorage.parseDictionaryEntry(entry) must_== "Not a valid feature type at position 4: 'cat'".left
+    DictionaryTextStorage.parseDictionaryEntry(entry).toEither must beLeft(contain("not a valid feature type: 'cat'"))
   }
 
   def e4 = {
