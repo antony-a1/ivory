@@ -87,11 +87,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
           case \/-(v) => v
         })
 
-        // only compress for "big" jobs not local or test ones
-        if (sc.isRemote)
-          persist(validated.valueToSequenceFile(new Path(outputPath, "thrift").toString, overwrite = true).compressWith(new SnappyCodec))
-        else
-          persist(validated.valueToSequenceFile(new Path(outputPath, "thrift").toString, overwrite = true))
+        persist(validated.valueToSequenceFile(new Path(outputPath, "thrift").toString, overwrite = true).compressWith(new SnappyCodec))
 
         ()
       })

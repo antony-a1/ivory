@@ -29,33 +29,33 @@ import org.apache.hadoop.conf.Configuration
  */
 object EavtTextImporter {
 
-  def onS3(repository: S3Repository, dictionary: Dictionary, factset: String, namespace: String, path: FilePath, timezone: DateTimeZone, codec: Option[CompressionCodec], preprocess: String => String = identity): ScoobiS3EMRAction[Unit] = for {
+  def onS3(repository: S3Repository, dictionary: Dictionary, factset: String, namespace: String, path: FilePath, timezone: DateTimeZone, preprocess: String => String = identity): ScoobiS3EMRAction[Unit] = for {
     _  <- ScoobiS3EMRAction.reader((sc: ScoobiConfiguration) =>
               basicScoobiJob(repository.hdfsRepository, dictionary, factset, namespace,
-                new Path(path.path), new Path(repository.tmpDirectory+"/errors/"), timezone, codec, preprocess)(sc))
+                new Path(path.path), new Path(repository.tmpDirectory+"/errors/"), timezone, preprocess)(sc))
     _  <- copyFilesToS3(repository, factset, namespace)
   } yield ()
 
   def onHdfs(repository: HdfsRepository, dictionary: Dictionary, factset: String, namespace: String,
-             path: Path, errorPath: Path, timezone: DateTimeZone, codec: Option[CompressionCodec],
+             path: Path, errorPath: Path, timezone: DateTimeZone,
               preprocess: String => String = identity): ScoobiAction[Unit] = for {
     sc <- ScoobiAction.scoobiConfiguration
-    _  <- ScoobiAction.safe(basicScoobiJob(repository, dictionary, factset, namespace, path, errorPath, timezone, codec, preprocess)(sc))
+    _  <- ScoobiAction.safe(basicScoobiJob(repository, dictionary, factset, namespace, path, errorPath, timezone, preprocess)(sc))
     _  <- ScoobiAction.fromHdfs(writeFactsetVersion(repository, List(factset)))
   } yield ()
 
   // FIX horrible duplication, this all needs to be reformulated into a composable pipeline
   def onHdfsBulk(repository: HdfsRepository, dictionary: Dictionary, factset: String, namespace: List[String],
-             path: Path, errorPath: Path, timezone: DateTimeZone, codec: Option[CompressionCodec], partitions: Map[String, Int], preprocess: String => String = identity): ScoobiAction[Unit] = for {
+             path: Path, errorPath: Path, timezone: DateTimeZone, partitions: Map[String, Int], preprocess: String => String = identity): ScoobiAction[Unit] = for {
     sc <- ScoobiAction.scoobiConfiguration
-    _  <- ScoobiAction.safe(compoundScoobiJob(repository, dictionary, factset, namespace, path, errorPath, timezone, codec, partitions, preprocess)(sc))
+    _  <- ScoobiAction.safe(compoundScoobiJob(repository, dictionary, factset, namespace, path, errorPath, timezone, partitions, preprocess)(sc))
     _  <- ScoobiAction.fromHdfs(writeFactsetVersion(repository, List(factset)))
   } yield ()
 
   def onHdfsDirect(conf: Configuration, repository: HdfsRepository, dictionary: Dictionary, factset: String, namespace: String,
-             path: Path, errorPath: Path, timezone: DateTimeZone, codec: Option[CompressionCodec],
+             path: Path, errorPath: Path, timezone: DateTimeZone,
              preprocess: String => String): ResultT[IO, Unit] = for {
-    _  <- HdfsDirectEavtTextImporter.direct(conf, repository, dictionary, factset, namespace, path, errorPath, timezone, codec, preprocess)
+    _  <- HdfsDirectEavtTextImporter.direct(conf, repository, dictionary, factset, namespace, path, errorPath, timezone, preprocess)
     _  <- writeFactsetVersion(repository, List(factset)).run(conf)
   } yield ()
 
@@ -76,7 +76,6 @@ object EavtTextImporter {
     path: Path,
     errorPath: Path,
     timezone: DateTimeZone,
-    codec: Option[CompressionCodec],
     partitions: Map[String, Int],
     preprocess: String => String
   )(implicit
@@ -93,7 +92,6 @@ object EavtTextImporter {
       factset,
       path,
       errorPath,
-      codec,
       keyedByPartition,
       Groupings.partitionGrouping(partitions)
     )
@@ -108,7 +106,6 @@ object EavtTextImporter {
     path: Path,
     errorPath: Path,
     timezone: DateTimeZone,
-    codec: Option[CompressionCodec],
     preprocess: String => String
   )(implicit
     sc: ScoobiConfiguration
@@ -122,7 +119,6 @@ object EavtTextImporter {
       factset,
       path,
       errorPath,
-      codec,
       keyedByEntityFeature,
       Groupings.sortGrouping
     )
@@ -135,7 +131,6 @@ object EavtTextImporter {
     factset: String,
     path: Path,
     errorPath: Path,
-    codec: Option[CompressionCodec],
     keyedBy: KeyedBy[A],
     grouping: Grouping[A]
   )(implicit
@@ -150,14 +145,9 @@ object EavtTextImporter {
         .by(keyedBy)
         .groupByKeyWith(grouping)
         .mapFlatten(_._2)
-        .toIvoryFactset(repository, factset)
+        .toIvoryFactset(repository, factset).compressWith(new SnappyCodec)
 
-    val compressed = codec match {
-      case None => packed
-      case Some(c) => packed.compressWith(c)
-    }
-
-    persist(compressed, errors.toTextFile(errorPath.toString, overwrite = true))
+    persist(packed, errors.toTextFile(errorPath.toString, overwrite = true))
   }
 
   def copyFilesToS3(repository: S3Repository, factset: String, namespace: String): ScoobiS3EMRAction[Unit] = for {

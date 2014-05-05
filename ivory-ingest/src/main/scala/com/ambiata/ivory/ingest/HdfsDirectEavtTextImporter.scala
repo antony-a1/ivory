@@ -28,7 +28,7 @@ object HdfsDirectEavtTextImporter {
   type Channels = scala.collection.mutable.Map[String, SequenceFile.Writer]
 
   def direct(conf: Configuration, repository: HdfsRepository, dictionary: Dictionary, factset: String, namespace: String,
-             path: Path, errorPath: Path, timezone: DateTimeZone, codec: Option[CompressionCodec],
+             path: Path, errorPath: Path, timezone: DateTimeZone,
              preprocess: String => String): ResultT[IO, Unit] = ResultT.safe[IO, Unit] {
 
     val serializer = ThriftSerialiser()
@@ -50,8 +50,8 @@ object HdfsDirectEavtTextImporter {
               val opts = List(
                 SequenceFile.Writer.file(new Path(new Path(repository.factsetPath(factset), path), "facts")),
                 SequenceFile.Writer.keyClass(classOf[NullWritable]),
-                SequenceFile.Writer.valueClass(classOf[BytesWritable])
-              ) ++ (codec.map(c => SequenceFile.Writer.compression(SequenceFile.CompressionType.BLOCK, c)).toList)
+                SequenceFile.Writer.valueClass(classOf[BytesWritable]),
+                SequenceFile.Writer.compression(SequenceFile.CompressionType.BLOCK, new SnappyCodec))
               SequenceFile.createWriter(conf, opts:_*)
             })
 

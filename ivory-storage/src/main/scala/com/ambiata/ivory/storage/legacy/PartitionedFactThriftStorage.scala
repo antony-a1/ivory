@@ -2,7 +2,7 @@ package com.ambiata.ivory.storage.legacy
 
 import scalaz.{DList => _, Value => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
-import org.apache.hadoop.io.compress.CompressionCodec
+import org.apache.hadoop.io.compress.{SnappyCodec, CompressionCodec}
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.core.thrift._
@@ -43,12 +43,12 @@ object PartitionFactThriftStorageV1 {
     }
   }
 
-  case class PartitionedFactThriftStorer(base: String, codec: Option[CompressionCodec] = None) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
+  case class PartitionedFactThriftStorer(base: String) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] = {
       val partitioned = dlist.by(f => Partition.path(f.namespace, f.date))
                              .mapValues((f: Fact) => f.toThrift)
                              .valueToPartitionedSequenceFile[PartitionKey, ThriftFact](base, identity, overwrite = true)
-      codec.map(c => partitioned.compressWith(c)).getOrElse(partitioned)
+      partitioned.compressWith(new SnappyCodec)
     }
   }
 }
@@ -82,12 +82,12 @@ object PartitionFactThriftStorageV2 {
     }
   }
 
-  case class PartitionedFactThriftStorer(base: String, codec: Option[CompressionCodec] = None) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
+  case class PartitionedFactThriftStorer(base: String) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] = {
       val partitioned = dlist.by(f => Partition.path(f.namespace, f.date))
                              .mapValues((f: Fact) => f.toThrift)
                              .valueToPartitionedSequenceFile[PartitionKey, ThriftFact](base, identity, overwrite = true)
-      codec.map(c => partitioned.compressWith(c)).getOrElse(partitioned)
+      partitioned.compressWith(new SnappyCodec)
     }
   }
 }

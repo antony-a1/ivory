@@ -66,7 +66,7 @@ object ingestBulk extends ScoobiApp {
     _    = list.foreach({ case (n, d) => { println(s"namespace[$n] --"); d.foreach(x => println(s"  $x")) }})
     _    = partitions(list).foreach({ case (n, d) => println(s"part $n / $d") })
     conf <- ScoobiAction.scoobiConfiguration
-    _    <- EavtTextImporter.onHdfsBulk(repo, dict, factset, list.map(_._1), input, errorPath, timezone, Some(new SnappyCodec), partitions(list))
+    _    <- EavtTextImporter.onHdfsBulk(repo, dict, factset, list.map(_._1), input, errorPath, timezone, partitions(list))
   } yield ()
 
   def partitions(ns: List[(Namespace, List[Parts])]): Map[String, Int] =

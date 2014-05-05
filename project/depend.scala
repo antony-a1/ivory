@@ -22,10 +22,10 @@ object depend {
 
   def scoobi(version: String) = {
     val scoobiVersion =
-      if (version.contains("cdh3"))      "0.9.0-cdh3-20140414103305-c06c463"
-      else if (version.contains("cdh4")) "0.9.0-cdh4-20140414103519-c06c463"
-      else if (version.contains("cdh5")) "0.9.0-cdh5-20140414103742-c06c463"
-      else                               "0.9.0-cdh5-20140414103742-c06c463"
+      if (version.contains("cdh3"))      "0.9.0-cdh3-20140502083252-33ae4a9"
+      else if (version.contains("cdh4")) "0.9.0-cdh4-20140502083637-33ae4a9"
+      else if (version.contains("cdh5")) "0.9.0-cdh5-20140502084013-33ae4a9"
+      else                               "0.9.0-cdh5-20140502084013-33ae4a9"
 
 
     Seq("com.nicta" %% "scoobi" % scoobiVersion) ++ hadoop(version)
