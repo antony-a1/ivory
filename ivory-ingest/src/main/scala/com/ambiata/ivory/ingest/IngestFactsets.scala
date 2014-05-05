@@ -2,7 +2,7 @@ package com.ambiata.ivory.ingest
 
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.scoobi._
 
@@ -28,11 +28,12 @@ case class S3EavtIngestFactsets(conf: ScoobiConfiguration, repository: S3Reposit
 }
 
 case class MapReduceEavtIngestFactsets(conf: ScoobiConfiguration, repository: HdfsRepository, transform: String => String) {
+
   def ingest(dictionary: Dictionary, namespace: String, factsetId: String, input: FilePath, timezone: DateTimeZone): ResultT[IO, Unit] =
-    EavtTextImporter.onHdfs(repository, dictionary, factsetId, namespace, new Path(input.path), repository.errorsPath, timezone, transform).run(conf)
+    EavtTextImporter.onHdfs(repository, dictionary, factsetId, namespace, new Path(input.path), repository.errors.toHdfs, timezone, transform).run(conf)
 }
 
 case class HdfsEavtIngestFactsets(conf: Configuration, repository: HdfsRepository, transform: String => String) {
   def ingest(dictionary: Dictionary, namespace: String, factsetId: String, input: FilePath, timezone: DateTimeZone): ResultT[IO, Unit] =
-    EavtTextImporter.onHdfsDirect(conf, repository, dictionary, factsetId, namespace, new Path(input.path), repository.errorsPath, timezone, transform)
+    EavtTextImporter.onHdfsDirect(conf, repository, dictionary, factsetId, namespace, new Path(input.path), repository.errors.toHdfs, timezone, transform)
 }

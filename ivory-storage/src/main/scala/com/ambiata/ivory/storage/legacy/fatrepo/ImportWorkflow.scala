@@ -8,11 +8,12 @@ import org.joda.time.{DateTimeZone, LocalDate}
 import org.joda.time.format.DateTimeFormat
 import org.apache.commons.logging.LogFactory
 
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.mundane.io._
 
 /**
  * This workflow is designed to import dictionaries and features into an fat ivory repository,
@@ -44,10 +45,11 @@ object ImportWorkflow {
   private implicit val logger = LogFactory.getLog("ivory.repository.fatrepo.Import")
 
   def onHdfs(repoPath: Path, importDict: Option[ImportDictFunc], importFacts: ImportFactsFunc, tombstone: Tombstone, tmpPath: Path, timezone: DateTimeZone): ScoobiAction[String] = {
-    val repo = Repository.fromHdfsPath(repoPath)
     val start = System.currentTimeMillis
     println("starting ==")
     for {
+      sc       <- ScoobiAction.scoobiConfiguration
+      repo     <- ScoobiAction.ok(Repository.fromHdfsPath(repoPath.toString.toFilePath, ScoobiRun(sc)))
       _        <- ScoobiAction.fromHdfs(createRepo(repo))
       t1 = {
         val x = System.currentTimeMillis
@@ -67,7 +69,7 @@ object ImportWorkflow {
         println(s"created fact set in ${x - t2}ms")
         x
       }
-      _        <- importFacts(repo, factset, dname, new Path(tmpPath, "facts"), new Path(repo.errorsPath, factset), timezone)
+      _        <- importFacts(repo, factset, dname, new Path(tmpPath, "facts"), new Path(repo.errors.path, factset), timezone)
       t4 = {
         val x = System.currentTimeMillis
         println(s"imported fact set in ${x - t3}ms")
@@ -83,22 +85,22 @@ object ImportWorkflow {
   }
 
   def createRepo(repo: HdfsRepository): Hdfs[Unit] = for {
-    _  <- Hdfs.value(logger.debug(s"Going to create repository '${repo.path}'"))
-    e  <- Hdfs.exists(repo.path)
+    _  <- Hdfs.value(logger.debug(s"Going to create repository '${repo.root.path}'"))
+    e  <- Hdfs.exists(repo.root.toHdfs)
     _  <- if(!e) {
-      logger.debug(s"Hdfs path '${repo.path}' doesn't exist, creating")
-      val res = CreateRepository.onHdfs(repo.path)
-      logger.info(s"Repository '${repo.path}' created")
+      logger.debug(s"Hdfs path '${repo.root.path}' doesn't exist, creating")
+      val res = CreateRepository.onHdfs(repo.root.toHdfs)
+      logger.info(s"Repository '${repo.root.path}' created")
       res
     } else {
-      logger.info(s"Repository already exists at '${repo.path}', not creating a new one")
+      logger.info(s"Repository already exists at '${repo.root.path}', not creating a new one")
       Hdfs.ok(())
     }
   } yield ()
 
   def importDictionary(repo: HdfsRepository, tombstone: List[String], tmpPath: Path, importer: Option[ImportDictFunc]): Hdfs[String] = importer match {
     case None =>
-      Hdfs.globPaths(repo.dictionariesPath, "*").map(dicts =>
+      Hdfs.globPaths(repo.dictionaries.toHdfs, "*").map(dicts =>
         dicts
           .map(_.getName)
           .filter(_.matches("""\d{4}-\d{2}-\d{2}"""))
@@ -109,7 +111,7 @@ object ImportWorkflow {
       val name = (new LocalDate()).toString("yyyy-MM-dd")
       logger.info(s"Importing dictionary under the name '${name}'")
       for {
-        e <- Hdfs.exists(repo.dictionaryPath(name))
+        e <- Hdfs.exists(repo.dictionaryByName(name).toHdfs)
         _ <- if(!e) copyLatestDictionary(repo, name) else Hdfs.ok(())
         _ <- importDict(repo, name, tombstone, tmpPath)
         _  = logger.info(s"Successfully imported dictionary '${name}'")
@@ -119,28 +121,28 @@ object ImportWorkflow {
 
   def copyLatestDictionary(repo: HdfsRepository, name: String): Hdfs[Unit] = for {
     _         <- Hdfs.value(logger.debug(s"Going to copy the latest dictionary to '${name}'"))
-    dictPaths <- Hdfs.globPaths(repo.dictionariesPath)
+    dictPaths <- Hdfs.globPaths(repo.dictionaries.toHdfs)
     latest     = dictPaths.sortBy(_.getName)(SOrdering[String].reverse).headOption
     _         <- latest.traverse(l => {
-                   val dest = repo.dictionaryPath(name)
+                   val dest = repo.dictionaryByName(name).toHdfs
                    logger.debug(s"Copying dictionary '${l}' to '${dest}'")
                    Hdfs.cp(l, dest, false)
                  })
   } yield ()
 
   def createFactSet(repo: HdfsRepository): Hdfs[String] = for {
-    factsetPaths <- Hdfs.globPaths(repo.factsetsPath)
+    factsetPaths <- Hdfs.globPaths(repo.factsets.toHdfs)
     name          = nextName(factsetPaths.map(_.getName))
-    e            <- Hdfs.mkdir(repo.factsetPath(name))
+    e            <- Hdfs.mkdir(repo.factsetById(name).toHdfs)
     _            <- if(!e) Hdfs.fail("Hit race condition when trying to create fact set") else Hdfs.ok(())
   } yield name
 
   def createStore(repo: HdfsRepository, factset: String): Hdfs[String] = for {
-    storeNames <- Hdfs.globPaths(repo.storesPath).map(_.map(_.getName))
+    storeNames <- Hdfs.globPaths(repo.stores.toHdfs).map(_.map(_.getName))
     latest      = latestName(storeNames)
     name        = nextName(storeNames)
     _           = logger.debug(s"Going to create feature store '${name}'" + latest.map(l => s" based off feature store '${l}'").getOrElse(""))
-    _          <- CreateFeatureStore.onHdfs(repo.path, name, List(factset), latest)
+    _          <- CreateFeatureStore.onHdfs(repo.root.toHdfs, name, List(factset), latest)
   } yield name
 
   def latestName(names: List[String]): Option[String] =

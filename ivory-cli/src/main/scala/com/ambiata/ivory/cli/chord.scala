@@ -2,7 +2,7 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.mundane.control._
 
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.extract._
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
@@ -61,7 +61,7 @@ object chord extends ScoobiApp {
       case DenseRowTextChordStorer => DenseRowTextStorageV1.DenseRowTextStorer(outputPath.toString, d)
       case EavtTextChordStorer     => EavtTextStorageV1.EavtTextStorer(outputPath.toString)
     }
-    _  <- Chord.onHdfs(repo.path, store, dictName, entities, outputPath, tmpPath, errorPath, s)
+    _  <- Chord.onHdfs(repo.root.toHdfs, store, dictName, entities, outputPath, tmpPath, errorPath, s)
   } yield ()
 }
 

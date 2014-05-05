@@ -12,11 +12,13 @@ import com.ambiata.ivory.ingest._
 import com.ambiata.ivory.alien.hdfs._
 import com.ambiata.ivory.storage.repository._
 
+import com.nicta.scoobi.Scoobi._
+
 object importFeatureStore {
 
-  lazy val configuration = new Configuration
+  lazy val configuration = ScoobiConfiguration()
 
-  case class CliArguments(repo: String, name: String, path: String, tmpDirectory: String = Repository.defaultS3TmpDirectory)
+  case class CliArguments(repo: String, name: String, path: String, tmpDirectory: FilePath = Repository.defaultS3TmpDirectory)
 
   val parser = new scopt.OptionParser[CliArguments]("import-feature-store"){
     head("""
@@ -29,7 +31,7 @@ object importFeatureStore {
     opt[String]('r', "repo") action { (x, c) => c.copy(repo = x) } required() text
       s"Path to the repository. If the path starts with 's3://' we assume that this is a S3 repository"
 
-    opt[String]('t', "temp-dir") action { (x, c) => c.copy(tmpDirectory = x) } optional() text
+    opt[String]('t', "temp-dir") action { (x, c) => c.copy(tmpDirectory = x.toFilePath) } optional() text
       s"Temporary directory path used to transfer data when interacting with S3. {user.home}/.s3repository by default"
 
     opt[String]('n', "name") action { (x, c) => c.copy(name = x) } required() text s"Name of the feature store in the repository."
@@ -40,11 +42,12 @@ object importFeatureStore {
     parser.parse(args, CliArguments("", "", "")).map { c =>
       val actions =
         if (c.repo.startsWith("s3://")) {
-          val repository = Repository.fromS3(new FilePath(c.repo.replace("s3://", "")), new FilePath(c.tmpDirectory))
+          val p = c.repo.replace("s3://", "").toFilePath
+          val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, S3Run(configuration))
           FeatureStoreImporter.onS3(repository, c.name, new FilePath(c.path)).runHdfs(configuration).evalT
         }
         else
-          FeatureStoreImporter.onHdfs(HdfsRepository(new Path(c.path)), c.name, new Path(c.path)).run(configuration)
+          FeatureStoreImporter.onHdfs(HdfsRepository(c.path.toFilePath, ScoobiRun(configuration)), c.name, new Path(c.path)).run(configuration)
 
       actions.run.unsafePerformIO() match {
         case Ok(v)    => println(s"Successfully imported feature store into ${c.repo} under the name ${c.name}.")

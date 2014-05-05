@@ -13,11 +13,13 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
 import com.ambiata.saws.core.S3Action
 
+import com.nicta.scoobi.Scoobi._
+
 object createRepository {
 
   lazy val configuration = new Configuration
 
-  case class CliArguments(path: String = "", tmpDirectory: String = Repository.defaultS3TmpDirectory)
+  case class CliArguments(path: String = "", tmpDirectory: FilePath = Repository.defaultS3TmpDirectory)
 
   val parser = new scopt.OptionParser[CliArguments]("create-repository"){
     head("""
@@ -30,7 +32,7 @@ object createRepository {
     opt[String]('p', "path") action { (x, c) => c.copy(path = x) } required() text
       s"Ivory repository to create. If the path starts with 's3://' we assume that this is a S3 repository"
 
-    opt[String]('t', "temp-dir") action { (x, c) => c.copy(tmpDirectory = x) } optional() text
+    opt[String]('t', "temp-dir") action { (x, c) => c.copy(tmpDirectory = x.toFilePath) } optional() text
       s"Temporary directory path used to transfer data when interacting with S3. {user.home}/.s3repository by default"
   }
 
@@ -41,7 +43,8 @@ object createRepository {
     parser.parse(args, CliArguments()).map { c =>
       val actions =
       if (c.path.startsWith("s3://")) {
-        val repository = Repository.fromS3(new FilePath(c.path.replace("s3://", "")), new FilePath(c.tmpDirectory))
+        val p = c.path.replace("s3://", "").toFilePath
+        val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, S3Run(configuration))
         CreateRepository.onS3(repository).eval
       }
       else

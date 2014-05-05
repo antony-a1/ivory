@@ -10,7 +10,7 @@ import com.ambiata.mundane.io._
 import com.ambiata.mundane.parse._
 import com.ambiata.mundane.time.DateTimex
 
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.FactFormats._
@@ -33,7 +33,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
   lazy val factsOutputPath = new Path(outputPath, "thrift")
 
   def run: ScoobiAction[Unit] = for {
-    r  <- ScoobiAction.value(Repository.fromHdfsPath(repoPath))
+    r  <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, ScoobiRun(sc)))
     d  <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dictName))
     s  <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
     es <- ScoobiAction.fromHdfs(entities.traverseU(e => Hdfs.readLines(e)))
@@ -111,7 +111,7 @@ object HdfsSnapshot {
 
   def extractLatest(outputPath: Path, errorPath: Path, incremental: Option[String])(repo: HdfsRepository, store: String, dictName: String, date: LocalDate): ScoobiAction[Unit] = for {
     d  <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dictName))
-    _  <- HdfsSnapshot(repo.path, store, dictName, None, date, outputPath, errorPath, incremental).run
+    _  <- HdfsSnapshot(repo.root.toHdfs, store, dictName, None, date, outputPath, errorPath, incremental).run
   } yield ()
 }
 

@@ -30,14 +30,14 @@ object CreateRepository {
     def create(name: String) =
     for {
       newFile <- S3Action.ok({val f = new File(name); f.createNewFile; f})
-      _       <- S3.putFile(repository.bucket, repository.key, newFile)
+      _       <- S3.putFile(repository.bucket, repository.root.path, newFile)
       _       <- S3Action.ok(newFile.delete)
     } yield ()
 
     for {
-      _ <- create(repository.dictionaries)
-      _ <- create(repository.factsets)
-      _ <- create(repository.stores)
+      _ <- create(repository.dictionaries.path)
+      _ <- create(repository.factsets.path)
+      _ <- create(repository.stores.path)
     } yield repository
   }
 

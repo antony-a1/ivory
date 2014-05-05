@@ -37,8 +37,5 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations { def
     "the dictionary is created on S3" ==> {
       S3.listKeys("ambiata-dev-app", "customer/ivory/repository1/metadata/dictionaries/dictionary1/") must beOkLike(list => list must haveSize(1))
     }
-    "the temporary directory is destroyed after use" ==> {
-      new File(S3Repository("", "").tmpDirectory).exists must beFalse
-    }
   }
 }

@@ -5,9 +5,8 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
 import org.joda.time.DateTimeZone
 import com.ambiata.ivory.scoobi._
-import com.ambiata.ivory.core._
-import com.ambiata.mundane.io.FilePath
-import scala.Some
+import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.mundane.io._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.ingest.EavtTextImporter
@@ -24,7 +23,7 @@ object importFacts extends ScoobiApp {
                           input: String      = "",
                           errors: Option[Path] = None,
                           timezone: DateTimeZone = DateTimeZone.getDefault,
-                          tmpDirectory: String = Repository.defaultS3TmpDirectory)
+                          tmpDirectory: FilePath = Repository.defaultS3TmpDirectory)
 
   val parser = new scopt.OptionParser[CliArguments]("import-facts"){
     head("""
@@ -37,7 +36,7 @@ object importFacts extends ScoobiApp {
     opt[String]('r', "repository").action { (x, c) => c.copy(repositoryPath = x) }.required.
       text (s"Ivory repository to import features into. If the path starts with 's3://' we assume that this is a S3 repository")
 
-    opt[String]('t', "temp-dir") action { (x, c) => c.copy(tmpDirectory = x) } optional() text
+    opt[String]('t', "temp-dir") action { (x, c) => c.copy(tmpDirectory = x.toFilePath) } optional() text
       s"Temporary directory path used to transfer data when interacting with S3. {user.home}/.s3repository by default"
 
     opt[String]('d', "dictionary")      action { (x, c) => c.copy(dictionary = x) }      required() text s"Dictionary name, used to get encoding of fact."
@@ -53,14 +52,15 @@ object importFacts extends ScoobiApp {
     parser.parse(args, CliArguments()).map { c =>
       val actions: ScoobiS3EMRAction[Unit] = if (c.repositoryPath.startsWith("s3://")) {
         // import to S3
-        val repository = Repository.fromS3(new FilePath(c.repositoryPath.replace("s3://", "")), new FilePath(c.tmpDirectory))
+        val p = c.repositoryPath.replace("s3://", "").toFilePath
+        val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, S3Run(configuration))
         for {
           dictionary <- ScoobiS3EMRAction.fromHdfsS3(DictionariesS3Loader(repository).load(c.dictionary))
           _          <- EavtTextImporter.onS3(repository, dictionary, c.factset, c.namespace, new FilePath(c.input), c.timezone)
         } yield ()
       } else {
         // import to Hdfs only
-        val repository = HdfsRepository(new Path(c.repositoryPath))
+        val repository = HdfsRepository(c.repositoryPath.toFilePath, ScoobiRun(configuration))
         for {
           dictionary <- ScoobiS3EMRAction.fromHdfs(InternalDictionaryLoader(repository, c.dictionary).load)
           _          <- ScoobiS3EMRAction.fromScoobiAction(

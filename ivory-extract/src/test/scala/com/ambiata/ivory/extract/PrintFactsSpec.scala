@@ -3,7 +3,8 @@ package com.ambiata.ivory.extract
 import com.nicta.scoobi.core.ScoobiConfiguration
 import com.nicta.scoobi.testing.{TempFiles, HadoopSpecification}
 import com.nicta.scoobi.testing.TestFiles._
-import com.ambiata.ivory.storage.repository.Repository
+import com.ambiata.ivory.core._, IvorySyntax._
+import com.ambiata.ivory.storage.repository._
 import org.apache.hadoop.fs.Path
 import org.joda.time.{LocalDate, DateTimeZone}
 import com.ambiata.mundane.testing.ResultTIOMatcher._
@@ -18,14 +19,14 @@ class PrintFactsSpec extends HadoopSpecification with SampleFacts { def is = s2"
 
   def a1 = { implicit sc: ScoobiConfiguration =>
     val directory = path(TempFiles.createTempDir("snapshot").getPath)
-    val repo = Repository.fromHdfsPath(new Path(directory + "/repo"))
+    val repo = Repository.fromHdfsPath(directory </> "repo", ScoobiRun(sc))
 
     createEntitiesFiles(directory)
     createDictionary(repo)
     createFacts(repo)
 
     val testDir = "target/"+getClass.getSimpleName+"/"
-    val snapshot1 = HdfsSnapshot.takeSnapshot(repo.path, new Path(s"$testDir/out"), new Path(s"testDir/errors"), LocalDate.now, None)
+    val snapshot1 = HdfsSnapshot.takeSnapshot(repo.root.toHdfs, new Path(s"$testDir/out"), new Path(s"testDir/errors"), LocalDate.now, None)
     snapshot1.run(sc) must beOk
 
     val buffer = new StringBuffer

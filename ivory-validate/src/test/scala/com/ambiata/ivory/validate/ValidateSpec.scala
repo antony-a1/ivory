@@ -10,11 +10,12 @@ import com.nicta.scoobi.testing.TestFiles._
 import com.nicta.scoobi.testing.TempFiles
 import java.io.File
 import java.net.URI
+import com.ambiata.mundane.io._
 import com.ambiata.mundane.parse.ListParser
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.apache.hadoop.fs.Path
 
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
@@ -27,7 +28,7 @@ class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers
     implicit val fs = sc.fileSystem
 
     val directory = path(TempFiles.createTempDir("validation").getPath)
-    val repo = Repository.fromHdfsPath(new Path(directory + "/repo"))
+    val repo = Repository.fromHdfsPath(directory </> "repo", ScoobiRun(sc))
     val outpath = directory + "/out"
 
     val dict = Dictionary("dict1", Map(FeatureId("ns1", "fid1") -> FeatureMeta(DoubleEncoding, NumericalType, "desc"),
@@ -46,7 +47,7 @@ class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers
 
     storeToIvory(repo, FeatureStore(List(FactSet("factset1", 1), FactSet("factset2", 2))), "store1").run(sc) must beOk
 
-    Validate.validateHdfsStore(repo.path, "store1", "dict1", new Path(outpath), false).run(sc) must beOk
+    Validate.validateHdfsStore(repo.root.toHdfs, "store1", "dict1", new Path(outpath), false).run(sc) must beOk
 
     val res = fromTextFile(outpath).run.toList
                                println(res)
@@ -62,7 +63,7 @@ class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers
     implicit val fs = sc.fileSystem
 
     val directory = path(TempFiles.createTempDir("validation").getPath)
-    val repo = Repository.fromHdfsPath(new Path(directory + "/repo"))
+    val repo = Repository.fromHdfsPath(directory </> "repo", ScoobiRun(sc))
     val outpath = directory + "/out"
 
     val dict = Dictionary("dict1", Map(FeatureId("ns1", "fid1") -> FeatureMeta(DoubleEncoding, NumericalType, "desc"),
@@ -78,7 +79,7 @@ class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers
     facts1.toIvoryFactset(repo, "factset1").persist
     writeFactsetVersion(repo, List("factset1")).run(sc) must beOk
 
-    Validate.validateHdfsFactSet(repo.path, "factset1", "dict1", new Path(outpath)).run(sc) must beOk
+    Validate.validateHdfsFactSet(repo.root.toHdfs, "factset1", "dict1", new Path(outpath)).run(sc) must beOk
 
     val res = fromTextFile(outpath).run.toList
     res must have size(1)

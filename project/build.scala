@@ -165,7 +165,7 @@ object build extends Build {
   , base = file("ivory-alien-hdfs")
   , settings = standardSettings ++ lib("alien.hdfs") ++ Seq[Settings](
       name := "ivory-alien-hdfs"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.mundane ++ depend.saws ++ depend.specs2)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.hadoop(version.value) ++ depend.mundane ++ depend.saws ++ depend.scoobi(version.value) ++ depend.specs2)
   )
 
   lazy val compilationSettings: Seq[Settings] = Seq(

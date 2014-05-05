@@ -10,11 +10,12 @@ import com.nicta.scoobi.testing.TestFiles._
 import com.nicta.scoobi.testing.TempFiles
 import java.io.File
 import java.net.URI
+import com.ambiata.mundane.io._
 import com.ambiata.mundane.parse.ListParser
 import com.ambiata.mundane.testing.ResultTIOMatcher._
 import org.apache.hadoop.fs.Path
 
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.storage.legacy._
@@ -26,14 +27,14 @@ class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers wi
 
   "Can extract expected facts" >> { implicit sc: ScoobiConfiguration =>
     val directory = path(TempFiles.createTempDir("chord").getPath)
-    val repo = Repository.fromHdfsPath(new Path(directory + "/repo"))
+    val repo = Repository.fromHdfsPath(directory </> "repo", ScoobiRun(sc))
 
     createEntitiesFiles(directory)
     createDictionary(repo)
     createFacts(repo)
 
     val storer = DelimitedFactTextStorage.DelimitedFactTextStorer(new Path(directory+"/out"))
-    Chord.onHdfs(repo.path, "store1", "dict1", new Path(directory+"/entities"), storer.path, new Path(directory+"/tmp"), new Path(directory+"/err"), storer).run(sc) must beOk
+    Chord.onHdfs(repo.root.toHdfs, "store1", "dict1", new Path(directory+"/entities"), storer.path, new Path(directory+"/tmp"), new Path(directory+"/err"), storer).run(sc) must beOk
 
     fromTextFile(storer.path.toString).run.toSet must_==
     Set("eid1:2012-09-15|ns1:fid1|def|2012-09-01 00:00:00", "eid1:2012-11-01|ns1:fid1|abc|2012-10-01 00:00:00", "eid2:2012-12-01|ns1:fid2|11|2012-11-01 00:00:00")
@@ -82,7 +83,7 @@ trait SampleFacts extends MustThrownMatchers {
 
   def createAll(dirName: String)(implicit sc: ScoobiConfiguration) = {
     val directory = path(TempFiles.createTempDir(dirName).getPath)
-    val repo = Repository.fromHdfsPath(new Path(directory + "/repo"))
+    val repo = Repository.fromHdfsPath(directory </> "repo", ScoobiRun(sc))
 
     createEntitiesFiles(directory)
     createDictionary(repo)

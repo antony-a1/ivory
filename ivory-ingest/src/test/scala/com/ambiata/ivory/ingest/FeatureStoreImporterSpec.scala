@@ -5,6 +5,7 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io._
 import com.ambiata.saws.s3.S3
 import com.ambiata.saws.testing.AwsMatcher._
+import com.nicta.scoobi.Scoobi._
 import com.amazonaws.services.s3.AmazonS3Client
 import org.specs2.specification.BeforeAfterExample
 import com.ambiata.ivory.alien.hdfs.HdfsS3Action
@@ -16,7 +17,7 @@ import scalaz.effect.IO
 
 class FeatureStoreImporterSpec extends Specification with BeforeAfterExample {
   "A feature store can be saved on S3" >> {
-    val repository = Repository.fromS3("ambiata-dev-app" </> s"customer/ivory/$dir/", "target" </> ".s3Repository")
+    val repository = Repository.fromS3WithTemp("ambiata-dev-app", "customer" </> "ivory" </> dir, "target" </> ".s3Repository", S3Run(ScoobiConfiguration()))
 
     val actions: HdfsS3Action[Unit] =
       for {

@@ -6,7 +6,9 @@ import com.ambiata.ivory.core._
 import org.apache.hadoop.fs.{Path}
 import org.joda.time.LocalDate
 import com.nicta.scoobi.core.ScoobiConfiguration
+import com.ambiata.mundane.io._
 import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
@@ -23,7 +25,7 @@ class PivotSpec extends HadoopSpecification with SampleFacts { def is = s2"""
 
   def e1 = { implicit sc: ScoobiConfiguration =>
     val directory = path(TempFiles.createTempDir("chord").getPath)
-    val repo = Repository.fromHdfsPath(new Path(directory + "/repo"))
+    val repo = Repository.fromHdfsPath(directory </> "repo", ScoobiRun(sc))
 
     createEntitiesFiles(directory)
     createDictionary(repo)
@@ -32,7 +34,7 @@ class PivotSpec extends HadoopSpecification with SampleFacts { def is = s2"""
     val testDir = "target/"+getClass.getSimpleName+"/"
     val snapshotPath = new Path(s"$testDir/snapshot")
     val errors = new Path(s"$testDir/errors")
-    val takeSnapshot = HdfsSnapshot.takeSnapshot(repo.path, snapshotPath, errors, LocalDate.now, None)
+    val takeSnapshot = HdfsSnapshot.takeSnapshot(repo.root.toHdfs, snapshotPath, errors, LocalDate.now, None)
 
     val pivot = new Path(s"$testDir/pivot")
     val action =

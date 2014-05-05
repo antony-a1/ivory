@@ -2,7 +2,7 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.mundane.control._
 
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.ingest.{DictionaryImporter, EavtTextImporter}
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
@@ -58,7 +58,7 @@ object ingestBulk extends ScoobiApp {
     fatrepo.ImportWorkflow.onHdfs(repo, dictionary.map(defaultDictionaryImport(_)), importFeed(input), tombstone, tmp, timezone)
 
   def defaultDictionaryImport(dictionary: String)(repo: HdfsRepository, name: String, tombstone: List[String], tmpPath: Path): Hdfs[Unit] =
-    DictionaryImporter.onHdfs(repo.path, repo.dictionaryPath(dictionary), name)
+    DictionaryImporter.onHdfs(repo.root.toHdfs, repo.dictionaryByName(dictionary).toHdfs, name)
 
   def importFeed(input: Path)(repo: HdfsRepository, factset: String, dname: String, tmpPath: Path, errorPath: Path, timezone: DateTimeZone): ScoobiAction[Unit] = for {
     dict <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dname))

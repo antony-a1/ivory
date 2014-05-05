@@ -6,11 +6,12 @@ import org.apache.hadoop.fs.Path
 import org.joda.time.LocalDate
 import org.apache.commons.logging.LogFactory
 
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.mundane.io._
 
 /**
  * This workflow is designed to extract the latest features from a feature store
@@ -31,25 +32,25 @@ object ExtractLatestWorkflow {
   private implicit val logger = LogFactory.getLog("ivory.repository.fatrepo.ExtractLatestWorkflow")
 
   def onHdfs(repoPath: Path, extractor: Extractor, date: LocalDate): ScoobiAction[(String, String)] = {
-    val repo = Repository.fromHdfsPath(repoPath)
     for {
+      repo  <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, ScoobiRun(sc)))
       store <- ScoobiAction.fromHdfs(latestStore(repo))
       dname <- ScoobiAction.fromHdfs(latestDictionary(repo))
-      _      = logger.info(s"Running extractor on '${repo.path}' repo, '${store}' store, '${dname}' dictionary, '${date.toString("yyyy-MM-dd")}' date")
+      _      = logger.info(s"Running extractor on '${repo.root.path}' repo, '${store}' store, '${dname}' dictionary, '${date.toString("yyyy-MM-dd")}' date")
       _     <- extractor(repo, store, dname, date)
     } yield (store, dname)
   }
 
   def latestStore(repo: HdfsRepository): Hdfs[String] = for {
-    _         <- Hdfs.value(logger.info(s"Finding latest feature store in the '${repo.path}' repository."))
-    latestOpt <- latest(repo.storesPath)
+    _         <- Hdfs.value(logger.info(s"Finding latest feature store in the '${repo.root.path}' repository."))
+    latestOpt <- latest(repo.stores.toHdfs)
     latest    <- latestOpt.map(Hdfs.ok(_)).getOrElse(Hdfs.fail(s"There are no feature stores"))
     _          = logger.info(s"Latest feature store is '${latest}'")
   } yield latest
 
   def latestDictionary(repo: HdfsRepository): Hdfs[String] = for {
-    _         <- Hdfs.value(logger.info(s"Finding latest dictionary in the '${repo.path}' repository."))
-    latestOpt <- latest(repo.dictionariesPath)
+    _         <- Hdfs.value(logger.info(s"Finding latest dictionary in the '${repo.root.path}' repository."))
+    latestOpt <- latest(repo.dictionaries.toHdfs)
     latest    <- latestOpt.map(Hdfs.ok(_)).getOrElse(Hdfs.fail(s"There are no dictionaries'"))
     _          = logger.info(s"Latest dictionary is '${latest}'")
   } yield latest

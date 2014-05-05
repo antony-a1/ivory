@@ -1,9 +1,9 @@
 package com.ambiata.ivory.ingest
 
 import com.ambiata.mundane.control._
-import com.ambiata.mundane.io.FilePath
+import com.ambiata.mundane.io._
 
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.storage.legacy._, PartitionFactThriftStorageV1._, IvoryStorage._, EavtTextStorageV1._
 import com.ambiata.ivory.storage.repository._
@@ -48,7 +48,7 @@ object HdfsDirectEavtTextImporter {
 
             val writer = channels.getOrElseUpdate(path, {
               val opts = List(
-                SequenceFile.Writer.file(new Path(new Path(repository.factsetPath(factset), path), "facts")),
+                SequenceFile.Writer.file((repository.factsetById(factset) </> path </> "facts").toHdfs),
                 SequenceFile.Writer.keyClass(classOf[NullWritable]),
                 SequenceFile.Writer.valueClass(classOf[BytesWritable]),
                 SequenceFile.Writer.compression(SequenceFile.CompressionType.BLOCK, new SnappyCodec))

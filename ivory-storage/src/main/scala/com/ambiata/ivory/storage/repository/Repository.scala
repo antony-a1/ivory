@@ -2,45 +2,23 @@ package com.ambiata.ivory.storage.repository
 
 import scalaz._, Scalaz._
 import org.apache.hadoop.fs.Path
-import com.ambiata.mundane.io.FilePath
+import com.ambiata.mundane.io._
+import com.ambiata.ivory.core._
 
-sealed trait Repository
-
-case class HdfsRepository(path: Path) extends Repository {
-  lazy val errorsPath = new Path(path, "errors")
-  lazy val metadataPath = new Path(path, "metadata")
-  lazy val factsetsPath = new Path(path, "factsets")
-
-  lazy val dictionariesPath = new Path(metadataPath, "dictionaries")
-  lazy val storesPath = new Path(metadataPath, "stores")
-
-  def dictionaryPath(name: String): Path =
-    new Path(dictionariesPath, name)
-
-  def storePath(name: String): Path =
-    new Path(storesPath, name)
-
-  def factsetPath(name: String): Path =
-    new Path(factsetsPath, name)
+sealed trait Repository {
+  def root: FilePath
+  def errors: FilePath = root </> "errors"
+  def factsets: FilePath = root </> "factsets"
+  def metadata: FilePath = root </> "metadata"
+  def dictionaries: FilePath = metadata </> "dictionaries"
+  def stores: FilePath = metadata </> "stores"
+  def dictionaryByName(name: String): FilePath =  dictionaries </> name
+  def storeByName(name: String): FilePath =  stores </> name
+  def factsetById(id: String): FilePath =  factsets </> id
 }
 
-case class LocalRepository(path: String) extends Repository {
-  lazy val errorsPath = s"$path/errors"
-  lazy val metadataPath = s"$path/metadata"
-  lazy val factsetsPath = s"$path/factsets"
-
-  lazy val dictionariesPath = s"$metadataPath/dictionaries"
-  lazy val storesPath = s"$metadataPath/stores"
-
-  def dictionaryPath(name: String): String =
-    s"$dictionariesPath/$name"
-
-  def storePath(name: String): String =
-    s"$storesPath/$name"
-
-  def factsetPath(name: String): String =
-    s"$factsetsPath/$name"
-}
+case class HdfsRepository(root: FilePath, run: ScoobiRun) extends Repository
+case class LocalRepository(root: FilePath) extends Repository
 
 /**
  * Repository on S3
@@ -48,65 +26,31 @@ case class LocalRepository(path: String) extends Repository {
  * tmpDirectory is a transient directory (on Hdfl) that is used to import data and
  * convert them to the ivory format before pushing them to S3
  */
-case class S3Repository(bucket: String, key: String, tmpDirectory: String = ".s3Repository") extends Repository {
-  lazy val hdfsRepository = HdfsRepository(new Path(tmpDirectory))
-
-  lazy val repositoryDir = if (key.endsWith("/")) key else key+"/"
-
-  lazy val metadata    = s"${repositoryDir}metadata/"
-
-  lazy val factsets    = "factsets"
-  lazy val factsetsKey = s"${repositoryDir}$factsets/"
-
-  lazy val dictionaries    = "dictionaries"
-  lazy val dictionariesKey = s"${metadata}$dictionaries/"
-
-  lazy val stores    = "stores/"
-  lazy val storesKey = s"${metadata}$stores"
-
-  def dictionaryKey(name: String): String =
-    s"${dictionariesKey}$name"
-
-  def storeKey(name: String): String =
-    s"${storesKey}$name"
-
-  def factsetKey(name: String): String =
-    s"${factsetsKey}$name"
+case class S3Repository(bucket: String, root: FilePath, tmp: FilePath, run: S3Run) extends Repository {
+  val hdfs = HdfsRepository(tmp, run)
 }
 
 object Repository {
-  def fromUri(s: String): String \/ Repository = try {
-    val uri = new java.net.URI(s)
-    uri.getScheme match {
-      case "hdfs" =>
-        HdfsRepository(new Path(uri.getPath)).right
-      case "s3" =>
-        S3Repository(uri.getHost, uri.getPath.drop(1)).right
-      case "file" =>
-        LocalRepository(uri.toURL.getFile).right
-      case null =>
-        LocalRepository(uri.getPath).right
-      case _ =>
-        s"Unknown or invalid repository scheme [${uri.getScheme}]".left
-    }
-  } catch {
-    case e: java.net.URISyntaxException =>
-      e.getMessage.left
-  }
+  val defaultS3TmpDirectory: FilePath =
+    ".s3repository".toFilePath
 
+  def fromUri(s: String, s3Run: S3Run, scoobiRun: ScoobiRun): String \/ Repository =
+    Location.fromUri(s).map({
+      case HdfsLocation(path) => HdfsRepository(path.toFilePath, scoobiRun)
+      case LocalLocation(path) => LocalRepository(path.toFilePath)
+      case S3Location(bucket, path) => S3Repository(bucket, path.toFilePath, defaultS3TmpDirectory, s3Run)
+    })
 
-  def fromHdfsPath(path: Path): HdfsRepository =
-    HdfsRepository(path)
+  def fromHdfsPath(path: FilePath, run: ScoobiRun): HdfsRepository =
+    HdfsRepository(path, run)
 
   def fromLocalPath(path: FilePath): LocalRepository =
-    LocalRepository(path.path)
+    LocalRepository(path)
 
-  def fromS3(path: FilePath): S3Repository =
-    S3Repository(path.rootname.path, path.fromRoot.path)
+  def fromS3(bucket: String, path: FilePath, run: S3Run): S3Repository =
+    S3Repository(bucket, path, defaultS3TmpDirectory, run)
 
   /** use a specific temporary directory to store ivory files before they are saved on S3 */
-  def fromS3(path: FilePath, tmpDir: FilePath): S3Repository =
-    S3Repository(path.rootname.path, path.fromRoot.path, tmpDir.path)
-
-  val defaultS3TmpDirectory = ".s3repository"
+  def fromS3WithTemp(bucket: String, path: FilePath, tmp: FilePath, run: S3Run): S3Repository =
+    S3Repository(bucket, path, tmp, run)
 }

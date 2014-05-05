@@ -37,7 +37,7 @@ class FactsetS3ImporterSpec extends HadoopSpecification with ThrownExpectations 
 """
 
   def e1 = { implicit sc: SC =>
-    val repository = Repository.fromS3("ambiata-dev-app" </> s"customer/ivory/$dir/", "target" </> ".s3Repository")
+    val repository = Repository.fromS3WithTemp("ambiata-dev-app", "customer" </> "ivory" </> dir, "target" </> ".s3Repository", S3Run(ScoobiConfiguration()))
 
     val actions: ScoobiS3EMRAction[Unit] =
     for {
@@ -89,5 +89,5 @@ class FactsetS3ImporterSpec extends HadoopSpecification with ThrownExpectations 
 
   type SC = ScoobiConfiguration
 
-  val dir = "test/"+getClass.getSimpleName
+  val dir = "test-"+getClass.getSimpleName
 }

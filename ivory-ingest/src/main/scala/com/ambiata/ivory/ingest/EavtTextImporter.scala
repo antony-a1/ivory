@@ -3,7 +3,7 @@ package ingest
 
 import org.apache.hadoop.fs.Path
 import com.nicta.scoobi.Scoobi._
-import core._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.storage.legacy.IvoryStorage
 import com.ambiata.ivory.storage.legacy.Versions
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
@@ -31,8 +31,8 @@ object EavtTextImporter {
 
   def onS3(repository: S3Repository, dictionary: Dictionary, factset: String, namespace: String, path: FilePath, timezone: DateTimeZone, preprocess: String => String = identity): ScoobiS3EMRAction[Unit] = for {
     _  <- ScoobiS3EMRAction.reader((sc: ScoobiConfiguration) =>
-              basicScoobiJob(repository.hdfsRepository, dictionary, factset, namespace,
-                new Path(path.path), new Path(repository.tmpDirectory+"/errors/"), timezone, preprocess)(sc))
+              basicScoobiJob(repository.hdfs, dictionary, factset, namespace,
+                new Path(path.path), (repository.tmp </> "errors").toHdfs, timezone, preprocess)(sc))
     _  <- copyFilesToS3(repository, factset, namespace)
   } yield ()
 
@@ -156,12 +156,13 @@ object EavtTextImporter {
            getOrElse(copyFilesOneByOne(repository, factset, namespace))
   } yield ()
 
-  def copyFilesOneByOne(repository: S3Repository, factset: String, namespace: String): ScoobiS3EMRAction[Unit] =
-    ScoobiS3EMRAction.fromHdfsS3(HdfsS3.putPathsByDate(repository.bucket, repository.factsetKey(factset)+"/"+namespace, new Path(repository.hdfsRepository.factsetPath(factset), namespace)))
+  def copyFilesOneByOne(repository: S3Repository, factset: String, namespace: String): ScoobiS3EMRAction[Unit] = {
+    ScoobiS3EMRAction.fromHdfsS3(HdfsS3.putPathsByDate(repository.bucket, repository.factsetById(factset)+"/"+namespace, (repository.hdfs.factsetById(factset) </> namespace).toHdfs))
+  }
 
   def copyFilesWithDistCp(clusterId: String, repository: S3Repository, factset: String, namespace: String): ScoobiS3EMRAction[Unit] = {
-    val src  = s"hdfs:///${repository.hdfsRepository.factsetPath(factset)+"/"+namespace}"
-    val dest = s"s3://${repository.bucket}/${repository.factsetKey(factset)+"/"+namespace}"
+    val src  = s"hdfs:///${repository.hdfs.factsetById(factset)}/${namespace}"
+    val dest = s"s3://${repository.bucket}/${repository.factsetById(factset).path}/${namespace}"
     ScoobiS3EMRAction.fromEMRAction(DistCopy.run(clusterId, List(s"--src=$src", s"--dest=$dest", "--srcPattern=.*/.*/.*"))).void
   }
 

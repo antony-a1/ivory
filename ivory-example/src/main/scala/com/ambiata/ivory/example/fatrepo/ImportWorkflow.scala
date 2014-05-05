@@ -4,7 +4,7 @@ import scalaz._, Scalaz._
 import org.apache.hadoop.fs.Path
 import org.apache.commons.logging.LogFactory
 
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.ingest.{DictionaryImporter, EavtTextImporter}
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
@@ -20,7 +20,7 @@ object ImportWorkflow {
     fatrepo.ImportWorkflow.onHdfs(repo, Some(importDictionary(dict)), importFeed(input, namespace), tombstone, tmp, timezone)
 
   def importDictionary(path: Path)(repo: HdfsRepository, name: String, tombstone: List[String], tmpPath: Path): Hdfs[Unit] =
-    DictionaryImporter.onHdfs(repo.path, path, name)
+    DictionaryImporter.onHdfs(repo.root.toHdfs, path, name)
 
   def importFeed(input: Path, namespace: String)(repo: HdfsRepository, factset: String, dname: String, tmpPath: Path, errorPath: Path, timezone: DateTimeZone): ScoobiAction[Unit] = for {
     dict <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dname))

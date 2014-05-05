@@ -12,11 +12,13 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
 
+import com.nicta.scoobi.Scoobi._
+
 object createFeatureStore {
 
-  lazy val configuration = new Configuration
+  lazy val configuration = ScoobiConfiguration()
 
-  case class CliArguments(repo: String, name: String, sets: String, existing: Option[String], tmpDirectory: String = Repository.defaultS3TmpDirectory)
+  case class CliArguments(repo: String, name: String, sets: String, existing: Option[String], tmpDirectory: FilePath = Repository.defaultS3TmpDirectory)
 
   val parser = new scopt.OptionParser[CliArguments]("create-feature-store"){
     head("""
@@ -29,7 +31,7 @@ object createFeatureStore {
     opt[String]('r', "repo") action { (x, c) => c.copy(repo = x) } required() text
       s"Ivory repository to create. If the path starts with 's3://' we assume that this is a S3 repository"
 
-    opt[String]('t', "temp-dir") action { (x, c) => c.copy(tmpDirectory = x) } optional() text
+    opt[String]('t', "temp-dir") action { (x, c) => c.copy(tmpDirectory = x.toFilePath) } optional() text
       s"Temporary directory path used to transfer data when interacting with S3. {user.home}/.s3repository by default"
 
     opt[String]('n', "name")            action { (x, c) => c.copy(name = x) } required() text s"Name of the feature store in the repository."
@@ -43,7 +45,8 @@ object createFeatureStore {
 
       val actions =
         if (c.repo.startsWith("s3://")) {
-          val repository = Repository.fromS3(new FilePath(c.repo.replace("s3://", "")), new FilePath(c.tmpDirectory))
+          val p = c.repo.replace("s3://", "").toFilePath
+          val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, S3Run(configuration))
           CreateFeatureStore.onS3(repository, c.name, sets, c.existing).runHdfs(configuration).eval
         }
         else
