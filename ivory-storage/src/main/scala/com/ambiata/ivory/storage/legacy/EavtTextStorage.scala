@@ -19,8 +19,8 @@ object EavtTextStorageV1 {
   type Namespace = String
 
   case class EavtTextLoader(path: String, dict: Dictionary, namespace: String, timezone: DateTimeZone, preprocess: String => String) extends IvoryScoobiLoader[Fact] {
-    def loadScoobi(implicit sc: ScoobiConfiguration): DList[String \/ Fact] =
-      fromTextFile(path).map(l => parseFact(dict, namespace, timezone, preprocess).run(splitLine(l)).disjunction)
+    def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ Fact] =
+      fromTextFile(path).map(l => parseFact(dict, namespace, timezone, preprocess).run(splitLine(l)).leftMap(ParseError.withLine(l)).disjunction)
   }
 
   case class EavtTextStorer(base: String, delim: String = "|", tombstoneValue: Option[String] = None) extends IvoryScoobiStorer[Fact, DList[(Namespace, String)]] {
@@ -37,7 +37,7 @@ object EavtTextStorageV1 {
       EavtTextStorer(base, delim, tombstoneValue).storeScoobi(dlist)
   }
 
-  def fromEavtTextFile(path: String, dict: Dictionary, namespace: String, timezone: DateTimeZone, preprocess: String => String)(implicit sc: ScoobiConfiguration): DList[String \/ Fact] =
+  def fromEavtTextFile(path: String, dict: Dictionary, namespace: String, timezone: DateTimeZone, preprocess: String => String)(implicit sc: ScoobiConfiguration): DList[ParseError \/ Fact] =
     EavtTextLoader(path, dict, namespace, timezone, preprocess).loadScoobi
 
   def splitLine(line: String): List[String] =
@@ -71,3 +71,4 @@ object EavtTextStorageV1 {
         case Failure(_) => y.parse(n, ls).map(_.map(_.right[A]))
       })
 }
+

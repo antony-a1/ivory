@@ -178,3 +178,4 @@ case class TombstoneValue() extends Value {
   val encoding = TombstoneEncoding
   val stringValue = None
 }
+

@@ -99,15 +99,15 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
               }.collect { case (d, p, Some(f)) => (p, f.withEntity(f.entity + ":" + Date.unsafeFromInt(d).hyphenated)) }.toIterable
             }.collect { case (p, f) if !f.isTombstone => (p, f) }
 
-        val validated: DList[String \/ Fact] = latest.map { case (p, f) =>
+        val validated: DList[ParseError \/ Fact] = latest.map { case (p, f) =>
           Validate.validateFact(f, dict).disjunction.leftMap(_ + " - Factset " + factsetMap.get(p).getOrElse("Unknown, priority " + p))
         }
 
         val valErrors = validated.collect { case -\/(e) => e }
         val good      = validated.collect { case \/-(f) => f }
 
-        persist(errors.toTextFile(new Path(errorPath, "parse").toString, overwrite = true),
-                valErrors.toTextFile(new Path(errorPath, "validation").toString, overwrite = true),
+        persist(errors.valueToSequenceFile(new Path(errorPath, "parse").toString, overwrite = true),
+                valErrors.valueToSequenceFile(new Path(errorPath, "validation").toString, overwrite = true),
                 storer.storeScoobi(good))
         ()
       }

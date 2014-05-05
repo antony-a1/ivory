@@ -12,16 +12,17 @@ import FactFormats._
 import SeqSchemas._
 
 import scala.collection.JavaConverters._
+import java.net.URI
 
 object PartitionFactThriftStorageV1 {
 
   type FactsetName = String
   type Priority = Int
 
-  def loadScoobiWith[A : WireFormat](path: String, f: (FactsetName, Fact) => String \/ A)(implicit sc: ScoobiConfiguration): DList[String \/ A] = {
+  def loadScoobiWith[A : WireFormat](path: String, f: (FactsetName, Fact) => ParseError \/ A)(implicit sc: ScoobiConfiguration): DList[ParseError \/ A] = {
      valueFromSequenceFileWithPath[ThriftFact](path).map { case (partition, tfact) =>
       for {
-        p          <- Partition.parseWith(new java.net.URI(partition).getPath).disjunction
+        p          <- Partition.parseWith(new URI(partition).toString).leftMap(ParseError.withLine(new URI(partition).toString)).disjunction
         (fs, ns, d) = p
         fact        =  FatThriftFact(ns, d, tfact)
         a          <- f(fs, fact)
@@ -30,16 +31,16 @@ object PartitionFactThriftStorageV1 {
   }
 
   case class PartitionedFactThriftLoader(path: String) extends IvoryScoobiLoader[Fact] {
-    def loadScoobi(implicit sc: ScoobiConfiguration): DList[String \/ Fact] =
+    def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ Fact] =
       loadScoobiWith(path+"/*/*/*/*/*", (_, fact) => fact.right)
   }
 
   case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[FactSet]) extends IvoryScoobiLoader[(Priority, FactsetName, Fact)] {
     lazy val factsetMap: Map[String, Int] = factsets.map(fs => (fs.name, fs.priority)).toMap
 
-    def loadScoobi(implicit sc: ScoobiConfiguration): DList[String \/ (Int, String, Fact)] = {
+    def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ (Int, String, Fact)] = {
       loadScoobiWith(base + "/{" + factsets.map(_.name).mkString(",") + "}/*/*/*/*/*", (fs, fact) =>
-        factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(s"Factset '${fs}' not found in expected list '${factsets}'".left))
+        factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(ParseError(fs, s"Factset '${fs}' not found in expected list '${factsets}'").left))
     }
   }
 
@@ -57,10 +58,10 @@ object PartitionFactThriftStorageV2 {
 
   type FactsetName = String
 
-  def loadScoobiWith[A : WireFormat](path: String, f: (FactsetName, Fact) => String \/ A): DList[String \/ A] = {
+  def loadScoobiWith[A : WireFormat](path: String, f: (FactsetName, Fact) => ParseError \/ A): DList[ParseError \/ A] = {
      valueFromSequenceFileWithPath[ThriftFact](path).map { case (partition, tfact) =>
       for {
-        p          <- Partition.parseWith(new java.net.URI(partition).getPath).disjunction
+        p          <- Partition.parseWith(new URI(partition).toString).leftMap(ParseError.withLine(new URI(partition).toString)).disjunction
         (fs, ns, d) = p
         fact        = FatThriftFact(ns, d, tfact)
         a          <- f(fs, fact)
@@ -69,16 +70,16 @@ object PartitionFactThriftStorageV2 {
   }
 
   case class PartitionedFactThriftLoader(path: String) extends IvoryScoobiLoader[Fact] {
-    def loadScoobi(implicit sc: ScoobiConfiguration): DList[String \/ Fact] =
+    def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ Fact] =
       loadScoobiWith(path+"/*/*/*/*/*", (_, fact) => fact.right)
   }
 
   case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[FactSet]) extends IvoryScoobiLoader[(Int, String, Fact)] {
     lazy val factsetMap: Map[String, Int] = factsets.map(fs => (fs.name, fs.priority)).toMap
 
-    def loadScoobi(implicit sc: ScoobiConfiguration): DList[String \/ (Int, String, Fact)] = {
+    def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ (Int, String, Fact)] = {
       loadScoobiWith(base + "/{" + factsets.map(_.name).mkString(",") + "}/*/*/*/*/*", (fs, fact) =>
-        factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(s"Factset '${fs}' not found in expected list '${factsets}'".left))
+        factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(ParseError(fs, s"Factset '${fs}' not found in expected list '${factsets}'").left))
     }
   }
 

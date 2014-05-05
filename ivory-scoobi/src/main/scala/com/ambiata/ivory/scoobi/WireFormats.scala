@@ -44,6 +44,28 @@ trait WireFormats {
     }
   }
 
+  implicit def parseErrorWireFormat = new WireFormat[ParseError] {
+    import org.apache.thrift.protocol.TCompactProtocol
+    import org.apache.thrift.{TSerializer, TDeserializer}
+
+    def toWire(x: ParseError, out: DataOutput) = {
+      val serialiser = new TSerializer(new TCompactProtocol.Factory)
+      val bytes = serialiser.serialize(x.toThrift)
+      out.writeInt(bytes.length)
+      out.write(bytes)
+    }
+    def fromWire(in: DataInput): ParseError = {
+      val deserialiser = new TDeserializer(new TCompactProtocol.Factory)
+      val size = in.readInt()
+      val bytes = new Array[Byte](size)
+      in.readFully(bytes)
+      val e = new ThriftParseError()
+      deserialiser.deserialize(e, bytes)
+      ParseError(e.line, e.message)
+    }
+
+  }
+
   /* WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
   def namespacedThriftFactWireFormat = new WireFormat[NamespacedThriftFact] {
     val x = mkThriftFmt(new NamespacedThriftFact)

@@ -21,43 +21,76 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.mundane.io._
+import org.specs2.specification.{Fixture, FixtureExample}
+import org.specs2.execute.{Result, AsResult}
 
 class EavtTextImporterSpec extends HadoopSpecification with SimpleJobs with FileMatchers {
   override def isCluster = false
 
-  "Scoobi job runs and creates expected data" >> { implicit sc: ScoobiConfiguration =>
-    implicit val fs = sc.fileSystem
+  "Scoobi job runs and creates expected data" >> { setup: Setup =>
+    import setup._
 
-    // create a repository
-    val directory = path(TempFiles.createTempDir("eavtimporter").getPath)
-    val input = directory + "/input"
-    val repository = Repository.fromHdfsPath(new Path(directory, "repo"))
+    saveInputFile
+    val errors = new Path(directory, "errors")
+    // run the scoobi job to import facts on Hdfs
+    EavtTextImporter.onHdfs(repository, dictionary, "factset1", "ns1", new Path(input), errors, DateTimeZone.getDefault, identity).run(sc) must beOk
+
+    val expected = List(
+      StringFact("pid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1),  Time(10), "v1"),
+      IntFact(   "pid1", FeatureId("ns1", "fid2"), Date(2012, 10, 15), Time(20), 2),
+      DoubleFact("pid1", FeatureId("ns1", "fid3"), Date(2012, 3, 20),  Time(30), 3.0))
+
+
+    factsFromIvoryFactset(repository, "factset1").map(_.run.collect { case \/-(r) => r}).run(sc) must beOkLike(_ must containTheSameElementsAs(expected))
+  }
+
+  "When there are errors, they must be saved as a Thrift record containing the full record + the error message" >> { setup: Setup =>
+    import setup._
+    // save an input file containing errors
+    saveInputFileWithErrors
     val errors = new Path(directory, "errors")
 
-    // create a dictionary
-    val dict = Dictionary("dict",
+    // run the scoobi job to import facts on Hdfs
+    EavtTextImporter.onHdfs(repository, dictionary, "factset1", "ns1", new Path(input), errors, DateTimeZone.getDefault, identity).run(sc) must beOk
+    valueFromSequenceFile[ParseError](errors.toString).run must not(beEmpty)
+  }
+
+  implicit def setup: Fixture[Setup] = new Fixture[Setup] {
+    def apply[R : AsResult](f: Setup => R): Result = fixtureContext { sc1: ScoobiConfiguration =>
+      f(new Setup { implicit lazy val sc = sc1 })
+    }
+  }
+}
+
+trait Setup {
+  implicit def sc: ScoobiConfiguration
+  implicit lazy val fs = sc.fileSystem
+
+  val directory = path(TempFiles.createTempDir("eavtimporter").getPath)
+  val input = directory + "/input"
+  val repository = Repository.fromHdfsPath(new Path(directory, "repo"))
+
+  val dictionary =
+    Dictionary("dict",
       Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, CategoricalType, "abc"),
-          FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding, NumericalType, "def"),
+          FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding,    NumericalType, "def"),
           FeatureId("ns1", "fid3") -> FeatureMeta(DoubleEncoding, NumericalType, "ghi")))
 
-    // save input file
+  def saveInputFile = {
     val raw = List("pid1|fid1|v1|2012-10-01 00:00:10",
-                   "pid1|fid2|2|2012-10-15 00:00:20",
+      "pid1|fid2|2|2012-10-15 00:00:20",
+      "pid1|fid3|3.0|2012-03-20 00:00:30")
+
+    TempFiles.writeLines(new File(input), raw, isRemote)
+  }
+
+  def saveInputFileWithErrors = {
+    val raw = List("pid1|fid1|v1|2012-10-01 00:00:10",
+                   "pid1|fid2|x|2012-10-15 00:00:20",
                    "pid1|fid3|3.0|2012-03-20 00:00:30")
 
     TempFiles.writeLines(new File(input), raw, isRemote)
-
-    // run the scoobi job to import facts on Hdfs
-    EavtTextImporter.onHdfs(repository, dict, "factset1", "ns1", new Path(input), errors, DateTimeZone.getDefault, identity).run(sc) must beOk
-
-    val expected = List(
-      StringFact("pid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(10), "v1"),
-      IntFact("pid1", FeatureId("ns1", "fid2"), Date(2012, 10, 15), Time(20), 2),
-      DoubleFact("pid1", FeatureId("ns1", "fid3"), Date(2012, 3, 20), Time(30), 3.0))
-
-    (for {
-      dl <- factsFromIvoryFactset(repository, "factset1").run(sc).run.unsafePerformIO().toEither
-      r  <- dl.run.toList.sequenceU.toEither.leftMap[These[String, Throwable]](This(_))
-    } yield r) must beRight((l: List[Fact]) => l must containTheSameElementsAs(expected))
   }
+
 }
+

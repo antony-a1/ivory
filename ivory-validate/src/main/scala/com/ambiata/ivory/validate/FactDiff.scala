@@ -45,7 +45,7 @@ object FactDiff {
     })
   }
 
-  def byflag(dlist: DList[String \/ Fact], flag: Boolean): (DList[(Boolean, String)], DList[(Boolean, Fact)]) = {
+  def byflag(dlist: DList[ParseError \/ Fact], flag: Boolean): (DList[(Boolean, String)], DList[(Boolean, Fact)]) = {
     val errs = dlist.collect {
       case -\/(e) => (flag, e)
     }

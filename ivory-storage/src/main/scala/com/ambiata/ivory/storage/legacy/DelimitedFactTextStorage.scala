@@ -11,7 +11,7 @@ import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
 
 object DelimitedFactTextStorage {
   case class DelimitedFactTextLoader(path: String, dict: Dictionary) extends IvoryScoobiLoader[Fact] {
-    def loadScoobi(implicit sc: ScoobiConfiguration): DList[String \/ Fact] = {
+    def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ Fact] = {
       fromTextFile(path).map(line => parseFact(dict, line))
     }
   }
@@ -26,8 +26,8 @@ object DelimitedFactTextStorage {
       d.localDate.toDateTimeAtStartOfDay.toLocalDateTime.plusSeconds(s)
   }
 
-  def parseFact(dict: Dictionary, str: String): String \/ Fact =
-    factParser(dict).run(str.split('|').toList).disjunction
+  def parseFact(dict: Dictionary, str: String): ParseError \/ Fact =
+    factParser(dict).run(str.split('|').toList).leftMap(ParseError.withLine(str)).disjunction
 
   def factParser(dict: Dictionary): ListParser[Fact] = {
     import ListParser._

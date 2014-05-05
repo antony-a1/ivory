@@ -26,6 +26,20 @@ object SeqSchemas {
     val mf: Manifest[SeqType] = implicitly
   }
 
+  /* WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
+  def parseErrorSeqSchema: SeqSchema[ParseError] = new SeqSchema[ParseError] {
+    type SeqType = BytesWritable
+    def empty = new ThriftParseError
+    val serialiser = ThriftSerialiser()
+    def toWritable(x: ParseError) = new BytesWritable(serialiser.toBytes(x.toThrift))
+    def fromWritable(x: BytesWritable): ParseError = {
+      val asThrift = serialiser.fromBytes1(() => empty, x.getBytes)
+      ParseError(asThrift.line, asThrift.message)
+    }
+
+    val mf: Manifest[SeqType] = implicitly
+  }
+
   /* WARNING THIS IS NOT SAFE TO EXPOSE, DANGER LURKS, SEE ThriftFactSeqSchema */
   private def mkThriftSchema[A](empty: A)(implicit ev: A <:< org.apache.thrift.TBase[_ <: org.apache.thrift.TBase[_, _], _ <: org.apache.thrift.TFieldIdEnum]) = new SeqSchema[A] {
     type SeqType = BytesWritable

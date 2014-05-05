@@ -126,7 +126,7 @@ object EavtTextImporter {
 
   // FIX lots of duplication with RawFeatureThriftImporter
   def scoobiJobOnFacts[A](
-    dlist: DList[String \/ Fact],
+    dlist: DList[ParseError \/ Fact],
     repository: HdfsRepository,
     factset: String,
     path: Path,
@@ -137,7 +137,7 @@ object EavtTextImporter {
     sc: ScoobiConfiguration,
     A: WireFormat[A]
   ) {
-    val errors: DList[String] = dlist.collect { case -\/(err) => err + " - path " + path }
+    val errors: DList[ParseError] = dlist.collect { case -\/(err) => err.appendToMessage(" - path " + path) }
     val facts: DList[Fact]    = dlist.collect { case \/-(f) => f }
 
     val packed =
@@ -147,7 +147,7 @@ object EavtTextImporter {
         .mapFlatten(_._2)
         .toIvoryFactset(repository, factset).compressWith(new SnappyCodec)
 
-    persist(packed, errors.toTextFile(errorPath.toString, overwrite = true))
+    persist(packed, errors.valueToSequenceFile(errorPath.toString, overwrite = true))
   }
 
   def copyFilesToS3(repository: S3Repository, factset: String, namespace: String): ScoobiS3EMRAction[Unit] = for {

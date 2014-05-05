@@ -41,9 +41,9 @@ object ExtractLatestWorkflow {
 
   def storeInFormat(inputPath: Path, outputPath: Path, errorPath: Path): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-      val in: DList[String \/ Fact] = PartitionFactThriftStorageV2.PartitionedFactThriftLoader(inputPath.toString).loadScoobi
+      val in: DList[ParseError \/ Fact] = PartitionFactThriftStorageV2.PartitionedFactThriftLoader(inputPath.toString).loadScoobi
 
-      val errors: DList[String] = in.collect({
+      val errors: DList[ParseError] = in.collect({
         case -\/(e) => e
       })
 
@@ -51,6 +51,6 @@ object ExtractLatestWorkflow {
         case \/-(f) => f
       })
 
-      persist(EavtTextStorageV1.EavtTextStorer(outputPath.toString).storeScoobi(good), errors.toTextFile(errorPath.toString, overwrite = true))
+      persist(EavtTextStorageV1.EavtTextStorer(outputPath.toString).storeScoobi(good), errors.valueToSequenceFile(errorPath.toString, overwrite = true))
     })
 }
