@@ -10,4 +10,7 @@ import com.ambiata.mundane.control._
 case class FeatureStore(factSets: List[FactSet]) {
   def +++(other: FeatureStore): FeatureStore =
     FeatureStore(FactSets.concat(factSets, other.factSets))
+
+  def ---(other: FeatureStore): FeatureStore =
+    FeatureStore(FactSets.diff(factSets, other.factSets))
 }

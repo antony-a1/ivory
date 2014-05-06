@@ -19,7 +19,7 @@ import scalaz.{DList => _, _}, Scalaz._
 
 object snapshot extends ScoobiApp {
 
-  case class CliArguments(repo: String, output: String, date: LocalDate, incremental: Option[(String, String)])
+  case class CliArguments(repo: String, output: String, date: LocalDate, incremental: Option[String])
 
   val parser = new scopt.OptionParser[CliArguments]("snapshot") {
     head("""
@@ -30,10 +30,10 @@ object snapshot extends ScoobiApp {
          |""".stripMargin)
 
     help("help") text "shows this usage text"
-    opt[String]('r', "repo")       action { (x, c) => c.copy(repo = x) }   required() text "Path to an ivory repository."
-    opt[String]('o', "output")     action { (x, c) => c.copy(output = x) } required() text "Path to store snapshot."
-    opt[(String, String)]('i', "incremental")   action { (x, c) => c.copy(incremental = Some(x)) } text "Path to of a snapshot to add in, and the version of the store to diff against, -i PATH VERSION."
-    opt[Calendar]('d', "date")     action { (x, c) => c.copy(date = LocalDate.fromCalendarFields(x)) } text
+    opt[String]('r', "repo")        action { (x, c) => c.copy(repo = x) }   required() text "Path to an ivory repository."
+    opt[String]('o', "output")      action { (x, c) => c.copy(output = x) } required() text "Path to store snapshot."
+    opt[String]('i', "incremental") action { (x, c) => c.copy(incremental = Some(x)) } text "Path to a snapshot to add in. Path must contain a .snapmeta file."
+    opt[Calendar]('d', "date")      action { (x, c) => c.copy(date = LocalDate.fromCalendarFields(x)) } text
       s"Optional date to take snapshot from, default is now."
   }
 
@@ -50,6 +50,7 @@ object snapshot extends ScoobiApp {
                       |  Extract At Date         : ${c.date.toString("yyyy/MM/dd")}
                       |  Output Path             : ${c.output}
                       |  Errors                  : ${errors}
+                      |  Incremental             : ${c.incremental.getOrElse("")}
                       |
                       |""".stripMargin
       println(banner)

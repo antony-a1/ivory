@@ -16,4 +16,7 @@ object FactSets {
 
   def concat(init: List[FactSet], tail: List[FactSet]): List[FactSet] =
     (init ++ tail).zipWithIndex.map({ case (FactSet(n, _), p) => FactSet(n, p) })
+
+  def diff(factsets: List[FactSet], other: List[FactSet]): List[FactSet] =
+    factsets.map(_.name).diff(other.map(_.name)).zipWithIndex.map({ case (n, p) => FactSet(n, p) })
 }
