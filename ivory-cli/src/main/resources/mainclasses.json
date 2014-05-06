@@ -42,5 +42,9 @@
 {
   "service-name" : "generate-dictionary",
   "class-name"   : "com.ambiata.ivory.cli.generateDictionary"
+},
+{
+  "service-name" : "cat-facts",
+  "class-name"   : "com.ambiata.ivory.cli.catFacts"
 }
 ]
