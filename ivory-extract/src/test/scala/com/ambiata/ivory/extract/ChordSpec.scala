@@ -59,6 +59,7 @@ trait SampleFacts extends MustThrownMatchers {
       FeatureId("ns2", "fid3") -> FeatureMeta(BooleanEncoding, CategoricalType, "desc")))
 
     dictionaryToIvory(repo, dict, dict.name).run(sc) must beOk
+    dict
   }
 
   def createFacts(repo: HdfsRepository)(implicit sc: ScoobiConfiguration) = {
@@ -77,5 +78,15 @@ trait SampleFacts extends MustThrownMatchers {
 
     storeToIvory(repo, FeatureStore(List(FactSet("factset1", 1), FactSet("factset2", 2))), "store1").run(sc) must beOk
 
+  }
+
+  def createAll(dirName: String)(implicit sc: ScoobiConfiguration) = {
+    val directory = path(TempFiles.createTempDir(dirName).getPath)
+    val repo = Repository.fromHdfsPath(new Path(directory + "/repo"))
+
+    createEntitiesFiles(directory)
+    createDictionary(repo)
+    createFacts(repo)
+    directory
   }
 }

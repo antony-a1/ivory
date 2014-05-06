@@ -15,7 +15,7 @@ class SnapshotSpec extends HadoopSpecification with SampleFacts { def is = s2"""
 """
 
   def e1 = { implicit sc: ScoobiConfiguration =>
-    val directory = path(TempFiles.createTempDir("chord").getPath)
+    val directory = path(TempFiles.createTempDir("snapshot").getPath)
     val repo = Repository.fromHdfsPath(new Path(directory + "/repo"))
 
     createEntitiesFiles(directory)

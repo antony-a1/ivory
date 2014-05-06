@@ -28,7 +28,7 @@ object chord extends ScoobiApp {
 
   val parser = new scopt.OptionParser[CliArguments]("chord") {
     head("""
-         |Extract the latest features from a given ivory repo using a list of entitiy id and date pairs
+         |Extract the latest features from a given ivory repo using a list of entity id and date pairs
          |
          |The output entity ids will be of the form eid:yyyy-MM-dd
          |""".stripMargin)

@@ -119,6 +119,13 @@ class Time private(val underlying: Int) extends AnyVal {
 
   override def toString: String =
     seconds.toString
+
+  def hhmmss = {
+    val (hh, resth) = (seconds / 3600, seconds % 3600)
+    val (mm, restm) = (resth / 60, resth % 60)
+    val ss = restm / 60
+    hh+":"+mm+":"+ss
+  }
 }
 
 object Time {
