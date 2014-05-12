@@ -14,7 +14,7 @@ object CreateFeatureStore {
 
   def onHdfs(repoPath: Path, name: String, sets: List[String], existing: Option[String] = None): Hdfs[Unit] = {
      for {
-       repo     <- Hdfs.configuration.map(c => Repository.fromHdfsPath(repoPath.toString.toFilePath, ScoobiRun(ScoobiConfiguration(c))))
+       repo     <- Hdfs.configuration.map(c => Repository.fromHdfsPath(repoPath.toString.toFilePath, ScoobiConfiguration(c)))
        tmp      <- Hdfs.fromDisjunction(FeatureStoreTextStorage.fromLines(sets))
        store    <- existing.traverse(e => IvoryStorage.storeFromIvory(repo, e))
        newStore  = store.map(fs => tmp +++ fs).getOrElse(tmp)

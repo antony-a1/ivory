@@ -27,7 +27,7 @@ class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers wi
 
   "Can extract expected facts" >> { implicit sc: ScoobiConfiguration =>
     val directory = path(TempFiles.createTempDir("chord").getPath)
-    val repo = Repository.fromHdfsPath(directory </> "repo", ScoobiRun(sc))
+    val repo = Repository.fromHdfsPath(directory </> "repo", sc)
 
     createEntitiesFiles(directory)
     createDictionary(repo)
@@ -83,7 +83,7 @@ trait SampleFacts extends MustThrownMatchers {
 
   def createAll(dirName: String)(implicit sc: ScoobiConfiguration) = {
     val directory = path(TempFiles.createTempDir(dirName).getPath)
-    val repo = Repository.fromHdfsPath(directory </> "repo", ScoobiRun(sc))
+    val repo = Repository.fromHdfsPath(directory </> "repo", sc)
 
     createEntitiesFiles(directory)
     createDictionary(repo)

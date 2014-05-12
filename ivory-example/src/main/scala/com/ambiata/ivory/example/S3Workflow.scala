@@ -69,7 +69,7 @@ object S3Workflow extends OptionsParser[WorkflowOptions] {
    * will fail right away if this simple creation can not be performed (bucket not accessible for example)
    */
   def createS3Repository(bucket: String, key: String): ScoobiS3EMRAction[S3Repository] =
-    ScoobiS3EMRAction.fromS3Action(CreateRepository.onS3(Repository.fromS3(bucket, key.toFilePath, S3Run(ScoobiConfiguration()))))
+    ScoobiS3EMRAction.fromS3Action(CreateRepository.onS3(Repository.fromS3(bucket, key.toFilePath, ScoobiConfiguration())))
 
   /**
    * create a dictionary found at dictionaryPath.

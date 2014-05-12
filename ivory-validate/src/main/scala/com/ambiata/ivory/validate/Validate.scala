@@ -103,14 +103,14 @@ case class ValidateFactSetHdfs(repo: HdfsRepository, factset: String, dict: Dict
 object Validate {
 
   def validateHdfsStore(repoPath: Path, store: String, dict: String, output: Path, includeOverridden: Boolean)(implicit sc: ScoobiConfiguration): ScoobiAction[Long] = for {
-    r <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, ScoobiRun(sc)))
+    r <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
     d <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dict))
     s <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
     c <- ValidateStoreHdfs(r, s, d, includeOverridden).exec(output)
   } yield c
 
   def validateHdfsFactSet(repoPath: Path, factset: String, dict: String, output: Path)(implicit sc: ScoobiConfiguration): ScoobiAction[Long] = for {
-    r <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, ScoobiRun(sc)))
+    r <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
     d <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dict))
     c <- ValidateFactSetHdfs(r, factset, d).exec(output)
   } yield c

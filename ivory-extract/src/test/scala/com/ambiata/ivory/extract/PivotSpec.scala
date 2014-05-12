@@ -25,7 +25,7 @@ class PivotSpec extends HadoopSpecification with SampleFacts { def is = s2"""
 
   def e1 = { implicit sc: ScoobiConfiguration =>
     val directory = path(TempFiles.createTempDir("chord").getPath)
-    val repo = Repository.fromHdfsPath(directory </> "repo", ScoobiRun(sc))
+    val repo = Repository.fromHdfsPath(directory </> "repo", sc)
 
     createEntitiesFiles(directory)
     createDictionary(repo)

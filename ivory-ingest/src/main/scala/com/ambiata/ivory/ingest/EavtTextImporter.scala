@@ -5,7 +5,6 @@ import org.apache.hadoop.fs.Path
 import com.nicta.scoobi.Scoobi._
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.storage.legacy.IvoryStorage
-import com.ambiata.ivory.storage.legacy.Versions
 import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.legacy.EavtTextStorageV1._
 import com.ambiata.ivory.storage.repository._

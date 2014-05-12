@@ -7,6 +7,7 @@ import com.ambiata.saws.core._
 
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.ScoobiS3Action._
 import com.ambiata.ivory.core.thrift._
@@ -43,7 +44,7 @@ trait IvoryScoobiStorer[A, +B] {
 case class InternalFactsetFactLoader(repo: HdfsRepository, factset: String, after: Option[Date]) {
   def load: ScoobiAction[DList[ParseError \/ Fact]] = for {
     sc <- ScoobiAction.scoobiConfiguration
-    v  <- ScoobiAction.fromHdfs(Versions.readFactsetVersionFromHdfs(repo, factset))
+    v  <- ScoobiAction.fromResultTIO(Versions.read(repo, factset))
     l   = IvoryStorage.factsetLoader(v, repo.factsetById(factset).toHdfs, after)
   } yield l.loadScoobi(sc)
 }
@@ -51,14 +52,15 @@ case class InternalFactsetFactLoader(repo: HdfsRepository, factset: String, afte
 case class InternalFactsetFactS3Loader(repo: S3Repository, factset: String, after: Option[Date]) {
   def load: ScoobiS3Action[DList[ParseError \/ Fact]] = for {
     sc <- ScoobiS3Action.scoobiConfiguration
-    v  <- ScoobiS3Action.fromS3Action(Versions.readFactsetVersionFromS3(repo, factset))
+    v  <- ScoobiS3Action.fromResultTIO(Versions.read(repo, factset))
   } yield IvoryStorage.factsetLoader(v, new Path("s3://"+repo.bucket+"/"+repo.factsetById(factset).path), after).loadScoobi(sc)
 }
 
 case class InternalFeatureStoreFactLoader(repo: HdfsRepository, store: FeatureStore, after: Option[Date]) {
   def load: ScoobiAction[DList[ParseError \/ (Priority, FactSetName, Fact)]] = for {
     sc       <- ScoobiAction.scoobiConfiguration
-    versions <- store.factSets.traverseU(factset => ScoobiAction.fromHdfs(Versions.readFactsetVersionFromHdfs(repo, factset.name).map((factset, _))))
+    versions <- ScoobiAction.fromResultTIO(store.factSets.traverseU(factset =>
+      Versions.read(repo, factset.name).map(factset -> _)))
     combined: List[(FactsetVersion, List[FactSet])] = versions.groupBy(_._2).toList.map({ case (k, vs) => (k, vs.map(_._1)) })
   } yield combined.map({ case (v, fss) => IvoryStorage.multiFactsetLoader(v, repo.factsets.toHdfs, fss, after).loadScoobi(sc) }).reduce(_++_)
 }
@@ -176,7 +178,7 @@ object IvoryStorage {
   }
 
   def writeFactsetVersion(repo: HdfsRepository, factsets: List[String]): Hdfs[Unit] =
-    Versions.writeFactsetVersionToHdfs(repo, factsetVersion, factsets)
+    Hdfs.fromResultTIO(Versions.writeAll(repo, factsets, factsetVersion))
 
   implicit class IvoryFactStorage(dlist: DList[Fact]) {
     def toIvoryFactset(repo: HdfsRepository, factset: String)(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] =

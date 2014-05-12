@@ -49,7 +49,7 @@ object ImportWorkflow {
     println("starting ==")
     for {
       sc       <- ScoobiAction.scoobiConfiguration
-      repo     <- ScoobiAction.ok(Repository.fromHdfsPath(repoPath.toString.toFilePath, ScoobiRun(sc)))
+      repo     <- ScoobiAction.ok(Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
       _        <- ScoobiAction.fromHdfs(createRepo(repo))
       t1 = {
         val x = System.currentTimeMillis

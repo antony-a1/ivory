@@ -65,6 +65,9 @@ object ScoobiS3Action extends ActionTSupport[IO, Vector[AwsLog], (ScoobiConfigur
   def fromScoobiAction[A](action: ScoobiAction[A]): ScoobiAwsAction[A, AmazonS3Client] =
     ScoobiAwsAction(ActionT((c: Config) => ActionT.fromResultT[IO, Vector[AwsLog], Config, A](action.run(c._1)).runT(c)))
 
+  def fromResultTIO[A](action: ResultT[IO, A]): ScoobiS3Action[A] =
+    fromScoobiAction(ScoobiAction.fromResultTIO(action))
+
   def fromS3Action[A](action: S3Action[A]): ScoobiAwsAction[A, AmazonS3Client] =
     ScoobiAwsAction(action.runT.contramap((_: Config)._2))
 
@@ -100,6 +103,9 @@ object ScoobiS3EMRAction extends ActionTSupport[IO, Vector[AwsLog], (ScoobiConfi
   def fromScoobiAction[A](action: ScoobiAction[A]): ScoobiS3EMRAction[A] =
     ScoobiAwsAction(ActionT((c: Config) => ActionT.fromResultT[IO, Vector[AwsLog], Config, A](action.run(c._1)).runT(c)))
 
+  def fromResultTIO[A](action: ResultT[IO, A]): ScoobiS3EMRAction[A] =
+    fromScoobiAction(ScoobiAction.fromResultTIO(action))
+
   def fromS3Action[A](action: S3Action[A]): ScoobiS3EMRAction[A] =
     ScoobiAwsAction(action.runT.contramap((_: Config)._2._1))
 
@@ -115,5 +121,3 @@ object ScoobiS3EMRAction extends ActionTSupport[IO, Vector[AwsLog], (ScoobiConfi
   implicit def ScoobiS3EMRActionMonad: Monad[ScoobiS3EMRAction] = ScoobiAwsAction.ScoobiAwsActionMonad[AmazonS3EMRClient]
 
 }
-
-

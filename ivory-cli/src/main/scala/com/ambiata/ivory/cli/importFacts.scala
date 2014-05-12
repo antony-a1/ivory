@@ -53,14 +53,14 @@ object importFacts extends ScoobiApp {
       val actions: ScoobiS3EMRAction[Unit] = if (c.repositoryPath.startsWith("s3://")) {
         // import to S3
         val p = c.repositoryPath.replace("s3://", "").toFilePath
-        val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, S3Run(configuration))
+        val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, configuration)
         for {
           dictionary <- ScoobiS3EMRAction.fromHdfsS3(DictionariesS3Loader(repository).load(c.dictionary))
           _          <- EavtTextImporter.onS3(repository, dictionary, c.factset, c.namespace, new FilePath(c.input), c.timezone)
         } yield ()
       } else {
         // import to Hdfs only
-        val repository = HdfsRepository(c.repositoryPath.toFilePath, ScoobiRun(configuration))
+        val repository = HdfsRepository(c.repositoryPath.toFilePath, configuration, ScoobiRun(configuration))
         for {
           dictionary <- ScoobiS3EMRAction.fromHdfs(InternalDictionaryLoader(repository, c.dictionary).load)
           _          <- ScoobiS3EMRAction.fromScoobiAction(

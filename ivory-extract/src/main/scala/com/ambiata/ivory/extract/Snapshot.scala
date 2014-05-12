@@ -33,7 +33,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
   lazy val factsOutputPath = new Path(outputPath, "thrift")
 
   def run: ScoobiAction[Unit] = for {
-    r  <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, ScoobiRun(sc)))
+    r  <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
     d  <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dictName))
     s  <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
     es <- ScoobiAction.fromHdfs(entities.traverseU(e => Hdfs.readLines(e)))

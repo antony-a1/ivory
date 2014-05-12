@@ -46,7 +46,7 @@ object createFeatureStore {
       val actions =
         if (c.repo.startsWith("s3://")) {
           val p = c.repo.replace("s3://", "").toFilePath
-          val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, S3Run(configuration))
+          val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, configuration)
           CreateFeatureStore.onS3(repository, c.name, sets, c.existing).runHdfs(configuration).eval
         }
         else

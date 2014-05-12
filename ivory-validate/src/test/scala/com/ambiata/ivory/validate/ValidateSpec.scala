@@ -28,7 +28,7 @@ class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers
     implicit val fs = sc.fileSystem
 
     val directory = path(TempFiles.createTempDir("validation").getPath)
-    val repo = Repository.fromHdfsPath(directory </> "repo", ScoobiRun(sc))
+    val repo = Repository.fromHdfsPath(directory </> "repo", sc)
     val outpath = directory + "/out"
 
     val dict = Dictionary("dict1", Map(FeatureId("ns1", "fid1") -> FeatureMeta(DoubleEncoding, NumericalType, "desc"),
@@ -63,7 +63,7 @@ class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers
     implicit val fs = sc.fileSystem
 
     val directory = path(TempFiles.createTempDir("validation").getPath)
-    val repo = Repository.fromHdfsPath(directory </> "repo", ScoobiRun(sc))
+    val repo = Repository.fromHdfsPath(directory </> "repo", sc)
     val outpath = directory + "/out"
 
     val dict = Dictionary("dict1", Map(FeatureId("ns1", "fid1") -> FeatureMeta(DoubleEncoding, NumericalType, "desc"),

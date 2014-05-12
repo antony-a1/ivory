@@ -44,7 +44,7 @@ object createRepository {
       val actions =
       if (c.path.startsWith("s3://")) {
         val p = c.path.replace("s3://", "").toFilePath
-        val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, S3Run(configuration))
+        val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, configuration)
         CreateRepository.onS3(repository).eval
       }
       else

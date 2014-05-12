@@ -37,7 +37,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
 
   def run: ScoobiAction[Unit] = for {
     c  <- ScoobiAction.scoobiConfiguration
-    r  <- ScoobiAction.value(Repository.fromHdfsPath(repoPath.toString.toFilePath, ScoobiRun(c)))
+    r  <- ScoobiAction.value(Repository.fromHdfsPath(repoPath.toString.toFilePath, c))
     d  <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dictName))
     s  <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
     es <- ScoobiAction.fromHdfs(Chord.readChords(entities))

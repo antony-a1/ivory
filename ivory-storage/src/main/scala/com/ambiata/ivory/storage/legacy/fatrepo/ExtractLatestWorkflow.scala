@@ -33,7 +33,7 @@ object ExtractLatestWorkflow {
 
   def onHdfs(repoPath: Path, extractor: Extractor, date: LocalDate): ScoobiAction[(String, String)] = {
     for {
-      repo  <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, ScoobiRun(sc)))
+      repo  <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
       store <- ScoobiAction.fromHdfs(latestStore(repo))
       dname <- ScoobiAction.fromHdfs(latestDictionary(repo))
       _      = logger.info(s"Running extractor on '${repo.root.path}' repo, '${store}' store, '${dname}' dictionary, '${date.toString("yyyy-MM-dd")}' date")

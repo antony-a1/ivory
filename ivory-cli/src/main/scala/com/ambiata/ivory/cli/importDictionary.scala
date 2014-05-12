@@ -43,7 +43,7 @@ object importDictionary {
       val actions =
         if (c.repo.startsWith("s3://")) {
           val p = c.repo.replace("s3://", "").toFilePath
-          val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, S3Run(configuration))
+          val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, configuration)
           DictionaryImporter.onS3(repository, c.name, new FilePath(c.path)).runHdfs(configuration).evalT
         }
         else

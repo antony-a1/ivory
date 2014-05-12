@@ -69,7 +69,7 @@ trait Setup {
 
   val directory = path(TempFiles.createTempDir("eavtimporter").getPath)
   val input = directory + "/input"
-  val repository = Repository.fromHdfsPath(directory </> "repo", ScoobiRun(sc))
+  val repository = Repository.fromHdfsPath(directory </> "repo", sc)
 
   val dictionary =
     Dictionary("dict",

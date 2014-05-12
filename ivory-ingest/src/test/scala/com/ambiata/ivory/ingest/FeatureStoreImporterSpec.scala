@@ -17,7 +17,7 @@ import scalaz.effect.IO
 
 class FeatureStoreImporterSpec extends Specification with BeforeAfterExample {
   "A feature store can be saved on S3" >> {
-    val repository = Repository.fromS3WithTemp("ambiata-dev-app", "customer" </> "ivory" </> dir, "target" </> ".s3Repository", S3Run(ScoobiConfiguration()))
+    val repository = Repository.fromS3WithTemp("ambiata-dev-app", "customer" </> "ivory" </> dir, "target" </> ".s3Repository", ScoobiConfiguration())
 
     val actions: HdfsS3Action[Unit] =
       for {

@@ -43,11 +43,11 @@ object importFeatureStore {
       val actions =
         if (c.repo.startsWith("s3://")) {
           val p = c.repo.replace("s3://", "").toFilePath
-          val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, S3Run(configuration))
+          val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, configuration)
           FeatureStoreImporter.onS3(repository, c.name, new FilePath(c.path)).runHdfs(configuration).evalT
         }
         else
-          FeatureStoreImporter.onHdfs(HdfsRepository(c.path.toFilePath, ScoobiRun(configuration)), c.name, new Path(c.path)).run(configuration)
+          FeatureStoreImporter.onHdfs(HdfsRepository(c.path.toFilePath, configuration, ScoobiRun(configuration)), c.name, new Path(c.path)).run(configuration)
 
       actions.run.unsafePerformIO() match {
         case Ok(v)    => println(s"Successfully imported feature store into ${c.repo} under the name ${c.name}.")

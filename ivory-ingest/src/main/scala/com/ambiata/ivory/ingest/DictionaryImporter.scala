@@ -17,7 +17,7 @@ import com.nicta.scoobi.Scoobi._
 object DictionaryImporter {
 
    def onHdfs(repoPath: Path, dictPath: Path, name: String): Hdfs[Unit] = {
-     val repo = Repository.fromHdfsPath(repoPath.toString.toFilePath, ScoobiRun(ScoobiConfiguration()))
+     val repo = Repository.fromHdfsPath(repoPath.toString.toFilePath, ScoobiConfiguration())
      for {
        files <- Hdfs.globFiles(dictPath)
        _     <- if (files.isEmpty) Hdfs.fail(s"Path $dictPath does not exist or has no files!") else Hdfs.ok(())
@@ -27,7 +27,7 @@ object DictionaryImporter {
    }
 
   def onS3(path: FilePath, dictionaryName: String, dictionaryPath: FilePath): HdfsS3Action[Dictionary] =
-    onS3(Repository.fromS3(path.rootname.path, path.fromRoot, S3Run(ScoobiConfiguration())), dictionaryName, dictionaryPath)
+    onS3(Repository.fromS3(path.rootname.path, path.fromRoot, ScoobiConfiguration()), dictionaryName, dictionaryPath)
 
   def onS3(repository: S3Repository, dictionaryName: String, dictionaryPath: FilePath): HdfsS3Action[Dictionary] = {
     val onHdfs = for {
