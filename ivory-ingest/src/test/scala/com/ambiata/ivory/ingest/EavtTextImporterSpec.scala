@@ -32,11 +32,6 @@ class EavtTextImporterSpec extends HadoopSpecification with SimpleJobs with File
 
     saveInputFile
 
-    // create a repository
-    val directory = path(TempFiles.createTempDir("eavtimporter").getPath)
-    val input = directory + "/input"
-    val repository = Repository.fromHdfsPath(directory </> "repo", ScoobiRun(sc))
-
     val errors = new Path(directory, "errors")
     // run the scoobi job to import facts on Hdfs
     EavtTextImporter.onHdfs(repository, dictionary, "factset1", "ns1", new Path(input), errors, DateTimeZone.getDefault, identity).run(sc) must beOk
