@@ -131,10 +131,10 @@ object ImportWorkflow {
 
   def createFactSet(repo: HdfsRepository): Hdfs[Factset] = for {
     factsetPaths <- Hdfs.globPaths(repo.factsets.toHdfs)
-    name          = nextName(factsetPaths.map(_.getName))
-    e            <- Hdfs.mkdir(repo.factsetById(name).toHdfs)
+    name          = Factset(nextName(factsetPaths.map(_.getName)))
+    e            <- Hdfs.mkdir(repo.factset(name).toHdfs)
     _            <- if(!e) Hdfs.fail("Could not create fact-set, id already allocated.") else Hdfs.ok(())
-  } yield Factset(name)
+  } yield name
 
   def createStore(repo: HdfsRepository, factset: Factset): Hdfs[String] = for {
     storeNames <- Hdfs.globPaths(repo.stores.toHdfs).map(_.map(_.getName))

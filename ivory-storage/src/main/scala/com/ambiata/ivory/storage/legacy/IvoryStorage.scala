@@ -43,7 +43,7 @@ case class InternalFactsetFactLoader(repo: HdfsRepository, factset: Factset, fro
   def load: ScoobiAction[DList[ParseError \/ Fact]] = for {
     sc <- ScoobiAction.scoobiConfiguration
     v  <- ScoobiAction.fromResultTIO(Versions.read(repo, factset))
-    l   = IvoryStorage.factsetLoader(v, repo.factsetById(factset.name).toHdfs, from, to)
+    l   = IvoryStorage.factsetLoader(v, repo.factset(factset).toHdfs, from, to)
   } yield l.loadScoobi(sc)
 }
 
@@ -51,7 +51,7 @@ case class InternalFactsetFactS3Loader(repo: S3Repository, factset: Factset, fro
   def load: ScoobiS3Action[DList[ParseError \/ Fact]] = for {
     sc <- ScoobiS3Action.scoobiConfiguration
     v  <- ScoobiS3Action.fromResultTIO(Versions.read(repo, factset))
-  } yield IvoryStorage.factsetLoader(v, new Path("s3://"+repo.bucket+"/"+repo.factsetById(factset.name).path), from, to).loadScoobi(sc)
+  } yield IvoryStorage.factsetLoader(v, new Path("s3://"+repo.bucket+"/"+repo.factset(factset).path), from, to).loadScoobi(sc)
 }
 
 case class InternalFeatureStoreFactLoader(repo: HdfsRepository, store: FeatureStore, from: Option[Date], to: Option[Date]) {
@@ -66,7 +66,7 @@ case class InternalFeatureStoreFactLoader(repo: HdfsRepository, store: FeatureSt
 
 case class InternalFactsetFactStorer(repo: HdfsRepository, factset: Factset) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
   def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration) =
-    IvoryStorage.factsetStorer(repo.factsetById(factset.name).path).storeScoobi(dlist)
+    IvoryStorage.factsetStorer(repo.factset(factset).path).storeScoobi(dlist)
 }
 
 /**

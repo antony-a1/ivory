@@ -156,12 +156,12 @@ object EavtTextImporter {
   } yield ()
 
   def copyFilesOneByOne(repository: S3Repository, factset: Factset, namespace: String): ScoobiS3EMRAction[Unit] = {
-    ScoobiS3EMRAction.fromHdfsS3(HdfsS3.putPathsByDate(repository.bucket, repository.factsetById(factset.name)+"/"+namespace, (repository.hdfs.factsetById(factset.name) </> namespace).toHdfs))
+    ScoobiS3EMRAction.fromHdfsS3(HdfsS3.putPathsByDate(repository.bucket, repository.namespace(factset, namespace).path, (repository.hdfs.factset(factset) </> namespace).toHdfs))
   }
 
   def copyFilesWithDistCp(clusterId: String, repository: S3Repository, factset: Factset, namespace: String): ScoobiS3EMRAction[Unit] = {
-    val src  = s"hdfs:///${repository.hdfs.factsetById(factset.name)}/${namespace}"
-    val dest = s"s3://${repository.bucket}/${repository.factsetById(factset.name).path}/${namespace}"
+    val src  = s"hdfs:///${repository.hdfs.factset(factset)}/${namespace}"
+    val dest = s"s3://${repository.bucket}/${repository.namespace(factset, namespace).path}"
     ScoobiS3EMRAction.fromEMRAction(DistCopy.run(clusterId, List(s"--src=$src", s"--dest=$dest", "--srcPattern=.*/.*/.*"))).void
   }
 

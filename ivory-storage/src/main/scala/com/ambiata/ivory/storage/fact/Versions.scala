@@ -18,10 +18,10 @@ object Versions {
   val VersionFile = ".version"
 
   def read(repository: Repository, factsetId: Factset): ResultT[IO, FactsetVersion] =
-    repository.toStore.utf8.read(Repository.factsetById(factsetId.name) </> VersionFile).flatMap(parse(factsetId, _))
+    repository.toStore.utf8.read(Repository.factset(factsetId) </> VersionFile).flatMap(parse(factsetId, _))
 
   def write(repository: Repository, factsetId: Factset, version: FactsetVersion): ResultT[IO, Unit] =
-    repository.toStore.utf8.write(Repository.factsetById(factsetId.name) </> VersionFile, version.toString)
+    repository.toStore.utf8.write(Repository.factset(factsetId) </> VersionFile, version.toString)
 
   def readAll(repository: Repository, factsetIds: List[Factset]): ResultT[IO, List[(Factset, FactsetVersion)]] =
     factsetIds.traverseU(factsetId => read(repository, factsetId).map(factsetId -> _))

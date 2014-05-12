@@ -24,7 +24,8 @@ sealed trait Repository {
   def stores: FilePath = metadata </> "stores"
   def dictionaryByName(name: String): FilePath =  dictionaries </> name
   def storeByName(name: String): FilePath =  stores </> name
-  def factsetById(id: String): FilePath =  factsets </> id
+  def factset(set: Factset): FilePath =  factsets </> set.name
+  def namespace(set: Factset, namespace: String): FilePath =  factset(set) </> namespace
 }
 
 case class HdfsRepository(root: FilePath, conf: Configuration, run: ScoobiRun) extends Repository {
@@ -55,7 +56,8 @@ object Repository {
   def stores: FilePath = metadata </> "stores"
   def dictionaryByName(name: String): FilePath =  dictionaries </> name
   def storeByName(name: String): FilePath =  stores </> name
-  def factsetById(id: String): FilePath =  factsets </> id
+  def factset(set: Factset): FilePath =  factsets </> set.name
+  def namespace(set: Factset, namespace: String): FilePath =  factset(set) </> namespace
 
   val defaultS3TmpDirectory: FilePath =
     ".s3repository".toFilePath
