@@ -48,7 +48,7 @@ object PartitionFactThriftStorageV1 {
       loadScoobiWith(path+"/*/*/*/*/*", (_, fact) => fact.right, after)
   }
 
-  case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[FactSet], after: Option[Date] = None) extends IvoryScoobiLoader[(Priority, FactsetName, Fact)] {
+  case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[PrioritizedFactset], after: Option[Date] = None) extends IvoryScoobiLoader[(Priority, FactsetName, Fact)] {
     lazy val factsetMap: Map[String, Int] = factsets.map(fs => (fs.name, fs.priority)).toMap
 
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ (Int, String, Fact)] = {
@@ -97,7 +97,7 @@ object PartitionFactThriftStorageV2 {
       loadScoobiWith(path+"/*/*/*/*/*", (_, fact) => fact.right, after)
   }
 
-  case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[FactSet], after: Option[Date] = None) extends IvoryScoobiLoader[(Int, String, Fact)] {
+  case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[PrioritizedFactset], after: Option[Date] = None) extends IvoryScoobiLoader[(Int, String, Fact)] {
     lazy val factsetMap: Map[String, Int] = factsets.map(fs => (fs.name, fs.priority)).toMap
 
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ (Int, String, Fact)] = {
@@ -115,4 +115,3 @@ object PartitionFactThriftStorageV2 {
     }
   }
 }
-

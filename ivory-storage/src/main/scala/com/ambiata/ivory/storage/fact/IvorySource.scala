@@ -25,7 +25,7 @@ object IvorySource {
   def fromRepository(repository: Repository, store: FeatureStore): ResultT[IO, IvorySource] = repository match {
     case HdfsRepository(root, conf, run) => ??? /* run.runScoobi { for {
       c <- ScoobiAction.scoobiConfiguration
-      versions <- store.factSets.traverseU(factset =>
+      versions <- store.factsets.traverseU(factset =>
         ScoobiAction.fromHdfs(Versions.readFactsetVersionFromHdfs(repository, factset.name).map((factset, _))))
     } yield new IvorySource {
       def toDList: DList[(Priority, Fact)] =

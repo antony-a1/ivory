@@ -59,9 +59,9 @@ case class InternalFactsetFactS3Loader(repo: S3Repository, factset: String, afte
 case class InternalFeatureStoreFactLoader(repo: HdfsRepository, store: FeatureStore, after: Option[Date]) {
   def load: ScoobiAction[DList[ParseError \/ (Priority, FactSetName, Fact)]] = for {
     sc       <- ScoobiAction.scoobiConfiguration
-    versions <- ScoobiAction.fromResultTIO(store.factSets.traverseU(factset =>
+    versions <- ScoobiAction.fromResultTIO(store.factsets.traverseU(factset =>
       Versions.read(repo, factset.name).map(factset -> _)))
-    combined: List[(FactsetVersion, List[FactSet])] = versions.groupBy(_._2).toList.map({ case (k, vs) => (k, vs.map(_._1)) })
+    combined: List[(FactsetVersion, List[PrioritizedFactset])] = versions.groupBy(_._2).toList.map({ case (k, vs) => (k, vs.map(_._1)) })
   } yield combined.map({ case (v, fss) => IvoryStorage.multiFactsetLoader(v, repo.factsets.toHdfs, fss, after).loadScoobi(sc) }).reduce(_++_)
 }
 
@@ -172,7 +172,7 @@ object IvoryStorage {
     case FactsetVersionTwo => PartitionFactThriftStorageV2.PartitionedFactThriftLoader(path.toString, after)
   }
 
-  def multiFactsetLoader(version: FactsetVersion, path: Path, factsets: List[FactSet], after: Option[Date]): IvoryScoobiLoader[(Int, String, Fact)] = version match {
+  def multiFactsetLoader(version: FactsetVersion, path: Path, factsets: List[PrioritizedFactset], after: Option[Date]): IvoryScoobiLoader[(Int, String, Fact)] = version match {
     case FactsetVersionOne => PartitionFactThriftStorageV1.PartitionedMultiFactsetThriftLoader(path.toString, factsets, after)
     case FactsetVersionTwo => PartitionFactThriftStorageV2.PartitionedMultiFactsetThriftLoader(path.toString, factsets, after)
   }

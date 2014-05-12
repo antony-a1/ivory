@@ -55,8 +55,8 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
       sc.disableCombiners
 
       lazy val factsetMap = {
-        val exclude = incremental.toList.flatMap(_._2.factSets).map(_.name).toSet
-        val base = store.factSets.filter(fs => !exclude.contains(fs.name)).map(fs => (fs.priority.toShort, fs.name)).toMap
+        val exclude = incremental.toList.flatMap(_._2.factsets).map(_.name).toSet
+        val base = store.factsets.filter(fs => !exclude.contains(fs.name)).map(fs => (fs.priority.toShort, fs.name)).toMap
         base + (Short.MaxValue -> SnapshotName)
       }
 
@@ -97,7 +97,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
       case Some((p, s, sm)) => for {
         o <- factsFromIvoryStoreAfter(repo, s, sm.date) // only read facts from already processed factsets in the future
         sd = store --- s
-        _  = println(s"Fully reading factsets '${sd.factSets}'")
+        _  = println(s"Fully reading factsets '${sd.factsets}'")
         n <- factsFromIvoryStore(repo, sd) // fully read factsets which haven't been seen
       } yield o ++ n ++ valueFromSequenceFile[Fact](p).map(fact => (Short.MaxValue.toInt, SnapshotName, fact).right[ParseError])
     }

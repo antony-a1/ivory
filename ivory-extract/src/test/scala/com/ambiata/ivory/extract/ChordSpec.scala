@@ -77,7 +77,7 @@ trait SampleFacts extends MustThrownMatchers {
     persist(facts1.toIvoryFactset(repo, "factset1"), facts2.toIvoryFactset(repo, "factset2"))
     writeFactsetVersion(repo, List("factset1", "factset2")).run(sc) must beOk
 
-    storeToIvory(repo, FeatureStore(List(FactSet("factset1", 1), FactSet("factset2", 2))), "store1").run(sc) must beOk
+    storeToIvory(repo, FeatureStore(List(PrioritizedFactset("factset1", 1), PrioritizedFactset("factset2", 2))), "store1").run(sc) must beOk
 
   }
 

@@ -52,7 +52,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
    */
   def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, chordPath: Path): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-      lazy val factsetMap = store.factSets.map(fs => (fs.priority.toShort, fs.name)).toMap
+      lazy val factsetMap = store.factsets.map(fs => (fs.priority.toShort, fs.name)).toMap
 
       factsFromIvoryStore(repo, store).map { input =>
 

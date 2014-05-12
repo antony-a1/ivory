@@ -55,7 +55,7 @@ case class ValidateStoreHdfs(repo: HdfsRepository, store: FeatureStore, dict: Di
 
       // remove duplicates, taking the fact with the highest priority
       val reduced: DList[(FactSetName, Fact)] =
-        if(!includeOverridden && store.factSets.size > 1) {
+        if(!includeOverridden && store.factsets.size > 1) {
           val byKey = facts.map({ case (p, fs, f) => (f.coordinateString('|'), (p, fs, f)) }).groupByKey
           val ord: Order[(Priority, FactSetName, Fact)] = Order.orderBy({ case (p, _, _) => p })
           byKey.reduceValues(Reduction.minimum(ord)).map({ case (_, (p, fs, f)) => (fs, f) })
