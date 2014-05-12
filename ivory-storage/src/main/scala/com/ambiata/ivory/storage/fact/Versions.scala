@@ -15,22 +15,25 @@ import com.ambiata.ivory.alien.hdfs.HdfsS3Action
 import com.ambiata.ivory.alien.hdfs.HdfsS3Action._
 
 object Versions {
-  def read(repository: Repository, factsetId: Factset): ResultT[IO, FactsetVersion] =
-    repository.toStore.utf8.read(Repository.version(factsetId)).flatMap(parse(factsetId, _))
+  def read(repository: Repository, factset: Factset): ResultT[IO, FactsetVersion] =
+    repository.toStore.utf8.read(Repository.version(factset)).flatMap(parse(factset, _))
 
-  def write(repository: Repository, factsetId: Factset, version: FactsetVersion): ResultT[IO, Unit] =
-    repository.toStore.utf8.write(Repository.version(factsetId), version.toString)
+  def write(repository: Repository, factset: Factset, version: FactsetVersion): ResultT[IO, Unit] =
+    repository.toStore.utf8.write(Repository.version(factset), version.toString)
 
-  def readAll(repository: Repository, factsetIds: List[Factset]): ResultT[IO, List[(Factset, FactsetVersion)]] =
-    factsetIds.traverseU(factsetId => read(repository, factsetId).map(factsetId -> _))
+  def readAll(repository: Repository, factsets: List[Factset]): ResultT[IO, List[(Factset, FactsetVersion)]] =
+    factsets.traverseU(factset => read(repository, factset).map(factset -> _))
 
-  def writeAll(repository: Repository, factsetIds: List[Factset], version: FactsetVersion): ResultT[IO, Unit] =
-    factsetIds.traverseU(write(repository, _, version)).void
+  def writeAll(repository: Repository, factsets: List[Factset], version: FactsetVersion): ResultT[IO, Unit] =
+    factsets.traverseU(write(repository, _, version)).void
 
-  def parse(factsetId: Factset, version: String): ResultT[IO, FactsetVersion] =
+  def readPrioritized(repository: Repository, factsets: List[PrioritizedFactset]): ResultT[IO, List[(PrioritizedFactset, FactsetVersion)]] =
+    factsets.traverseU(factset => read(repository, factset.set).map(factset -> _))
+
+  def parse(factset: Factset, version: String): ResultT[IO, FactsetVersion] =
     FactsetVersion.fromString(version.trim) match {
       case None =>
-        ResultT.fail(s"Factset version '${version}' in factset '${factsetId}' not found.")
+        ResultT.fail(s"Factset version '${version}' in factset '${factset}' not found.")
       case Some(v) =>
         v.pure[ResultTIO]
     }
