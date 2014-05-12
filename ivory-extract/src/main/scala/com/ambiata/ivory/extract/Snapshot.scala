@@ -21,13 +21,12 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
 
-case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: LocalDate, outputPath: Path, errorPath: Path, incremental: Option[String]) {
+case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: LocalDate, outputPath: Path, errorPath: Path, incremental: Option[Path]) {
   import IvoryStorage._
 
   // FIX this is inconsistent, sometimes a short, sometimes an int
   type Priority = Short
 
-  val SnapshotName: String = "ivory-incremental-snapshot"
   lazy val snapshotDate = Date.fromLocalDate(snapshot)
 
   lazy val factsOutputPath = new Path(outputPath, "thrift")
@@ -48,7 +47,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
     _  <- ScoobiAction.fromHdfs(SnapshotMeta(snapshotDate, store).toHdfs(new Path(factsOutputPath, ".snapmeta")))
   } yield ()
 
-  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Option[Set[String]], incremental: Option[(String, FeatureStore, SnapshotMeta)]): ScoobiAction[Unit] =
+  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Option[Set[String]], incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       // disable combiners as it's just overhead. The data is partitioned by date, so each mapper will have
       // only one date in it
@@ -57,10 +56,10 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
       lazy val factsetMap = {
         val exclude = incremental.toList.flatMap(_._2.factsets).map(_.name).toSet
         val base = store.factsets.filter(fs => !exclude.contains(fs.name)).map(fs => (fs.priority.toShort, fs.name)).toMap
-        base + (Short.MaxValue -> SnapshotName)
+        base + (Short.MaxValue -> HdfsSnapshot.SnapshotName)
       }
 
-      readFacts(repo, store, incremental).map(input => {
+      HdfsSnapshot.readFacts(repo, store, snapshotDate, incremental).map(input => {
 
         val facts: DList[(Priority, Fact)] = input.map({
           case -\/(e) => sys.error("A critical error has occured, where we could not determine priority and namespace from partitioning: " + e)
@@ -90,29 +89,32 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
         ()
       })
     }).flatten
-
-  def readFacts(repo: HdfsRepository, store: FeatureStore, incremental: Option[(String, FeatureStore, SnapshotMeta)]): ScoobiAction[DList[ParseError \/ (Int, FactSetName, Fact)]] = {
-    incremental match {
-      case None             => factsFromIvoryStore(repo, store)
-      case Some((p, s, sm)) => for {
-        o <- factsFromIvoryStoreAfter(repo, s, sm.date) // only read facts from already processed factsets in the future
-        sd = store --- s
-        _  = println(s"Fully reading factsets '${sd.factsets}'")
-        n <- factsFromIvoryStore(repo, sd) // fully read factsets which haven't been seen
-      } yield o ++ n ++ valueFromSequenceFile[Fact](p).map(fact => (Short.MaxValue.toInt, SnapshotName, fact).right[ParseError])
-    }
-  }
 }
 
 
 object HdfsSnapshot {
-  def takeSnapshot(repo: Path, output: Path, errors: Path, date: LocalDate, incremental: Option[String]): ScoobiAction[(String, String)] =
+  val SnapshotName: String = "ivory-incremental-snapshot"
+
+  def takeSnapshot(repo: Path, output: Path, errors: Path, date: LocalDate, incremental: Option[Path]): ScoobiAction[(String, String)] =
     fatrepo.ExtractLatestWorkflow.onHdfs(repo, extractLatest(output, errors, incremental), date)
 
-  def extractLatest(outputPath: Path, errorPath: Path, incremental: Option[String])(repo: HdfsRepository, store: String, dictName: String, date: LocalDate): ScoobiAction[Unit] = for {
+  def extractLatest(outputPath: Path, errorPath: Path, incremental: Option[Path])(repo: HdfsRepository, store: String, dictName: String, date: LocalDate): ScoobiAction[Unit] = for {
     d  <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dictName))
     _  <- HdfsSnapshot(repo.root.toHdfs, store, dictName, None, date, outputPath, errorPath, incremental).run
   } yield ()
+
+  def readFacts(repo: HdfsRepository, store: FeatureStore, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ScoobiAction[DList[ParseError \/ (Int, FactSetName, Fact)]] = {
+    import IvoryStorage._
+    incremental match {
+      case None             => factsFromIvoryStore(repo, store)
+      case Some((p, s, sm)) => for {
+        o <- factsFromIvoryStoreBetween(repo, s, sm.date, latestDate) // read facts from already processed store from the last snapshot date to the latest date
+        sd = store --- s
+        _  = println(s"Fully reading factsets '${sd.factsets}'")
+        n <- factsFromIvoryStoreTo(repo, sd, latestDate) // read factsets which haven't been seen up until the 'latest' date
+      } yield o ++ n ++ valueFromSequenceFile[Fact](p.toString).map(fact => (Short.MaxValue.toInt, SnapshotName, fact).right[ParseError])
+    }
+  }
 }
 
 case class SnapshotMeta(date: Date, store: String) {

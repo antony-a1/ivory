@@ -44,12 +44,16 @@ object Partition {
 }
 
 object Partitions {
-  def globPathAfter(partitions: List[Partition], after: Date): Option[String] =
-    partitions.filterNot(_.date.isBefore(after)) match {
-      case Nil  => None
-      case glob => Some(globPath(glob))
-    }
 
-  def globPath(partitions: List[Partition]): String =
-    partitions.map(_.path).mkString("{", ",", "}") + "/*"
+  /** Filter paths before or equal to a given date */
+  def pathsBeforeOrEqual(partitions: List[Partition], to: Date): List[Partition] =
+    partitions.filter(_.date.isBeforeOrEqual(to))
+
+  /** Filter paths after or equal to a given date */
+  def pathsAfterOrEqual(partitions: List[Partition], from: Date): List[Partition] =
+    partitions.filter(_.date.isAfterOrEqual(from))
+
+  /** Filter paths between two dates (inclusive) */
+  def pathsBetween(partitions: List[Partition], from: Date, to: Date): List[Partition] =
+    pathsBeforeOrEqual(pathsAfterOrEqual(partitions, from), to)
 }

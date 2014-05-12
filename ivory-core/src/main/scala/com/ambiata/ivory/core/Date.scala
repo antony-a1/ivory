@@ -33,6 +33,12 @@ class Date private(val underlying: Int) extends AnyVal {
   def isBeforeOrEqual(other: Date): Boolean =
     int <= other.int
 
+  def isAfter(other: Date): Boolean =
+  int > other.int
+
+  def isAfterOrEqual(other: Date): Boolean =
+  int >= other.int
+
   def addTime(t: Time): DateTime =
     DateTime.unsafeFromLong(int.toLong << 32 | t.seconds)
 
@@ -53,10 +59,16 @@ object Date {
     def leapYear = divisibleBy(year, 4) && (!divisibleBy(year, 100) || divisibleBy(year, 400))
     (year >= 1000 && year <= 3000 && month >= 1 && month <= 12 && day >=1 && {
       ((month == 1 || month == 3 || month == 5 || month == 7 || month == 8 || month == 10 || month == 12) && day <= 31) ||
-      ((month == 4 || month == 6 || month == 9 || month == 11) && day <= 31) ||
+      ((month == 4 || month == 6 || month == 9 || month == 11) && day <= 30) ||
       (month == 2 && day <= 28) ||  (month == 2 && day == 29 && leapYear)
     }).option(unsafe(year, month, day))
   }
+
+  def maxValue: Date =
+    unsafe(3000.toShort, 12.toByte, 31.toByte)
+
+  def minValue: Date =
+    unsafe(1000.toShort, 1.toByte, 1.toByte)
 
   def unsafeFromInt(i: Int): Date =
     new Date(i)

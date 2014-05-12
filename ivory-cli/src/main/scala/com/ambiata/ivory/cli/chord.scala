@@ -17,14 +17,7 @@ import scalaz.{DList => _, _}, Scalaz._
 
 object chord extends ScoobiApp {
 
-  case class CliArguments(repo: String, output: String, tmp: String, errors: String, entities: String, storer: ChordStorer)
-
-  implicit val chordStorerRead: scopt.Read[ChordStorer] =
-  scopt.Read.reads(str => str match {
-    case "eavttext"     => EavtTextChordStorer
-    case "denserowtext" => DenseRowTextChordStorer
-    case s              => throw new IllegalArgumentException(s"Storer '${s}' not found!")
-  })
+  case class CliArguments(repo: String, output: String, tmp: String, errors: String, entities: String, incremental: Option[String])
 
   val parser = new scopt.OptionParser[CliArguments]("chord") {
     head("""
@@ -38,13 +31,13 @@ object chord extends ScoobiApp {
     opt[String]('o', "output")      action { (x, c) => c.copy(output = x) }   required() text "Path to store snapshot."
     opt[String]('t', "tmp")         action { (x, c) => c.copy(tmp = x) }      required() text "Path to store tmp data."
     opt[String]('e', "errors")      action { (x, c) => c.copy(errors = x) }   required() text "Path to store any errors."
+    opt[String]('i', "incremental") action { (x, c) => c.copy(incremental = Some(x)) }   text "Path to incremental snapshot."
     opt[String]('c', "entities")    action { (x, c) => c.copy(entities = x) } required() text "Path to file containing entity/date pairs (eid|yyyy-MM-dd)."
-    opt[ChordStorer]('s', "storer") action { (x, c) => c.copy(storer = x) }              text "Name of storer to use 'eavttext', or 'denserowtext'"
   }
 
   def run {
-    parser.parse(args, CliArguments("", "", "", "", "", EavtTextChordStorer)).map(c => {
-      val res = onHdfs(new Path(c.repo), new Path(c.output), new Path(c.tmp), new Path(c.errors), new Path(c.entities), c.storer)
+    parser.parse(args, CliArguments("", "", "", "", "", None)).map(c => {
+      val res = onHdfs(new Path(c.repo), new Path(c.output), new Path(c.tmp), new Path(c.errors), new Path(c.entities), c.incremental.map(p => new Path(p)))
       res.run(configuration).run.unsafePerformIO() match {
         case Ok(_)    => println(s"Successfully extracted chord from '${c.repo}' and stored in '${c.output}'")
         case Error(e) => println(s"Failed! - ${e}")
@@ -52,19 +45,11 @@ object chord extends ScoobiApp {
     })
   }
 
-  def onHdfs(repo: Path, output: Path, tmp: Path, errors: Path, entities: Path, storer: ChordStorer): ScoobiAction[(String, String)] =
-    fatrepo.ExtractChordWorkflow.onHdfs(repo, extractChord(entities, output, tmp, errors, storer))
+  def onHdfs(repo: Path, output: Path, tmp: Path, errors: Path, entities: Path, incremental: Option[Path]): ScoobiAction[(String, String)] =
+    fatrepo.ExtractChordWorkflow.onHdfs(repo, extractChord(entities, output, tmp, errors, incremental))
 
-  def extractChord(entities: Path, outputPath: Path, tmpPath: Path, errorPath: Path, storer: ChordStorer)(repo: HdfsRepository, store: String, dictName: String): ScoobiAction[Unit] = for {
+  def extractChord(entities: Path, outputPath: Path, tmpPath: Path, errorPath: Path, incremental: Option[Path])(repo: HdfsRepository, store: String, dictName: String): ScoobiAction[Unit] = for {
     d  <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dictName))
-    s   = storer match {
-      case DenseRowTextChordStorer => DenseRowTextStorageV1.DenseRowTextStorer(outputPath.toString, d)
-      case EavtTextChordStorer     => EavtTextStorageV1.EavtTextStorer(outputPath.toString)
-    }
-    _  <- Chord.onHdfs(repo.root.toHdfs, store, dictName, entities, outputPath, tmpPath, errorPath, s)
+    _  <- Chord.onHdfs(repo.root.toHdfs, store, dictName, entities, outputPath, tmpPath, errorPath, incremental)
   } yield ()
 }
-
-sealed trait ChordStorer
-case object DenseRowTextChordStorer extends ChordStorer
-case object EavtTextChordStorer extends ChordStorer

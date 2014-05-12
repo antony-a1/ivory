@@ -33,14 +33,14 @@ class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers wi
     createDictionary(repo)
     createFacts(repo)
 
-    val storer = DelimitedFactTextStorage.DelimitedFactTextStorer(new Path(directory+"/out"))
-    Chord.onHdfs(repo.root.toHdfs, "store1", "dict1", new Path(directory+"/entities"), storer.path, new Path(directory+"/tmp"), new Path(directory+"/err"), storer).run(sc) must beOk
+    val outPath = new Path(directory+"/out")
+    Chord.onHdfs(repo.root.toHdfs, "store1", "dict1", new Path(directory+"/entities"), outPath, new Path(directory+"/tmp"), new Path(directory+"/err"), None).run(sc) must beOk
 
-    fromTextFile(storer.path.toString).run.toSet must_==
-    Set("eid1:2012-09-15|ns1:fid1|def|2012-09-01 00:00:00", "eid1:2012-11-01|ns1:fid1|abc|2012-10-01 00:00:00", "eid2:2012-12-01|ns1:fid2|11|2012-11-01 00:00:00")
+    valueFromSequenceFile[Fact](new Path(outPath, "thrift").toString).run.toList must containTheSameElementsAs(List(
+      StringFact("eid1:2012-09-15", FeatureId("ns1", "fid1"), Date(2012, 9, 1), Time(0), "def"),
+      StringFact("eid1:2012-11-01", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
+      IntFact("eid2:2012-12-01", FeatureId("ns1", "fid2"), Date(2012, 11, 1), Time(0), 11)))
   }
-
-
 }
 
 trait SampleFacts extends MustThrownMatchers {

@@ -1,5 +1,7 @@
 package com.ambiata.ivory.core
 
+import scala.collection.JavaConverters._
+
 object DateMap {
   import org.joda.time.LocalDate
   import java.util.HashMap
@@ -9,6 +11,22 @@ object DateMap {
     val x = dates.get(entity)
     x != null && toInt(year, month, day) <= x(0)
   }
+
+  /**
+   * Get the earliest and latest date (respectively)
+   */
+  def bounds(dates: Danger): (Date, Date) =
+    dates.values.asScala.foldLeft((Date.maxValue, Date.minValue))({ case ((lmin, lmax), ds) =>
+      val min = Date.unsafeFromInt(ds.min)
+      val max = Date.unsafeFromInt(ds.max)
+      (if(min isBefore lmin) min else lmin, if(max isAfter lmax) max else lmax)
+    })
+
+  def earliest(dates: Danger): Date =
+    bounds(dates)._1
+
+  def latest(dates: Danger): Date =
+    bounds(dates)._2
 
   def chords(s: String): Danger = {
     val Date = """(\d{4})-(\d{2})-(\d{2})""".r

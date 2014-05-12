@@ -26,9 +26,9 @@ Partition Tests
     val base = basedir + "/compress"
     val partitions = List(Partition("fs1", "ns1", Date(2012, 1, 1), Some(base)),
                           Partition("fs1", "ns1", Date(2012, 2, 1), Some(base)),
-                          Partition("fs1", "ns1", Date(2013, 1, 1), Some(base)),
-                          Partition("fs1", "ns2", Date(2012, 1, 1), Some(base)),
-                          Partition("fs2", "ns2", Date(2012, 1, 1), Some(base)))
+                          Partition("fs1", "ns1", Date(2012, 3, 1), Some(base)),
+                          Partition("fs1", "ns2", Date(2012, 4, 1), Some(base)),
+                          Partition("fs2", "ns2", Date(2012, 5, 1), Some(base)))
 
     partitions.foreach(p => {
       new File(p.path).mkdirs
@@ -36,8 +36,10 @@ Partition Tests
       new File(p.path + "/f2").createNewFile
     })
 
-    val actual = Partitions.globPath(partitions) 
-    filesystem.globStatus(new Path(actual)).toList.map(_.getPath.toString) must haveSize(10)
+    val actual = Partitions.pathsBetween(partitions, Date(2012, 2, 1), Date(2012, 4, 1))
+    actual must containTheSameElementsAs(List(Partition("fs1", "ns1", Date(2012, 2, 1), Some(base)),
+                        Partition("fs1", "ns1", Date(2012, 3, 1), Some(base)),
+                        Partition("fs1", "ns2", Date(2012, 4, 1), Some(base))))
   }
 }
 

@@ -5,6 +5,7 @@ import scalaz.{DList => _, _}, Scalaz._, effect._
 import scala.math.{Ordering => SOrdering}
 import java.util.HashMap
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.io.compress._
 import com.ambiata.mundane.io._
 import com.ambiata.mundane.time.DateTimex
 import com.ambiata.mundane.parse._
@@ -19,7 +20,7 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
 
-case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: Path, tmpPath: Path, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]]) {
+case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: Path, outputPath: Path, tmpPath: Path, errorPath: Path, incremental: Option[Path]) {
   import IvoryStorage._
 
   type Priority   = Short
@@ -31,9 +32,8 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
   // p1 < p2 <==> f1.datetime > f2.datetime || f1.datetime == f2.datetime && priority1 < priority2
   implicit val ord: Order[(Fact, Priority)] = Order.orderBy { case (f, p) => (-f.datetime.long, p) }
 
-
-  def withStorer(newStorer: IvoryScoobiStorer[Fact, DList[_]]): HdfsChord =
-    copy(storer = newStorer)
+  val ChordName: String = "ivory-incremental-chord"
+  lazy val factsOutputPath = new Path(outputPath, "thrift")
 
   def run: ScoobiAction[Unit] = for {
     c  <- ScoobiAction.scoobiConfiguration
@@ -41,20 +41,37 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
     d  <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dictName))
     s  <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
     es <- ScoobiAction.fromHdfs(Chord.readChords(entities))
+    (earliest, latest) = DateMap.bounds(es)
     chordPath = new Path(tmpPath, java.util.UUID.randomUUID().toString)
     _  <- ScoobiAction.fromHdfs(Chord.serialiseChords(chordPath, es))
-    _  <- scoobiJob(r, d, s, chordPath)
-    _  <- storer.storeMeta
+    in <- incremental.traverseU(path => for {
+      sm <- ScoobiAction.fromHdfs(SnapshotMeta.fromHdfs(new Path(path, ".snapmeta")))
+      _   = println(s"Snapshot store was '${sm.store}'")
+      _   = println(s"Snapshot date was '${sm.date.string("-")}'")
+      s  <- ScoobiAction.fromHdfs(storeFromIvory(r, sm.store))
+    } yield (path, s, sm))
+    _  <- scoobiJob(r, d, s, chordPath, latest, validateIncr(earliest, in))
+    _  <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextStorer(new Path(outputPath, "dictionary")).store(d))
   } yield ()
+
+  def validateIncr(earliest: Date, in: Option[(Path, FeatureStore, SnapshotMeta)]): Option[(Path, FeatureStore, SnapshotMeta)] =
+    in.flatMap({ case i @ (path, s, sm) =>
+      if(earliest isBefore sm.date) {
+        println(s"Earliest date '${earliest}' in chord file is before snapshot date '${sm.date}' so going to skip incremental and pass over all data.")
+        None
+      } else {
+        Some(i)
+      }
+    })
 
   /**
    * Persist facts which are the latest corresponding to a set of dates given for each entity
    */
-  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, chordPath: Path): ScoobiAction[Unit] =
+  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, chordPath: Path, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       lazy val factsetMap = store.factsets.map(fs => (fs.priority.toShort, fs.name)).toMap
 
-      factsFromIvoryStore(repo, store).map { input =>
+      HdfsSnapshot.readFacts(repo, store, latestDate, incremental).map { input =>
 
         // DANGER - needs to be executed on mapper
         lazy val map: Mappings = Chord.deserialiseChords(chordPath).run(sc).run.unsafePerformIO() match {
@@ -62,14 +79,14 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
           case Error(e) => sys.error("Can not deserialise chord map - " + Result.asString(e))
         }
 
-        val errors: DList[ParseError] = input.collect { case -\/(e) => e }
-
         // filter out the facts which are not in the entityMap or
         // which date are greater than the required dates for this entity
-        val facts: DList[(Priority, Fact)] =
-          input
-            .collect { case \/-((p, _, fact)) => (p.toShort, fact) }
-            .filter  { case (p, f) => DateMap.keep(map, f.entity, f.date.year, f.date.month, f.date.day) }
+        val facts: DList[(Priority, Fact)] = input.map({
+          case -\/(e) => sys.error("A critical error has occured, where we could not determine priority and namespace from partitioning: " + e)
+          case \/-(v) => v
+        }).collect({
+          case (p, _, f) if(DateMap.keep(map, f.entity, f.date.year, f.date.month, f.date.day)) => (p.toShort, f)
+        })
 
         /**
          * 1. group by entity and feature id
@@ -100,26 +117,24 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
               }.collect { case (d, p, Some(f)) => (p, f.withEntity(f.entity + ":" + Date.unsafeFromInt(d).hyphenated)) }.toIterable
             }.collect { case (p, f) if !f.isTombstone => (p, f) }
 
-        val validated: DList[String \/ Fact] = latest.map { case (p, f) =>
-          Validate.validateFact(f, dict).disjunction.leftMap(_ + " - Factset " + factsetMap.get(p).getOrElse("Unknown, priority " + p))
-        }
+        val validated: DList[Fact] = latest.map({ case (p, f) =>
+          Validate.validateFact(f, dict).disjunction.leftMap(e => e + " - Factset " + factsetMap.get(p).getOrElse("Unknown, priority " + p))
+        }).map({
+          case -\/(e) => sys.error("A critical error has occurred, a value in ivory no longer matches the dictionary: " + e)
+          case \/-(v) => v
+        })
 
-        val valErrors = validated.collect { case -\/(e) => e }
-        val good      = validated.collect { case \/-(f) => f }
+        persist(validated.valueToSequenceFile(factsOutputPath.toString, overwrite = true).compressWith(new SnappyCodec))
 
-        persist(errors.valueToSequenceFile(new Path(errorPath, "parse").toString, overwrite = true),
-                valErrors.valueToSequenceFile(new Path(errorPath, "validation").toString, overwrite = true),
-                storer.storeScoobi(good))
         ()
       }
     }).flatten
-
 }
 
 object Chord {
 
-  def onHdfs(repoPath: Path, store: String, dictName: String, entities: Path, output: Path, tmpPath: Path, errorPath: Path, storer: IvoryScoobiStorer[Fact, DList[_]]): ScoobiAction[Unit] =
-    HdfsChord(repoPath, store, dictName, entities, tmpPath, errorPath, storer).run
+  def onHdfs(repoPath: Path, store: String, dictName: String, entities: Path, outputPath: Path, tmpPath: Path, errorPath: Path, incremental: Option[Path]): ScoobiAction[Unit] =
+    HdfsChord(repoPath, store, dictName, entities, outputPath, tmpPath, errorPath, incremental).run
 
   def serialiseChords(path: Path, map: HashMap[String, Array[Int]]): Hdfs[Unit] = {
     import java.io.ObjectOutputStream
