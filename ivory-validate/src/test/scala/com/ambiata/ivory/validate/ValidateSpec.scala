@@ -45,7 +45,7 @@ class ValidateSpec extends HadoopSpecification with SimpleJobs with FileMatchers
     persist(facts1.toIvoryFactset(repo, Factset("factset1")), facts2.toIvoryFactset(repo, Factset("factset2")))
     writeFactsetVersion(repo, List(Factset("factset1"), Factset("factset2"))).run(sc) must beOk
 
-    storeToIvory(repo, FeatureStore(List(PrioritizedFactset(Factset("factset1"), 1), PrioritizedFactset(Factset("factset2"), 2))), "store1").run(sc) must beOk
+    storeToIvory(repo, FeatureStore(List(PrioritizedFactset(Factset("factset1"), Priority(1)), PrioritizedFactset(Factset("factset2"), Priority(2)))), "store1").run(sc) must beOk
 
     Validate.validateHdfsStore(repo.root.toHdfs, "store1", "dict1", new Path(outpath), false).run(sc) must beOk
 

@@ -24,11 +24,11 @@ Partition Tests
 
   def glob = {
     val base = basedir + "/compress"
-    val partitions = List(Partition("fs1", "ns1", Date(2012, 1, 1), Some(base)),
-                          Partition("fs1", "ns1", Date(2012, 2, 1), Some(base)),
-                          Partition("fs1", "ns1", Date(2012, 3, 1), Some(base)),
-                          Partition("fs1", "ns2", Date(2012, 4, 1), Some(base)),
-                          Partition("fs2", "ns2", Date(2012, 5, 1), Some(base)))
+    val partitions = List(Partition(Factset("fs1"), "ns1", Date(2012, 1, 1), Some(base)),
+                          Partition(Factset("fs1"), "ns1", Date(2012, 2, 1), Some(base)),
+                          Partition(Factset("fs1"), "ns1", Date(2012, 3, 1), Some(base)),
+                          Partition(Factset("fs1"), "ns2", Date(2012, 4, 1), Some(base)),
+                          Partition(Factset("fs2"), "ns2", Date(2012, 5, 1), Some(base)))
 
     partitions.foreach(p => {
       new File(p.path).mkdirs
@@ -37,9 +37,8 @@ Partition Tests
     })
 
     val actual = Partitions.pathsBetween(partitions, Date(2012, 2, 1), Date(2012, 4, 1))
-    actual must containTheSameElementsAs(List(Partition("fs1", "ns1", Date(2012, 2, 1), Some(base)),
-                        Partition("fs1", "ns1", Date(2012, 3, 1), Some(base)),
-                        Partition("fs1", "ns2", Date(2012, 4, 1), Some(base))))
+    actual must containTheSameElementsAs(List(Partition(Factset("fs1"), "ns1", Date(2012, 2, 1), Some(base)),
+                        Partition(Factset("fs1"), "ns1", Date(2012, 3, 1), Some(base)),
+                        Partition(Factset("fs1"), "ns2", Date(2012, 4, 1), Some(base))))
   }
 }
-

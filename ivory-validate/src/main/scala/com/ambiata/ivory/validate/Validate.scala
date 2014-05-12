@@ -15,9 +15,6 @@ import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.repository._
 
 sealed trait Validate {
-  type Priority = Int
-  type FactSetName = String
-
   val counterGroup = "VALIDATION"
   val parseErrorCounterName = "PARSE_ERRORS"
   val encodingErrorCounterName = "ENCODING_ERRORS"
@@ -49,15 +46,15 @@ case class ValidateStoreHdfs(repo: HdfsRepository, store: FeatureStore, dict: Di
         case -\/(e) => e.message
       }, counterGroup, parseErrorCounterName)
 
-      val facts: DList[(Priority, FactSetName, Fact)] = input.collect {
+      val facts: DList[(Priority, Factset, Fact)] = input.collect {
         case \/-(s) => s
       }
 
       // remove duplicates, taking the fact with the highest priority
-      val reduced: DList[(FactSetName, Fact)] =
+      val reduced: DList[(Factset, Fact)] =
         if(!includeOverridden && store.factsets.size > 1) {
           val byKey = facts.map({ case (p, fs, f) => (f.coordinateString('|'), (p, fs, f)) }).groupByKey
-          val ord: Order[(Priority, FactSetName, Fact)] = Order.orderBy({ case (p, _, _) => p })
+          val ord: Order[(Priority, Factset, Fact)] = Order.orderBy({ case (p, _, _) => p })
           byKey.reduceValues(Reduction.minimum(ord)).map({ case (_, (p, fs, f)) => (fs, f) })
         } else {
           facts.map({ case (_, fs, f) => (fs, f) })

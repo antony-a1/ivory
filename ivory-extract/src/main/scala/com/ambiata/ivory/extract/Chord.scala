@@ -23,7 +23,6 @@ import com.ambiata.ivory.alien.hdfs._
 case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: Path, outputPath: Path, tmpPath: Path, errorPath: Path, incremental: Option[Path]) {
   import IvoryStorage._
 
-  type Priority   = Short
   type PackedDate = Int
   // mappings of each entity to an array of target dates, represented as Ints and sorted from more recent to least
   type Mappings   = HashMap[String, Array[PackedDate]]
@@ -69,7 +68,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
    */
   def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, chordPath: Path, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-      lazy val factsetMap = store.factsets.map(fs => (fs.priority.toShort, fs.set.name)).toMap
+      lazy val factsetMap: Map[Priority, Factset] = store.factsets.map(fs => (fs.priority, fs.set)).toMap
 
       HdfsSnapshot.readFacts(repo, store, latestDate, incremental).map { input =>
 
@@ -85,7 +84,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
           case -\/(e) => sys.error("A critical error has occured, where we could not determine priority and namespace from partitioning: " + e)
           case \/-(v) => v
         }).collect({
-          case (p, _, f) if(DateMap.keep(map, f.entity, f.date.year, f.date.month, f.date.day)) => (p.toShort, f)
+          case (p, _, f) if(DateMap.keep(map, f.entity, f.date.year, f.date.month, f.date.day)) => (p, f)
         })
 
         /**
@@ -101,7 +100,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
 
               // we traverse all facts and for each required date
               // we keep the "best" fact which date is just before that date
-              fs.foldLeft(dates.map((_, Short.MinValue, None)): Array[(Int, Short, Option[Fact])]) { case (ds, (priority, fact)) =>
+              fs.foldLeft(dates.map((_, Priority.Min, None)): Array[(Int, Priority, Option[Fact])]) { case (ds, (priority, fact)) =>
                 val factDate = fact.date.int
                 ds.map {
                   case previous @ (date, p, None)    =>

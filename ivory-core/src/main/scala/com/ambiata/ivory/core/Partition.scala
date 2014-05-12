@@ -4,7 +4,7 @@ import scalaz._, Scalaz._
 import java.io.File
 import com.ambiata.mundane.parse.ListParser
 
-case class Partition(factset: String, namespace: String, date: Date, base: Option[String] = None) {
+case class Partition(factset: Factset, namespace: String, date: Date, base: Option[String] = None) {
 
   lazy val path: String =
     base.map(_ + "/").getOrElse("") + factset + "/" + namespace + "/" + "%4d/%02d/%02d".format(date.year, date.month, date.day)
@@ -35,7 +35,7 @@ object Partition {
       ns      <- string
       factset <- string
       rest    <- ListParser((pos, str) => (str.length, Nil, str.mkString("/")).success)
-    } yield Partition(factset, ns, date, Some(rest))
+    } yield Partition(Factset(factset), ns, date, Some(rest))
   }
 
   def path(ns: Namespace, date: Date): String = {
