@@ -4,7 +4,7 @@ package example
 import com.ambiata.mundane.cli.OptionsParser
 import scalaz._, Scalaz._
 import org.apache.hadoop.fs.Path
-import com.ambiata.ivory.core.Dictionary
+import com.ambiata.ivory.core._
 import com.ambiata.saws.core.S3Action, S3Action._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
@@ -52,7 +52,7 @@ object S3Workflow extends OptionsParser[WorkflowOptions] {
     } yield ()
   }
 
-  def generateFeatures(repository: S3Repository, dictionary: Dictionary, namespace: String, factsetName: String,
+  def generateFeatures(repository: S3Repository, dictionary: Dictionary, namespace: String, factsetName: Factset,
                        generationPath: FilePath): ScoobiS3EMRAction[Unit] = {
     val emails =
     """|1111191|has.email|true|1979-10-17 00:00:00
@@ -87,7 +87,7 @@ object S3Workflow extends OptionsParser[WorkflowOptions] {
   }
 
 
-  def createFactSet(repository: S3Repository, dictionary: Dictionary, factsetName: String, namespace: String,
+  def createFactSet(repository: S3Repository, dictionary: Dictionary, factsetName: Factset, namespace: String,
                     factsetPath: FilePath, timezone: DateTimeZone): ScoobiS3EMRAction[Unit] = for {
     clusterId <- ScoobiS3EMRAction.safe(Option(System.getenv("EMR_CLUSTER_ID")))
     _         <- ScoobiS3EMRAction.reader { sc: ScoobiConfiguration =>
@@ -120,7 +120,7 @@ object S3Workflow extends OptionsParser[WorkflowOptions] {
   opt[String]("namespace").required.action { (a, c) => c.copy(namespace = a) }
 
   opt[String]("factset-path").required.action { (a, c) => c.copy(factsetPath = new FilePath(a)) }
-  opt[String]("factset-name").required.action { (a, c) => c.copy(factsetName = a) }
+  opt[String]("factset-name").required.action { (a, c) => c.copy(factsetName = Factset(a)) }
 
   opt[String]("store-path").required.action { (a, c) => c.copy(storePath = new FilePath(a)) }
   opt[String]("store-name").required.action { (a, c) => c.copy(storeName = a) }
@@ -133,7 +133,7 @@ case class WorkflowOptions(
   repositoryKey: String = "ivory/test",
   dictionaryPath: FilePath = new FilePath("dictionary"),
   dictionaryName: String = "dictionary",
-  factsetName: String = "test",
+  factsetName: Factset = Factset("test"),
   namespace: String = "ns",
   factsetPath: FilePath = new FilePath("generated"),
   storePath: FilePath = new FilePath("store"),

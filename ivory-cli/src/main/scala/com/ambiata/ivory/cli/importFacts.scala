@@ -18,7 +18,7 @@ object importFacts extends ScoobiApp {
 
   case class CliArguments(repositoryPath: String = "",
                           dictionary: String = "",
-                          factset: String    = "",
+                          factset: Factset   = Factset(""),
                           namespace: String  = "",
                           input: String      = "",
                           errors: Option[Path] = None,
@@ -40,7 +40,7 @@ object importFacts extends ScoobiApp {
       s"Temporary directory path used to transfer data when interacting with S3. {user.home}/.s3repository by default"
 
     opt[String]('d', "dictionary")      action { (x, c) => c.copy(dictionary = x) }      required() text s"Dictionary name, used to get encoding of fact."
-    opt[String]('f', "factset")         action { (x, c) => c.copy(factset = x) }   required() text s"Fact set name to import the feature into."
+    opt[String]('f', "factset")         action { (x, c) => c.copy(factset = Factset(x)) }   required() text s"Fact set name to import the feature into."
     opt[String]('n', "namespace")       action { (x, c) => c.copy(namespace = x) } required() text s"Namespace to import features into."
     opt[String]('i', "input")           action { (x, c) => c.copy(input = x)   }   required() text s"path to read EAVT text files from."
     opt[String]('e', "errors")          action { (x, c) => c.copy(errors = Some(new Path(x)))  }  optional() text s"optional path to persist errors in (not loaded to s3)"

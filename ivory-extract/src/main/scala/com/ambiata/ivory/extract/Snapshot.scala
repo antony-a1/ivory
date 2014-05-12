@@ -54,8 +54,8 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
       sc.disableCombiners
 
       lazy val factsetMap = {
-        val exclude = incremental.toList.flatMap(_._2.factsets).map(_.name).toSet
-        val base = store.factsets.filter(fs => !exclude.contains(fs.name)).map(fs => (fs.priority.toShort, fs.name)).toMap
+        val exclude = incremental.toList.flatMap(_._2.factsets).map(_.set.name).toSet
+        val base = store.factsets.filter(fs => !exclude.contains(fs.set.name)).map(fs => (fs.priority.toShort, fs.set.name)).toMap
         base + (Short.MaxValue -> HdfsSnapshot.SnapshotName)
       }
 

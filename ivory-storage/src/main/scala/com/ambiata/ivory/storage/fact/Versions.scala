@@ -17,19 +17,19 @@ import com.ambiata.ivory.alien.hdfs.HdfsS3Action._
 object Versions {
   val VersionFile = ".version"
 
-  def read(repository: Repository, factsetId: String): ResultT[IO, FactsetVersion] =
-    repository.toStore.utf8.read(Repository.factsetById(factsetId) </> VersionFile).flatMap(parse(factsetId, _))
+  def read(repository: Repository, factsetId: Factset): ResultT[IO, FactsetVersion] =
+    repository.toStore.utf8.read(Repository.factsetById(factsetId.name) </> VersionFile).flatMap(parse(factsetId, _))
 
-  def write(repository: Repository, factsetId: String, version: FactsetVersion): ResultT[IO, Unit] =
-    repository.toStore.utf8.write(Repository.factsetById(factsetId) </> VersionFile, version.toString)
+  def write(repository: Repository, factsetId: Factset, version: FactsetVersion): ResultT[IO, Unit] =
+    repository.toStore.utf8.write(Repository.factsetById(factsetId.name) </> VersionFile, version.toString)
 
-  def readAll(repository: Repository, factsetIds: List[String]): ResultT[IO, List[(String, FactsetVersion)]] =
+  def readAll(repository: Repository, factsetIds: List[Factset]): ResultT[IO, List[(Factset, FactsetVersion)]] =
     factsetIds.traverseU(factsetId => read(repository, factsetId).map(factsetId -> _))
 
-  def writeAll(repository: Repository, factsetIds: List[String], version: FactsetVersion): ResultT[IO, Unit] =
+  def writeAll(repository: Repository, factsetIds: List[Factset], version: FactsetVersion): ResultT[IO, Unit] =
     factsetIds.traverseU(write(repository, _, version)).void
 
-  def parse(factsetId: String, version: String): ResultT[IO, FactsetVersion] =
+  def parse(factsetId: Factset, version: String): ResultT[IO, FactsetVersion] =
     FactsetVersion.fromString(version.trim) match {
       case None =>
         ResultT.fail(s"Factset version '${version}' in factset '${factsetId}' not found.")

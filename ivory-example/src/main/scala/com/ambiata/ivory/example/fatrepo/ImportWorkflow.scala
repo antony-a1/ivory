@@ -22,7 +22,7 @@ object ImportWorkflow {
   def importDictionary(path: Path)(repo: HdfsRepository, name: String, tombstone: List[String], tmpPath: Path): Hdfs[Unit] =
     DictionaryImporter.onHdfs(repo.root.toHdfs, path, name)
 
-  def importFeed(input: Path, namespace: String)(repo: HdfsRepository, factset: String, dname: String, tmpPath: Path, errorPath: Path, timezone: DateTimeZone): ScoobiAction[Unit] = for {
+  def importFeed(input: Path, namespace: String)(repo: HdfsRepository, factset: Factset, dname: String, tmpPath: Path, errorPath: Path, timezone: DateTimeZone): ScoobiAction[Unit] = for {
     dict <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dname))
     _    <- EavtTextImporter.onHdfs(repo, dict, factset, namespace, input, errorPath, timezone)
   } yield ()

@@ -59,7 +59,7 @@ object ingest {
   def defaultDictionaryImport(dictionary: String)(repo: HdfsRepository, name: String, tombstone: List[String], tmpPath: Path): Hdfs[Unit] =
     DictionaryImporter.onHdfs(repo.root.toHdfs, repo.dictionaryByName(dictionary).toHdfs, name)
 
-  def importFeed(input: Path, namespace: String, runOnSingleMachine: Boolean)(repo: HdfsRepository, factset: String, dname: String, tmpPath: Path, errorPath: Path, timezone: DateTimeZone): ScoobiAction[Unit] = for {
+  def importFeed(input: Path, namespace: String, runOnSingleMachine: Boolean)(repo: HdfsRepository, factset: Factset, dname: String, tmpPath: Path, errorPath: Path, timezone: DateTimeZone): ScoobiAction[Unit] = for {
     dict <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dname))
     conf <- ScoobiAction.scoobiConfiguration
     _    <- if (!runOnSingleMachine)

@@ -33,14 +33,13 @@ import com.ambiata.mundane.io._
  */
 object ImportWorkflow {
 
-  type FactsetName = String
   type DictionaryName = String
   type DictionaryPath = Path
   type ErrorPath = Path
   type TmpPath = Path
   type Tombstone = List[String]
   type ImportDictFunc = (HdfsRepository, DictionaryName, Tombstone, TmpPath) => Hdfs[Unit]
-  type ImportFactsFunc = (HdfsRepository, FactsetName, DictionaryName, TmpPath, ErrorPath, DateTimeZone) => ScoobiAction[Unit]
+  type ImportFactsFunc = (HdfsRepository, Factset, DictionaryName, TmpPath, ErrorPath, DateTimeZone) => ScoobiAction[Unit]
 
   private implicit val logger = LogFactory.getLog("ivory.repository.fatrepo.Import")
 
@@ -69,7 +68,7 @@ object ImportWorkflow {
         println(s"created fact set in ${x - t2}ms")
         x
       }
-      _        <- importFacts(repo, factset, dname, new Path(tmpPath, "facts"), new Path(repo.errors.path, factset), timezone)
+      _        <- importFacts(repo, factset, dname, new Path(tmpPath, "facts"), new Path(repo.errors.path, factset.name), timezone)
       t4 = {
         val x = System.currentTimeMillis
         println(s"imported fact set in ${x - t3}ms")
@@ -130,14 +129,14 @@ object ImportWorkflow {
                  })
   } yield ()
 
-  def createFactSet(repo: HdfsRepository): Hdfs[String] = for {
+  def createFactSet(repo: HdfsRepository): Hdfs[Factset] = for {
     factsetPaths <- Hdfs.globPaths(repo.factsets.toHdfs)
     name          = nextName(factsetPaths.map(_.getName))
     e            <- Hdfs.mkdir(repo.factsetById(name).toHdfs)
-    _            <- if(!e) Hdfs.fail("Hit race condition when trying to create fact set") else Hdfs.ok(())
-  } yield name
+    _            <- if(!e) Hdfs.fail("Could not create fact-set, id already allocated.") else Hdfs.ok(())
+  } yield Factset(name)
 
-  def createStore(repo: HdfsRepository, factset: String): Hdfs[String] = for {
+  def createStore(repo: HdfsRepository, factset: Factset): Hdfs[String] = for {
     storeNames <- Hdfs.globPaths(repo.stores.toHdfs).map(_.map(_.getName))
     latest      = latestName(storeNames)
     name        = nextName(storeNames)

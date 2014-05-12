@@ -6,8 +6,7 @@ import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core._
 
-object ValidateStoreCli extends ScoobiApp {
-
+object validateStore extends ScoobiApp {
   case class CliArguments(repo: String, store: String, dictionary: String, output: String, includeOverridden: Boolean)
 
   val parser = new scopt.OptionParser[CliArguments]("ValidateStore") {

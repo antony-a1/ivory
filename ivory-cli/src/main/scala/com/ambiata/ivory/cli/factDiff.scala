@@ -4,7 +4,7 @@ import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, Scalaz._
 import com.ambiata.mundane.control._
 
-object FactDiffCli extends ScoobiApp {
+object factDiff extends ScoobiApp {
 
   case class CliArguments(input1: String, input2: String, output: String, errors: String)
 

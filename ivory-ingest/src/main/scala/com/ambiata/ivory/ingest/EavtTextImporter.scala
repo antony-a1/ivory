@@ -28,14 +28,14 @@ import org.apache.hadoop.conf.Configuration
  */
 object EavtTextImporter {
 
-  def onS3(repository: S3Repository, dictionary: Dictionary, factset: String, namespace: String, path: FilePath, timezone: DateTimeZone, preprocess: String => String = identity): ScoobiS3EMRAction[Unit] = for {
+  def onS3(repository: S3Repository, dictionary: Dictionary, factset: Factset, namespace: String, path: FilePath, timezone: DateTimeZone, preprocess: String => String = identity): ScoobiS3EMRAction[Unit] = for {
     _  <- ScoobiS3EMRAction.reader((sc: ScoobiConfiguration) =>
               basicScoobiJob(repository.hdfs, dictionary, factset, namespace,
                 new Path(path.path), (repository.tmp </> "errors").toHdfs, timezone, preprocess)(sc))
     _  <- copyFilesToS3(repository, factset, namespace)
   } yield ()
 
-  def onHdfs(repository: HdfsRepository, dictionary: Dictionary, factset: String, namespace: String,
+  def onHdfs(repository: HdfsRepository, dictionary: Dictionary, factset: Factset, namespace: String,
              path: Path, errorPath: Path, timezone: DateTimeZone,
               preprocess: String => String = identity): ScoobiAction[Unit] = for {
     sc <- ScoobiAction.scoobiConfiguration
@@ -44,14 +44,14 @@ object EavtTextImporter {
   } yield ()
 
   // FIX horrible duplication, this all needs to be reformulated into a composable pipeline
-  def onHdfsBulk(repository: HdfsRepository, dictionary: Dictionary, factset: String, namespace: List[String],
+  def onHdfsBulk(repository: HdfsRepository, dictionary: Dictionary, factset: Factset, namespace: List[String],
              path: Path, errorPath: Path, timezone: DateTimeZone, partitions: Map[String, Int], preprocess: String => String = identity): ScoobiAction[Unit] = for {
     sc <- ScoobiAction.scoobiConfiguration
     _  <- ScoobiAction.safe(compoundScoobiJob(repository, dictionary, factset, namespace, path, errorPath, timezone, partitions, preprocess)(sc))
     _  <- ScoobiAction.fromHdfs(writeFactsetVersion(repository, List(factset)))
   } yield ()
 
-  def onHdfsDirect(conf: Configuration, repository: HdfsRepository, dictionary: Dictionary, factset: String, namespace: String,
+  def onHdfsDirect(conf: Configuration, repository: HdfsRepository, dictionary: Dictionary, factset: Factset, namespace: String,
              path: Path, errorPath: Path, timezone: DateTimeZone,
              preprocess: String => String): ResultT[IO, Unit] = for {
     _  <- HdfsDirectEavtTextImporter.direct(conf, repository, dictionary, factset, namespace, path, errorPath, timezone, preprocess)
@@ -70,7 +70,7 @@ object EavtTextImporter {
   def compoundScoobiJob(
     repository: HdfsRepository,
     dictionary: Dictionary,
-    factset: String,
+    factset: Factset,
     namespaces: List[String],
     path: Path,
     errorPath: Path,
@@ -100,7 +100,7 @@ object EavtTextImporter {
   def basicScoobiJob(
     repository: HdfsRepository,
     dictionary: Dictionary,
-    factset: String,
+    factset: Factset,
     namespace: String,
     path: Path,
     errorPath: Path,
@@ -127,7 +127,7 @@ object EavtTextImporter {
   def scoobiJobOnFacts[A](
     dlist: DList[ParseError \/ Fact],
     repository: HdfsRepository,
-    factset: String,
+    factset: Factset,
     path: Path,
     errorPath: Path,
     keyedBy: KeyedBy[A],
@@ -149,19 +149,19 @@ object EavtTextImporter {
     persist(packed, errors.valueToSequenceFile(errorPath.toString, overwrite = true))
   }
 
-  def copyFilesToS3(repository: S3Repository, factset: String, namespace: String): ScoobiS3EMRAction[Unit] = for {
+  def copyFilesToS3(repository: S3Repository, factset: Factset, namespace: String): ScoobiS3EMRAction[Unit] = for {
     sc <- ScoobiS3EMRAction.scoobiConfiguration
     _  <- Option(sc.get("EMR_CLUSTER_ID")).map((clusterId: String) => copyFilesWithDistCp(clusterId, repository, factset, namespace)).
            getOrElse(copyFilesOneByOne(repository, factset, namespace))
   } yield ()
 
-  def copyFilesOneByOne(repository: S3Repository, factset: String, namespace: String): ScoobiS3EMRAction[Unit] = {
-    ScoobiS3EMRAction.fromHdfsS3(HdfsS3.putPathsByDate(repository.bucket, repository.factsetById(factset)+"/"+namespace, (repository.hdfs.factsetById(factset) </> namespace).toHdfs))
+  def copyFilesOneByOne(repository: S3Repository, factset: Factset, namespace: String): ScoobiS3EMRAction[Unit] = {
+    ScoobiS3EMRAction.fromHdfsS3(HdfsS3.putPathsByDate(repository.bucket, repository.factsetById(factset.name)+"/"+namespace, (repository.hdfs.factsetById(factset.name) </> namespace).toHdfs))
   }
 
-  def copyFilesWithDistCp(clusterId: String, repository: S3Repository, factset: String, namespace: String): ScoobiS3EMRAction[Unit] = {
-    val src  = s"hdfs:///${repository.hdfs.factsetById(factset)}/${namespace}"
-    val dest = s"s3://${repository.bucket}/${repository.factsetById(factset).path}/${namespace}"
+  def copyFilesWithDistCp(clusterId: String, repository: S3Repository, factset: Factset, namespace: String): ScoobiS3EMRAction[Unit] = {
+    val src  = s"hdfs:///${repository.hdfs.factsetById(factset.name)}/${namespace}"
+    val dest = s"s3://${repository.bucket}/${repository.factsetById(factset.name).path}/${namespace}"
     ScoobiS3EMRAction.fromEMRAction(DistCopy.run(clusterId, List(s"--src=$src", s"--dest=$dest", "--srcPattern=.*/.*/.*"))).void
   }
 

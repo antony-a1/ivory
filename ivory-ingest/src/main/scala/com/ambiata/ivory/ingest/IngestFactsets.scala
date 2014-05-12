@@ -19,21 +19,21 @@ import scalaz._, Scalaz._, effect._, Effect._
 // FIX this is unpleasent, but is the current super set of what is there, redefine in terms of "fact-set descriptor".
 
 sealed trait IngestFactsets {
-  def ingest(dictionary: Dictionary, namespace: String, factsetId: String, input: FilePath, timezone: DateTimeZone): ResultT[IO, Unit]
+  def ingest(dictionary: Dictionary, namespace: String, factsetId: Factset, input: FilePath, timezone: DateTimeZone): ResultT[IO, Unit]
 }
 
 case class S3EavtIngestFactsets(conf: ScoobiConfiguration, repository: S3Repository, transform: String => String) {
-  def ingest(dictionary: Dictionary, namespace: String, factsetId: String, input: FilePath, timezone: DateTimeZone): ResultT[IO, Unit] =
+  def ingest(dictionary: Dictionary, namespace: String, factsetId: Factset, input: FilePath, timezone: DateTimeZone): ResultT[IO, Unit] =
     EavtTextImporter.onS3(repository, dictionary, factsetId, namespace, input, timezone, transform).runScoobiAwsT(conf)
 }
 
 case class MapReduceEavtIngestFactsets(conf: ScoobiConfiguration, repository: HdfsRepository, transform: String => String) {
 
-  def ingest(dictionary: Dictionary, namespace: String, factsetId: String, input: FilePath, timezone: DateTimeZone): ResultT[IO, Unit] =
+  def ingest(dictionary: Dictionary, namespace: String, factsetId: Factset, input: FilePath, timezone: DateTimeZone): ResultT[IO, Unit] =
     EavtTextImporter.onHdfs(repository, dictionary, factsetId, namespace, new Path(input.path), repository.errors.toHdfs, timezone, transform).run(conf)
 }
 
 case class HdfsEavtIngestFactsets(conf: Configuration, repository: HdfsRepository, transform: String => String) {
-  def ingest(dictionary: Dictionary, namespace: String, factsetId: String, input: FilePath, timezone: DateTimeZone): ResultT[IO, Unit] =
+  def ingest(dictionary: Dictionary, namespace: String, factsetId: Factset, input: FilePath, timezone: DateTimeZone): ResultT[IO, Unit] =
     EavtTextImporter.onHdfsDirect(conf, repository, dictionary, factsetId, namespace, new Path(input.path), repository.errors.toHdfs, timezone, transform)
 }

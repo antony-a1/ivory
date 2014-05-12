@@ -27,7 +27,7 @@ import scalaz.{DList => _, _}, Scalaz._, effect.IO
 object HdfsDirectEavtTextImporter {
   type Channels = scala.collection.mutable.Map[String, SequenceFile.Writer]
 
-  def direct(conf: Configuration, repository: HdfsRepository, dictionary: Dictionary, factset: String, namespace: String,
+  def direct(conf: Configuration, repository: HdfsRepository, dictionary: Dictionary, factset: Factset, namespace: String,
              path: Path, errorPath: Path, timezone: DateTimeZone,
              preprocess: String => String): ResultT[IO, Unit] = ResultT.safe[IO, Unit] {
 
@@ -48,7 +48,7 @@ object HdfsDirectEavtTextImporter {
 
             val writer = channels.getOrElseUpdate(path, {
               val opts = List(
-                SequenceFile.Writer.file((repository.factsetById(factset) </> path </> "facts").toHdfs),
+                SequenceFile.Writer.file((repository.factsetById(factset.name) </> path </> "facts").toHdfs),
                 SequenceFile.Writer.keyClass(classOf[NullWritable]),
                 SequenceFile.Writer.valueClass(classOf[BytesWritable]),
                 SequenceFile.Writer.compression(SequenceFile.CompressionType.BLOCK, new SnappyCodec))

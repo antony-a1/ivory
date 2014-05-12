@@ -43,6 +43,9 @@ object FeatureStoreTextStorage {
   def fromLines(lines: List[String]): String \/ FeatureStore =
     PrioritizedFactset.fromLines(lines).map(FeatureStore)
 
+  def fromFactsets(sets: List[Factset]): FeatureStore =
+    FeatureStore(PrioritizedFactset.fromFactsets(sets))
+
   def storeAsString(store: FeatureStore): String =
-    store.factsets.sortBy(_.priority).map(_.name).mkString("\n") + "\n"
+    store.factsets.sortBy(_.priority).map(_.set.name).mkString("\n") + "\n"
 }

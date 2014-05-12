@@ -41,7 +41,7 @@ object createFeatureStore {
 
   def main(args: Array[String]) {
     parser.parse(args, CliArguments("", "", "", None)).map(c => {
-      val sets = c.sets.split(",").toList
+      val sets = c.sets.split(",").toList.map(_.trim).map(Factset)
 
       val actions =
         if (c.repo.startsWith("s3://")) {

@@ -69,7 +69,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
    */
   def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, chordPath: Path, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-      lazy val factsetMap = store.factsets.map(fs => (fs.priority.toShort, fs.name)).toMap
+      lazy val factsetMap = store.factsets.map(fs => (fs.priority.toShort, fs.set.name)).toMap
 
       HdfsSnapshot.readFacts(repo, store, latestDate, incremental).map { input =>
 

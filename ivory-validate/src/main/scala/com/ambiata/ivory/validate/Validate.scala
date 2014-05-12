@@ -78,7 +78,7 @@ case class ValidateStoreHdfs(repo: HdfsRepository, store: FeatureStore, dict: Di
     })
 }
 
-case class ValidateFactSetHdfs(repo: HdfsRepository, factset: String, dict: Dictionary) extends Validate {
+case class ValidateFactSetHdfs(repo: HdfsRepository, factset: Factset, dict: Dictionary) extends Validate {
 
   def scoobiJob: ScoobiAction[DList[String]] =
     factsFromIvoryFactset(repo, factset).map(input => {
@@ -109,7 +109,7 @@ object Validate {
     c <- ValidateStoreHdfs(r, s, d, includeOverridden).exec(output)
   } yield c
 
-  def validateHdfsFactSet(repoPath: Path, factset: String, dict: String, output: Path)(implicit sc: ScoobiConfiguration): ScoobiAction[Long] = for {
+  def validateHdfsFactSet(repoPath: Path, factset: Factset, dict: String, output: Path)(implicit sc: ScoobiConfiguration): ScoobiAction[Long] = for {
     r <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
     d <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dict))
     c <- ValidateFactSetHdfs(r, factset, d).exec(output)

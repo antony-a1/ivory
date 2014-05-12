@@ -34,7 +34,7 @@ class EavtTextImporterSpec extends HadoopSpecification with SimpleJobs with File
 
     val errors = new Path(directory, "errors")
     // run the scoobi job to import facts on Hdfs
-    EavtTextImporter.onHdfs(repository, dictionary, "factset1", "ns1", new Path(input), errors, DateTimeZone.getDefault, identity).run(sc) must beOk
+    EavtTextImporter.onHdfs(repository, dictionary, Factset("factset1"), "ns1", new Path(input), errors, DateTimeZone.getDefault, identity).run(sc) must beOk
 
     val expected = List(
       StringFact("pid1", FeatureId("ns1", "fid1"), Date(2012, 10, 1),  Time(10), "v1"),
@@ -42,7 +42,7 @@ class EavtTextImporterSpec extends HadoopSpecification with SimpleJobs with File
       DoubleFact("pid1", FeatureId("ns1", "fid3"), Date(2012, 3, 20),  Time(30), 3.0))
 
 
-    factsFromIvoryFactset(repository, "factset1").map(_.run.collect { case \/-(r) => r}).run(sc) must beOkLike(_ must containTheSameElementsAs(expected))
+    factsFromIvoryFactset(repository, Factset("factset1")).map(_.run.collect { case \/-(r) => r}).run(sc) must beOkLike(_ must containTheSameElementsAs(expected))
   }
 
   "When there are errors, they must be saved as a Thrift record containing the full record + the error message" >> { setup: Setup =>
@@ -52,7 +52,7 @@ class EavtTextImporterSpec extends HadoopSpecification with SimpleJobs with File
     val errors = new Path(directory, "errors")
 
     // run the scoobi job to import facts on Hdfs
-    EavtTextImporter.onHdfs(repository, dictionary, "factset1", "ns1", new Path(input), errors, DateTimeZone.getDefault, identity).run(sc) must beOk
+    EavtTextImporter.onHdfs(repository, dictionary, Factset("factset1"), "ns1", new Path(input), errors, DateTimeZone.getDefault, identity).run(sc) must beOk
     valueFromSequenceFile[ParseError](errors.toString).run must not(beEmpty)
   }
 

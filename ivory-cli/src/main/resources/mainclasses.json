@@ -46,5 +46,17 @@
 {
   "service-name" : "cat-facts",
   "class-name"   : "com.ambiata.ivory.cli.catFacts"
+},
+{
+  "service-name" : "fact-diff",
+  "class-name"   : "com.ambiata.ivory.cli.factDiff"
+},
+{
+  "service-name" : "validate-fact-set",
+  "class-name"   : "com.ambiata.ivory.cli.validateFactSet"
+},
+{
+  "service-name" : "validate-store",
+  "class-name"   : "com.ambiata.ivory.cli.validateStore"
 }
 ]
