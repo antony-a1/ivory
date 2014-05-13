@@ -4,7 +4,7 @@ Dates and Formats
 Dates are bad. So it is really important that ivory keep a coherent view of
 dates, times and timezones. However, traditional approaches for this (such
 as always storing data in UTC and converting in/out) have potential drawbacks
-in a system like ivory, two things that we need to be accutely aware of are:
+in a system like ivory, three things that we need to be aware of are:
 
  * Storage has a non-trivial cost, so anything that adds significant per-fact
    storage overhead needs to be avoided.
