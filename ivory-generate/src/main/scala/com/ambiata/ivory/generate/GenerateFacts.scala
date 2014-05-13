@@ -85,6 +85,5 @@ case class RandomFacts(rand: Random) {
     case FeatureMeta(LongEncoding, _, _, _)      => LongValue(rand.nextLong)
     case FeatureMeta(DoubleEncoding, _, _, _)    => DoubleValue(rand.nextDouble)
     case FeatureMeta(StringEncoding, _, _, _)    => StringValue(org.apache.commons.lang.RandomStringUtils.randomAlphanumeric(10))
-    case FeatureMeta(TombstoneEncoding, _, _, _) => TombstoneValue()
   }
 }

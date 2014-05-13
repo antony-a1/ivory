@@ -16,6 +16,9 @@ class DateTime private(val underlying: Long) extends AnyVal {
   def long: Long =
     underlying
 
+  def iso8601: String =
+    s"${date.hyphenated}T${time.hhmmss}Z"
+
   override def toString: String =
     s"DateTime(${date.year},${date.month},${date.day},$time)"
 }

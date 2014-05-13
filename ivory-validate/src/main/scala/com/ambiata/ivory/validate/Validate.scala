@@ -118,12 +118,11 @@ object Validate {
   def validateEncoding(fact: Fact, encoding: Encoding): Validation[String, Fact] = {
     val v = fact.value
     (encoding match {
-      case BooleanEncoding => if(v.encoding != BooleanEncoding) s"Not a valid boolean! '${fact.toString}'".failure else Success(())
-      case IntEncoding     => if(v.encoding != IntEncoding) s"Not a valid int! '${fact.toString}'".failure else Success(())
-      case LongEncoding    => if(v.encoding != LongEncoding) s"Not a valid long! '${fact.toString}'".failure else Success(())
-      case DoubleEncoding  => if(v.encoding != DoubleEncoding) s"Not a valid double! '${fact.toString}'".failure else Success(())
-      case StringEncoding  => if(v.encoding != StringEncoding) s"Not a valid string! '${fact.toString}'".failure else Success(())
-      case TombstoneEncoding => if(v.encoding != TombstoneEncoding) s"Not a valid tombstone! '${fact.toString}'".failure else Success(())
+      case BooleanEncoding => if(v.encoding.exists(_ != BooleanEncoding)) s"Not a valid boolean! '${fact.toString}'".failure else Success(())
+      case IntEncoding     => if(v.encoding.exists(_ != IntEncoding)) s"Not a valid int! '${fact.toString}'".failure else Success(())
+      case LongEncoding    => if(v.encoding.exists(_ != LongEncoding)) s"Not a valid long! '${fact.toString}'".failure else Success(())
+      case DoubleEncoding  => if(v.encoding.exists(_ != DoubleEncoding)) s"Not a valid double! '${fact.toString}'".failure else Success(())
+      case StringEncoding  => if(v.encoding.exists(_ != StringEncoding)) s"Not a valid string! '${fact.toString}'".failure else Success(())
     }).map(_ => fact)
   }
 }

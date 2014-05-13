@@ -151,31 +151,30 @@ object TombstoneFact {
 }
 
 sealed trait Value {
-  def encoding: Encoding
+  def encoding: Option[Encoding]
   def stringValue: Option[String]
 }
 case class BooleanValue(value: Boolean) extends Value {
-  val encoding = BooleanEncoding
+  val encoding = Some(BooleanEncoding)
   val stringValue = Some(value.toString)
 }
 case class IntValue(value: Int) extends Value {
-  val encoding = IntEncoding
+  val encoding = Some(IntEncoding)
   val stringValue = Some(value.toString)
 }
 case class LongValue(value: Long) extends Value {
-  val encoding = LongEncoding
+  val encoding = Some(LongEncoding)
   val stringValue = Some(value.toString)
 }
 case class DoubleValue(value: Double) extends Value {
-  val encoding = DoubleEncoding
+  val encoding = Some(DoubleEncoding)
   val stringValue = Some(value.toString)
 }
 case class StringValue(value: String) extends Value {
-  val encoding = StringEncoding
+  val encoding = Some(StringEncoding)
   val stringValue = Some(value.toString)
 }
 case class TombstoneValue() extends Value {
-  val encoding = TombstoneEncoding
+  val encoding = None
   val stringValue = None
 }
-

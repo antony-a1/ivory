@@ -7,10 +7,10 @@ import com.ambiata.mundane.io._
 
 import scalaz._, Scalaz._, effect.IO, \&/._
 
-object FactsetGlob {
+object Partitions {
   def select(repository: Repository, factset: Factset): ResultT[IO, List[Partition]] = for {
     paths <- repository.toStore.list(Repository.factset(factset))
-    parts <- paths.traverseU(path => ResultT.fromDisjunction[IO, Partition](Partition.parseWith(path.path).disjunction.leftMap(This.apply)))
+    parts <- paths.map(_.basename).distinct.traverseU(parse)
   } yield parts
 
   def before(repository: Repository, factset: Factset, to: Date): ResultT[IO, List[Partition]] =
@@ -21,4 +21,7 @@ object FactsetGlob {
 
   def between(repository: Repository, factset: Factset, from: Date, to: Date): ResultT[IO, List[Partition]] =
     select(repository, factset).map(_.filter(p => p.date.isBeforeOrEqual(to) && p.date.isAfterOrEqual(from)))
+
+  def parse(f: FilePath): ResultT[IO, Partition] =
+    ResultT.fromDisjunction(Partition.parseWith(f.path).disjunction.leftMap(This.apply))
 }

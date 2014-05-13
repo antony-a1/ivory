@@ -71,4 +71,3 @@ object EavtTextStorageV1 {
         case Failure(_) => y.parse(n, ls).map(_.map(_.right[A]))
       })
 }
-

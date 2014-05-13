@@ -75,7 +75,6 @@ object DictionaryTextStorage {
     case LongEncoding       => "long"
     case DoubleEncoding     => "double"
     case StringEncoding     => "string"
-    case TombstoneEncoding  => "tombstone"
   }
 
   def typeString(ty: Type): String = ty match {
@@ -111,7 +110,6 @@ object DictionaryTextStorage {
       case "long"       => IntEncoding.success
       case "double"     => DoubleEncoding.success
       case "string"     => StringEncoding.success
-      case "tombstone"  => TombstoneEncoding.success
       case otherwise    => "".failure
     }
 

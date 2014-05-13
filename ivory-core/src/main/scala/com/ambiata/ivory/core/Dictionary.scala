@@ -41,7 +41,6 @@ case object IntEncoding       extends Encoding
 case object LongEncoding      extends Encoding
 case object DoubleEncoding    extends Encoding
 case object StringEncoding    extends Encoding
-case object TombstoneEncoding extends Encoding
 
 sealed trait Type
 case object NumericalType   extends Type
