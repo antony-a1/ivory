@@ -15,6 +15,7 @@ object build extends Build {
   /* this should aggregate _all_ the projects */
   , aggregate = Seq(
       api
+    , benchmark
     , cli
     , core
     , data
@@ -61,6 +62,17 @@ object build extends Build {
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz)
   )
   .dependsOn(generate, ingest, validate, extract)
+
+  lazy val benchmark = Project(
+    id = "benchmark"
+  , base = file("ivory-benchmark")
+  , settings = standardSettings ++ app("benchmark") ++ Seq[Settings](
+      name := "ivory-benchmark"
+    , fork in run := true
+    , javaOptions in run <++= (fullClasspath in Runtime).map(cp => Seq("-cp", sbt.Attributed.data(cp).mkString(":")))
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.caliper)
+  )
+  .dependsOn(api)
 
   lazy val cli = Project(
     id = "cli"
