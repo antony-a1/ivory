@@ -4,7 +4,7 @@ Dates and Formats
 Dates are bad. So it is really important that ivory keep a coherent view of
 dates, times and timezones. However, traditional approaches for this (such
 as always storing data in UTC and converting in/out) have potential drawbacks
-in a system like ivory, three things that we need to be aware of are:
+in a system like ivory. Three things that we need to be aware of are:
 
  * Storage has a non-trivial cost, so anything that adds significant per-fact
    storage overhead needs to be avoided.
@@ -20,17 +20,22 @@ in a system like ivory, three things that we need to be aware of are:
 Over-arching Rules
 ------------------
 
-  * An ivory repository operates in a single local timezone ID. This timezone
-    should be a locale dependent timezone such as "Australia/Sydney" to account
-    for daylight savings and other locale specific events. Only use an offset
-    timezone if the intent really is for the repository to be local independent
-    such as the UTC everywhere model, however if you do this you will need to
-    manage conversions to and from dates externally to ivory as required.
+  * An ivory repository operates in a single local timezone ID, i.e. the
+    "repository timezone". The preference should be for the repository timezone
+    to be a locale dependent timezone such as "Australia/Sydney" to account
+    for daylight savings and other locale specific events, without unecessary
+    overhead. Only use an offset timezone if the intent really is for the
+    repository to be local independent such as the UTC everywhere model,
+    however if you do this you will need to manage conversions to and from dates
+    externally to ivory as required.
 
-  * All data stored by ivory is in the local timezone.
+  * All data stored by ivory is stored in the repository timezone.
 
-  * Facts that have dates without times will be stored in that way, and will
-    be considered valid for the _entire_ day.
+  * Facts that have dates without times are valid as at 00:00:00 for the day
+    specified in the repository timezone.
+
+  * __No__ date without a time shall be imported in any other zone, and no
+    transformation shall occur to account for timezones on that day.
 
 
 Guidance
@@ -48,14 +53,13 @@ Justification
     any information about time for each fact.
 
   * By operating in a local time zone, we remove the overhead of additional
-    processing of dates on ingestion for the common case, i.e. data from
-    the local zone.
+    processing of dates for the common case, i.e. data from the local zone.
 
   * By only storing data in a single time zone (as opposed to a timezone
     per fact set or other granularities etc...) we are able to incur all
     translation costs on ingestion.
 
-  * As outlines, it is possible to use the UTC everywhere model, by just
+  * As outlined, it is possible to use the UTC everywhere model, by just
     configuring the repository timezone to be `UTC`. All other processes
     work as required - however it is worth noting that all data not in
     UTC will need to include time information.
@@ -82,13 +86,13 @@ Ivory supports a sub-set of ISO 8601 timestamps.
 
 #### Locale independent Date And Time
 
- `yyyy-MM-ddThh:mm:ss[+|-]hh:mm` -
+ `yyyy-MM-ddThh:mm:ss[+|-]hhmm` -
 
     Date/Time with a second granularity in a specific time zone. Ivory will
     translate this to the local timezone to store data and before performing
     queries. Note that this conversion may have _significant_ performance
-    overhead so only use when necessary. Example: `2012-01-15T16:00:31+11:00`,
-    `2014-12-31T00:01:01-03:10`.
+    overhead so only use when necessary. Example: `2012-01-15T16:00:31+1100`,
+    `2014-12-31T00:01:01-0310`.
 
 #### Other Formats
 
@@ -104,27 +108,188 @@ Ivory supports a sub-set of ISO 8601 timestamps.
 Larger Examples
 ---------------
 
+### Data of Day Granularity from multiple time-zones
+
+#### `Scenario`
+
+  You have daily loads from sites across different timezones.
+
+```
+Brisbane Facts, +1000
+---------------------
+E1|A1|1|2010-03-03
+E2|A1|2|2010-03-03
+
+Sydney Facts, +1100
+-------------------
+E3|A1|3|2010-03-03
+E4|A1|3|2010-03-03
+
+London Facts, +0000
+-------------------
+E5|A1|5|2010-03-03
+E6|A1|6|2010-03-03
+
+Ivory as +1100
+--------------
+???
+
+```
+
+
+##### `Ingestion Solution 1`
+
+  For each load decide what "day" it really occurs on. This may be
+  that you actually want it to occur on "same" day as repository
+  timezone or offset by one. In our example we decide Brisbane and
+  Sydney facts occur on the same day, London facts actually occur
+  the day after (note well, it is likely domain specific knowledge
+  will likely be required to work this out), so we process this
+  into a different data set.
+
+
+```
+Brisbane Facts, +1000
+---------------------
+E1|A1|1|2010-03-03
+E2|A1|2|2010-03-03
+
+Sydney Facts, +1100
+-------------------
+E3|A1|3|2010-03-03
+E4|A1|3|2010-03-03
+
+London Facts, +0000
+-------------------
+E5|A1|5|2010-03-04
+E6|A1|6|2010-03-04
+
+```
+
+  Note that the date of london has been modified. We now then import
+  these file as if they were in the repository time zone and end up
+  with:
+
+```
+Ivory as +1100
+--------------
+E1|A1|1|2010-03-03T00:00:00+1100
+E2|A1|2|2010-03-03T00:00:00+1100
+E3|A1|3|2010-03-03T00:00:00+1100
+E4|A1|3|2010-03-03T00:00:00+1100
+E5|A1|5|2010-03-04T00:00:00+1100
+E6|A1|6|2010-03-04T00:00:00+1100
+```
+
+##### `Ingestion Solution 2`
+
+  If the time is critical to the facts it is possible that you want
+  to maintain the time difference between each of these, to do this
+  we preprocess each data set into a date-time format. For example:
+
+
+```
+Brisbane Facts, +1000
+---------------------
+E1|A1|1|2010-03-03T00:00:00+10:00
+E2|A1|2|2010-03-03T00:00:00+10:00
+
+Sydney Facts, +1100
+-------------------
+E3|A1|3|2010-03-03T00:00:00+11:00
+E4|A1|3|2010-03-03T00:00:00+11:00
+
+London Facts, +0000
+-------------------
+E5|A1|5|2010-03-04T00:00:00+00:00
+E6|A1|6|2010-03-04T00:00:00+00:00
+```
+
+  We then import as per normal, and the import process will translate
+  the times as required.
+
+```
+Ivory as +1100
+--------------
+E1|A1|1|2010-03-03T01:00:00+1100
+E2|A1|2|2010-03-03T01:00:00+1100
+E3|A1|3|2010-03-03T00:00:00+1100
+E4|A1|3|2010-03-03T00:00:00+1100
+E5|A1|5|2010-03-03T11:00:00+1100
+E6|A1|6|2010-03-03T11:00:00+1100
+```
+
+
 ### Data sourced from a number of time-zones
 
-`Scenario`:
+##### `Scenario`
   You have sales data from sites across different timezones.
 
-`Ingestion Solution 1`:
+```
+Brisbane Facts, +1000
+---------------------
+E1|A1|1|2010-03-03T09:30:00
+E2|A1|2|2010-03-03T14:30:00
+
+Sydney Facts, +1100
+-------------------
+E3|A1|3|2010-03-03T10:30:00
+E4|A1|3|2010-03-03T14:30:00
+
+Ivory as +1100
+--------------
+???
+
+```
+
+##### `Ingestion Solution 1`
   Preprocess all data to include timezone information
   on a per-row basis using the "Locale independent" format.
 
-`Ingestion Solution 2`:
+```
+Brisbane Facts, +1000
+---------------------
+E1|A1|1|2010-03-03T09:30:00+1000
+E2|A1|2|2010-03-03T14:30:00+1000
+
+Sydney Facts, +1100
+-------------------
+E3|A1|3|2010-03-03T10:30:00+1100
+E4|A1|3|2010-03-03T14:30:00+1100
+
+Ivory as +1100
+--------------
+E1|A1|1|2010-03-03T10:30:00+1100
+E2|A1|2|2010-03-03T15:30:00+1100
+E3|A1|3|2010-03-03T10:30:00+1100
+E4|A1|3|2010-03-03T14:30:00+1100
+```
+
+##### `Ingestion Solution 2`
   Perform individual ingestions for each timezone, using the
   "Local date / time" format, but specificy an overriding
   ingestion timezone for the whole dataset. The ingestion
-  will then translate each row into the Ivory timezone.
+  will then translate each row into the repository timezone.
 
-`Extraction Solution 1`:
-  Specify all queries in the Ivory timezone.
+```
+Brisbane Facts, +1000
+---------------------
+E1|A1|1|2010-03-03T09:30:00
+E2|A1|2|2010-03-03T14:30:00
 
-`Extraction Solution 2`:
-  If there is a need for more fine grained extraction dates,
-  use the "Locale independent" format as required.
+Sydney Facts, +1100
+-------------------
+E3|A1|3|2010-03-03T10:30:00
+E4|A1|3|2010-03-03T14:30:00
+
+Ivory as +1100
+--------------
+E1|A1|1|2010-03-03T10:30:00+1100
+E2|A1|2|2010-03-03T15:30:00+1100
+E3|A1|3|2010-03-03T10:30:00+1100
+E4|A1|3|2010-03-03T14:30:00+1100
+```
+
 
 
 Current Status
