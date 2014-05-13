@@ -3,7 +3,7 @@ Dates and Formats
 
 Dates are bad. So it is really important that ivory keep a coherent view of
 dates, times and timezones. However, traditional approaches for this (such
-as always storing data in UTC and converting in/out) have severe drawbacks
+as always storing data in UTC and converting in/out) have potential drawbacks
 in a system like ivory, two things that we need to be accutely aware of are:
 
  * Storage has a non-trivial cost, so anything that adds significant per-fact
@@ -13,7 +13,6 @@ in a system like ivory, two things that we need to be accutely aware of are:
    scenario for source data to have date level of granularity with no time
    information. We should not "make-up" information to fill in the gap if
    that information could be wrong or lead to data quality issues.
-
 
 Over-arching Rules
 ------------------
@@ -30,6 +29,28 @@ Over-arching Rules
   * Facts that have dates without times will be stored in that way, and will
     be considered valid for the _entire_ day.
 
+
+Guidance
+--------
+
+  * The _best_ timezone for you data-set, is the timezone where the most data
+    of _day_ granularity occurs.
+
+
+Justification
+-------------
+
+  * By operating ivory in a local time zone, it allows significant storage
+    savings for the common "day only" case, where we remove the need to store
+    any information about time for each fact.
+
+  * By operating in a local time zone, we remove the overhead of additional
+    processing of dates on ingestion for the common case, i.e. data from
+    the local zone.
+
+  * By only storing data in a single time zone (as opposed to a timezone
+    per fact set or other granularities etc...) we are able to incur all
+    translation costs on ingestion.
 
 Formats
 -------
@@ -71,6 +92,32 @@ Ivory supports a sub-set of ISO 8601 timestamps.
     for all formats).
 
 
+Larger Examples
+---------------
+
+### Data sourced from a number of time-zones
+
+`Scenario`:
+  You have sales data from sites across different timezones.
+
+`Ingestion Solution 1`:
+  Preprocess all data to include timezone information
+  on a per-row basis using the "Locale independent" format.
+
+`Ingestion Solution 2`:
+  Perform individual ingestions for each timezone, using the
+  "Local date / time" format, but specificy an overriding
+  ingestion timezone for the whole dataset. The ingestion
+  will then translate each row into the Ivory timezone.
+
+`Extraction Solution 1`:
+  Specify all queries in the Ivory timezone.
+
+`Extraction Solution 2`:
+  If there is a need for more fine grained extraction dates,
+  use the "Locale independent" format as required.
+
+
 Current Status
 --------------
 
@@ -85,9 +132,10 @@ There are number of key pieces of this which are not complete:
 
   - Ingestion incorrectly forces a timezone to be specified for
     an input data set. A better default would be to only allow
-    the above spec'd date/time formats, but if required ingestion
-    could allow an override for an entire data-set - but note that
-    this will have performance issues other the alternatives.
+    the above spec'd date/time formats, but allow the ingestion
+    process to override the timezone for an entire data-set,
+    where every row is converted. Note that this may have
+    performance overhead compared with the local only approach.
 
   - Ivory does not store the timezone of the repository on creation.
     This means it could be incorrectly impacted by system changes.
