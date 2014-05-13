@@ -68,28 +68,28 @@ Ivory supports a sub-set of ISO 8601 timestamps.
 
  `yyyy-MM-ddThh:mm:ss` -
 
-   Date/Time with a second granularity in the local time zone. Example:
-   `2012-01-15T16:00:31`,  `2014-12-31T00:01:01`.
+    Date/Time with a second granularity in the local time zone. Example:
+    `2012-01-15T16:00:31`,  `2014-12-31T00:01:01`.
 
 #### Locale independent Date And Time
 
  `yyyy-MM-ddThh:mm:ss[+|-]hh:mm` -
 
-   Date/Time with a second granularity in a specific time zone. Ivory will
-   translate this to the local timezone to store data and before performing
-   queries. Note that this conversion may have _significant_ performance
-   overhead so only use when necessary. Example: `2012-01-15T16:00:31+11:00`,
-   `2014-12-31T00:01:01-03:10`.
+    Date/Time with a second granularity in a specific time zone. Ivory will
+    translate this to the local timezone to store data and before performing
+    queries. Note that this conversion may have _significant_ performance
+    overhead so only use when necessary. Example: `2012-01-15T16:00:31+11:00`,
+    `2014-12-31T00:01:01-03:10`.
 
 #### Other Formats
 
  `yyyy-MM-dd hh:mm:ss` -
 
-   Date/Time with a second granularity in the local time zone. Example:
-   `2012-01-15 16:00:31`,  `2014-12-31 00:01:01`. This is equivalent to the
-    Local Date and Time format, and will be deprecated at some point in
-    the future (primarily to stick with ISO 8601 as a unifying standard
-    for all formats).
+    Date/Time with a second granularity in the local time zone. Example:
+    `2012-01-15 16:00:31`,  `2014-12-31 00:01:01`. This is equivalent to the
+     Local Date and Time format, and will be deprecated at some point in
+     the future (primarily to stick with ISO 8601 as a unifying standard
+      for all formats).
 
 
 Larger Examples
