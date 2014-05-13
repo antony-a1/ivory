@@ -55,6 +55,12 @@ Justification
     per fact set or other granularities etc...) we are able to incur all
     translation costs on ingestion.
 
+  * As outlines, it is possible to use the UTC everywhere model, by just
+    configuring the repository timezone to be `UTC`. All other processes
+    work as required - however it is worth noting that all data not in
+    UTC will need to include time information.
+
+
 Formats
 -------
 
