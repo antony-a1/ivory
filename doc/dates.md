@@ -41,8 +41,8 @@ Over-arching Rules
 Guidance
 --------
 
-  * The _best_ timezone for you data-set, is the timezone where the most facts
-    of _day_ granularity occurs.
+  * The _best_ timezone for your repository, is the timezone where the most facts
+    of _day_ granularity occur.
 
 
 Justification
