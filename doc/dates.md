@@ -9,6 +9,9 @@ in a system like ivory, two things that we need to be accutely aware of are:
  * Storage has a non-trivial cost, so anything that adds significant per-fact
    storage overhead needs to be avoided.
 
+ * Processing has a non-trivial cost, so anything that adds significant per-fact
+   processing overhead needs to be avoided.
+
  * Ivory should handle data of various input qualities, and it is a common
    scenario for source data to have date level of granularity with no time
    information. We should not "make-up" information to fill in the gap if
