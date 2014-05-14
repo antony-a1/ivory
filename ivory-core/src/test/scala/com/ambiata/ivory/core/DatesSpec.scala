@@ -11,7 +11,7 @@ class DatesSpec extends Specification with ScalaCheck { def is = s2"""
 Date Parsing
 ------------
 
-  Symmetric                                       $symmetric
+  Symmetric                                       $datesymmetric
   Invalid year                                    $year
   Invalid month                                   $month
   Invalid day                                     $day
@@ -20,10 +20,27 @@ Date Parsing
   Round-trip with joda                            $joda
   Parses same as joda                             $jodaparse
 
+Date Time Parsing
+-----------------
+
+  Symmteric                                       $timesymmetric
+
+Date Time Parsing w/ Zones
+--------------------------
+
+  Symmteric                                       $zonesymmetric
+
+Generic Time Format Parsing
+---------------------------
+
+  Dates are recognized                            $parsedate
+  Date/Times are recognized                       $parsetime
+  Date/Time/Zones are recognized                  $parsezone
+  Everything else fails                           $parsefail
 
 """
 
-  def symmetric = prop((d: Date) =>
+  def datesymmetric = prop((d: Date) =>
     Dates.date(d.hyphenated) must beSome(d))
 
   def year = prop((d: Date) =>
@@ -49,4 +66,22 @@ Date Parsing
     (Dates.date("2000-02-29") must beSome(Date(2000, 2, 29))) and
     (Dates.date("2001-02-29") must beNone)
   }
+
+  def zonesymmetric =
+    pending
+
+  def timesymmetric =
+    pending
+
+  def parsedate =
+    pending
+
+  def parsetime =
+    pending
+
+  def parsezone =
+    pending
+
+  def parsefail =
+    pending
 }
