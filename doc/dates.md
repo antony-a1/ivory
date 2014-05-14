@@ -291,6 +291,31 @@ E4|A1|3|2010-03-03T14:30:00+1100
 ```
 
 
+Daylight Savings Time
+---------------------
+
+Some extra treatment for daylight savings time.
+
+Facts are stored with milliseconds since the start of the day. On
+daylight savings cross over days where an hour is _gained_ there is an
+overlap where multiple hour / minutes all map to the same "second of
+day" measure used by most date / time libraries (for example
+joda). Currently ivory handles this in the same way where "second of
+day" is computed only from the hour, minute and second - independent
+of DST related timezone offset changes.
+
+To address this we could do one of two things:
+   - annotate DST overlapped hours with an extra bit in the time field; or
+   - offset time by an additional interval to handle the gained time.
+
+However, both of these things require non-standard treament of "second
+of day" and will require code changes to ivory to handle.
+
+To be clear, at this point ivory handles "second of day" based only on
+hour, minute and second of day. But in the future further information
+may be added to provide additional mechanisms to deal with DST
+overlaps.
+
 
 Current Status
 --------------

@@ -25,8 +25,11 @@ object Time {
   def unsafe(seconds: Int): Time =
     new Time(seconds)
 
+  def isValid(seconds: Int): Boolean =
+    seconds >= 0 && seconds < (60 * 60 * 24)
+
   def create(seconds: Int): Option[Time] =
-    (seconds >= 0 && seconds < (60 * 60 * 24)).option(unsafe(seconds))
+    isValid(seconds).option(unsafe(seconds))
 
   object Macros {
     import scala.reflect.macros.Context

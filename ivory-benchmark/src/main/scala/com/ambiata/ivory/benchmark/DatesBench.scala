@@ -53,16 +53,25 @@ case class DatesBench() extends SimpleScalaBenchmark {
   def time_hand_less_bad(n: Int) =
     hand_less_alloc(n, "201x-01-01")
 
+  def time_actual_ok(n: Int) =
+    actual(n, "2012-01-01")
+
+  def time_actual_invalid(n: Int) =
+    actual(n, "2012-99-01")
+
+  def time_actual_bad(n: Int) =
+    actual(n, "201x-01-01")
+
   /*
    * The basic joda approach, note: parseLocalDate throws exceptions so the catch is required.
    */
   def joda(n: Int, s: String) = {
     val f = DateTimeFormat.forPattern("yyyy-MM-dd")
-    repeat[String \/ Date](n) {
+    repeat[Option[Date]](n) {
       try {
         val d = f.parseLocalDate(s)
-        Date.unsafe(d.getYear.toShort, d.getMonthOfYear.toByte, d.getDayOfMonth.toByte).right[String]
-      } catch { case e: Throwable => "bad".left }
+        Date.unsafe(d.getYear.toShort, d.getMonthOfYear.toByte, d.getDayOfMonth.toByte).some
+      } catch { case e: Throwable => None }
     }
   }
 
@@ -71,12 +80,12 @@ case class DatesBench() extends SimpleScalaBenchmark {
    */
   def regex(n: Int, s: String) = {
     val DateParser = """(\d\d\d\d)-(\d\d)-(\d\d)""".r
-    repeat[String \/ Date](n) {
+    repeat[Option[Date]](n) {
        s match {
          case DateParser(y, m, d) =>
-           try Date.create(y.toShort, m.toByte, d.toByte).get.right
-           catch { case e: Throwable => "bad".left }
-         case _ => "bad".left
+           try Date.create(y.toShort, m.toByte, d.toByte)
+           catch { case e: Throwable => None }
+         case _ => None
        }
     }
   }
@@ -85,26 +94,34 @@ case class DatesBench() extends SimpleScalaBenchmark {
    * A crude parser that unpacks things by hand.
    */
   def hand(n: Int, s: String) =
-    repeat[String \/ Date](n) {
+    repeat[Option[Date]](n) {
        if (s.length != 10 || s.charAt(4) != '-' || s.charAt(7) != '-')
-         "bad".left
+         None
        else try
-         Date.create(s.substring(0, 4).toShort, s.substring(5, 7).toByte, s.substring(9, 10).toByte).get.right
-       catch { case e: Throwable => "bad".left }
+         Date.create(s.substring(0, 4).toShort, s.substring(5, 7).toByte, s.substring(8, 10).toByte)
+       catch { case e: Throwable => None }
     }
 
   /*
    * A crude parser that unpacks things by hand with less allocation
    */
   def hand_less_alloc(n: Int, s: String) =
-    repeat[String \/ Date](n) {
+    repeat[Option[Date]](n) {
        if (s.length != 10 || s.charAt(4) != '-' || s.charAt(7) != '-')
-         "bad".left
+         None
        else try {
          val y = s.substring(0, 4).toShort
          val m = s.substring(5, 7).toByte
-         val d = s.substring(9, 10).toByte
-         if (Date.isValid(y, m, d)) Date.unsafe(y, m, d).right else "bad".left
-       } catch { case e: Throwable => "bad".left }
+         val d = s.substring(8, 10).toByte
+         if (Date.isValid(y, m, d)) Date.unsafe(y, m, d).some else None
+       } catch { case e: Throwable => None }
+    }
+
+  /*
+   * A crude parser that unpacks things by hand with less allocation
+   */
+  def actual(n: Int, s: String) =
+    repeat[Option[Date]](n) {
+      Dates.date(s)
     }
 }
