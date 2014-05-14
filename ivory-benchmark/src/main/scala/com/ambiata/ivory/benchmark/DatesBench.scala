@@ -56,13 +56,15 @@ case class DatesBench() extends SimpleScalaBenchmark {
   /*
    * The basic joda approach, note: parseLocalDate throws exceptions so the catch is required.
    */
-  def joda(n: Int, s: String) =
+  def joda(n: Int, s: String) = {
+    val f = DateTimeFormat.forPattern("yyyy-MM-dd")
     repeat[String \/ Date](n) {
       try {
-        val d = DateTimeFormat.forPattern("yyyy-MM-dd").parseLocalDate(s)
+        val d = f.parseLocalDate(s)
         Date.unsafe(d.getYear.toShort, d.getMonthOfYear.toByte, d.getDayOfMonth.toByte).right[String]
       } catch { case e: Throwable => "bad".left }
     }
+  }
 
   /*
    * A dumb regex approach, just to elliminate this idea from anyone stubling across the code.
