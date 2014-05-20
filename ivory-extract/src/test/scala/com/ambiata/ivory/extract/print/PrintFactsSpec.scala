@@ -1,10 +1,11 @@
-package com.ambiata.ivory.extract
+package com.ambiata.ivory.extract.print
 
 import com.nicta.scoobi.core.ScoobiConfiguration
 import com.nicta.scoobi.testing.{TempFiles, HadoopSpecification}
 import com.nicta.scoobi.testing.TestFiles._
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.extract._
 import org.apache.hadoop.fs.Path
 import org.joda.time.{LocalDate, DateTimeZone}
 import com.ambiata.mundane.testing.ResultTIOMatcher._
@@ -33,8 +34,7 @@ class PrintFactsSpec extends HadoopSpecification with SampleFacts { def is = s2"
     val buffer = new StringBuffer
     val stringBufferLogging = (s: String) => IO { buffer.append(s+"\n"); ()}
 
-    PrintFacts.print(s"$testDir/out/thrift", "out-*", delimiter = "|", tombstone = "NA").execute(stringBufferLogging).unsafePerformIO must
-     beOkResult
+    PrintFacts.printGlob(s"$testDir/out/thrift", "out-*", delim = "|", tombstone = "NA").execute(stringBufferLogging).unsafePerformIO must beOkResult
 
     buffer.toString must_==
       """|ns1|eid1|abc|2012-10-01|0:0:0

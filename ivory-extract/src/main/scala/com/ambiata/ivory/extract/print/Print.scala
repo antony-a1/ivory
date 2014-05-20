@@ -1,4 +1,4 @@
-package com.ambiata.ivory.extract
+package com.ambiata.ivory.extract.print
 
 import scalaz.stream.{Sink, io}
 import java.io.File
@@ -9,7 +9,6 @@ import org.apache.hadoop.io.{ByteWritable, SequenceFile, BytesWritable, NullWrit
 import org.apache.avro.mapred.SequenceFileReader
 import scalaz.stream.Process
 import scalaz.stream.Process.End
-import com.ambiata.ivory.core.Fact
 import com.ambiata.mundane.io.{IOActions, IOAction, Logger}
 import scalaz.std.anyVal._
 import com.ambiata.ivory.scoobi.{ScoobiAction, SeqSchemas}
@@ -18,25 +17,25 @@ import org.apache.hadoop.conf.Configuration
 import IOActions._
 import com.ambiata.ivory.alien.hdfs.Hdfs
 import com.ambiata.mundane.control.Result
+import com.nicta.scoobi.io.sequence.SeqSchema
 
 /**
  * Read a facts sequence file and print it to screen
  */
-object PrintFacts {
+object Print {
 
-  def print(path: String, glob: String, delimiter: String, tombstone: String): IOAction[Unit] = {
+  def printGlobWith[A](path: String, glob: String, schema: SeqSchema[A], printA: A => Task[Unit]): IOAction[Unit] = {
     val configuration = new Configuration
     for {
       paths <- IOActions.fromResultT(Hdfs.globFilesRecursively(new Path(path), glob).run(configuration))
-      _     <- print(paths, configuration, delimiter, tombstone)
+      _     <- printPathsWith(paths, configuration, schema, printA)
     } yield ()
   }
 
-  def print(paths: List[Path], configuration: Configuration, delimiter: String, tombstone: String): IOAction[Unit] =
-    paths.map(path => print(path, configuration, delimiter, tombstone)).sequenceU.map(_ => ())
+  def printPathsWith[A](paths: List[Path], configuration: Configuration, schema: SeqSchema[A], printA: A => Task[Unit]): IOAction[Unit] =
+    paths.map(path => printWith(path, configuration, schema, printA)).sequenceU.map(_ => ())
 
-  def print(path: Path, configuration: Configuration, delimiter: String, tombstone: String): IOAction[Unit] = IOActions.result { logger =>
-    val schema = SeqSchemas.factSeqSchema
+  def printWith[A](path: Path, configuration: Configuration, schema: SeqSchema[A], printA: A => Task[Unit]): IOAction[Unit] = IOActions.result { logger =>
     val reader = new SequenceFile.Reader(configuration, SequenceFile.Reader.file(path))
     def readValue(r: SequenceFile.Reader): schema.SeqType = {
       val bytes = new BytesWritable()
@@ -46,7 +45,7 @@ object PrintFacts {
       bytes.asInstanceOf[schema.SeqType]
     }
 
-    val console: Sink[Task, Fact] = io.channel(printFact(delimiter, tombstone, logger))
+    val console: Sink[Task, A] = io.channel(printA)
 
     val source: Process[Task, schema.SeqType] =
       io.resource(Task.delay(reader))(r => Task.delay(r.close))(
@@ -61,13 +60,5 @@ object PrintFacts {
       e => Result.fail(e.getMessage),
       u => Result.ok(u)
     )
-  }
-
-  def printFact(delimiter: String, tombstone: String, logger: Logger)(f: Fact): Task[Unit] = Task.delay {
-    val logged =
-      if (f.isTombstone) tombstone
-      else               Seq(f.namespace, f.entity, f.value.stringValue.getOrElse(""), f.date.hyphenated+delimiter+f.time.hhmmss).mkString(delimiter)
-
-    logger(logged).unsafePerformIO
   }
 }

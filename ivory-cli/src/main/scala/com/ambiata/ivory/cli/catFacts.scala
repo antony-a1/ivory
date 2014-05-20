@@ -2,9 +2,9 @@ package com.ambiata.ivory.cli
 
 import com.nicta.scoobi.Scoobi._
 import com.ambiata.mundane.io._
-import com.ambiata.ivory.extract.PrintFacts
+import com.ambiata.ivory.extract.print.PrintFacts
 
-object catFacts extends ScoobiApp {
+object catFacts extends App {
   case class CliArguments(delimiter: String = "|", tombstone: String = "NA", path: String = "")
 
   val parser = new scopt.OptionParser[CliArguments]("ivory-cat-facts") {
@@ -20,13 +20,10 @@ object catFacts extends ScoobiApp {
     opt[String]('t', "tombstone")   action { (x, c) => c.copy(tombstone = x) } optional() text "Tombstone (NA by default)"
   }
 
-  def run {
-    parser.parse(args, CliArguments()).map { c =>
-      PrintFacts.print(c.path, "out-*", c.delimiter, c.tombstone).execute(consoleLogging).unsafePerformIO.fold(
-        ok => ok,
-        err => println(err)
-      )
-    }
+  parser.parse(args, CliArguments()).map { c =>
+    PrintFacts.printGlob(c.path, "*out*", c.delimiter, c.tombstone).execute(consoleLogging).unsafePerformIO.fold(
+      ok  => ok,
+      err => println(err)
+    )
   }
-
 }
