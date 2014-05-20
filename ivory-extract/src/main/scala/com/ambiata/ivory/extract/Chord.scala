@@ -41,6 +41,8 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
     s  <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
     es <- ScoobiAction.fromHdfs(Chord.readChords(entities))
     (earliest, latest) = DateMap.bounds(es)
+    _ = println(s"Earliest date in chord file is '${earliest}'")
+    _ = println(s"Latest date in chord file is '${latest}'")
     chordPath = new Path(tmpPath, java.util.UUID.randomUUID().toString)
     _  <- ScoobiAction.fromHdfs(Chord.serialiseChords(chordPath, es))
     in <- incremental.traverseU(path => for {

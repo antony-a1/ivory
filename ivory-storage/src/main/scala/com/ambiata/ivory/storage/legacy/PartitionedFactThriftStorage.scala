@@ -19,10 +19,10 @@ import java.net.URI
 
 object PartitionFactThriftStorageV1 {
 
-  def loadScoobiWith[A : WireFormat](path: String, f: (Factset, Fact) => ParseError \/ A, from: Option[Date] = None, to: Option[Date] = None)(implicit sc: ScoobiConfiguration): DList[ParseError \/ A] = {
-    val paths = PartitionExpantion.expandGlob(path, from, to).toSeq
-    if(!paths.isEmpty)
-      valueFromSequenceFileWithPaths[ThriftFact](paths).map({ case (partition, tfact) =>
+  def loadScoobiWith[A : WireFormat](paths: List[String], f: (Factset, Fact) => ParseError \/ A, from: Option[Date] = None, to: Option[Date] = None)(implicit sc: ScoobiConfiguration): DList[ParseError \/ A] = {
+    val filtered = PartitionExpantion.filterGlob(paths, from, to).toSeq
+    if(!filtered.isEmpty)
+      valueFromSequenceFileWithPaths[ThriftFact](filtered.toSeq).map({ case (partition, tfact) =>
         for {
           p    <- Partition.parseWith(new URI(partition).toString).leftMap(ParseError.withLine(new URI(partition).toString)).disjunction
           fact  = FatThriftFact(p.namespace, p.date, tfact)
@@ -33,16 +33,16 @@ object PartitionFactThriftStorageV1 {
       DList[ParseError \/ A]()
   }
 
-  case class PartitionedFactThriftLoader(path: String, from: Option[Date] = None, to: Option[Date] = None) extends IvoryScoobiLoader[Fact] {
+  case class PartitionedFactThriftLoader(paths: List[String], from: Option[Date] = None, to: Option[Date] = None) extends IvoryScoobiLoader[Fact] {
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ Fact] =
-      loadScoobiWith(path+"/*/*/*/*/*", (_, fact) => fact.right, from, to)
+      loadScoobiWith(paths.map(_+"/*/*/*/*"), (_, fact) => fact.right, from, to)
   }
 
   case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[PrioritizedFactset], from: Option[Date] = None, to: Option[Date] = None) extends IvoryScoobiLoader[(Priority, Factset, Fact)] {
     lazy val factsetMap: Map[Factset, Priority] = factsets.map(fs => (fs.set, fs.priority)).toMap
 
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ (Priority, Factset, Fact)] = {
-      loadScoobiWith(base + "/{" + factsets.map(_.set.name).mkString(",") + "}/*/*/*/*/*", (fs, fact) =>
+      loadScoobiWith(factsets.map(base + "/" + _.set.name + "/*/*/*/*"), (fs, fact) =>
         factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(ParseError(fs.name, s"Factset '${fs}' not found in expected list '${factsets}'").left), from, to)
     }
   }
@@ -59,10 +59,10 @@ object PartitionFactThriftStorageV1 {
 
 object PartitionFactThriftStorageV2 {
 
-  def loadScoobiWith[A : WireFormat](path: String, f: (Factset, Fact) => ParseError \/ A, from: Option[Date] = None, to: Option[Date] = None)(implicit sc: ScoobiConfiguration): DList[ParseError \/ A] = {
-    val paths = PartitionExpantion.expandGlob(path, from, to).toSeq
-    if(!paths.isEmpty)
-      valueFromSequenceFileWithPaths[ThriftFact](paths).map({ case (partition, tfact) =>
+  def loadScoobiWith[A : WireFormat](paths: List[String], f: (Factset, Fact) => ParseError \/ A, from: Option[Date] = None, to: Option[Date] = None)(implicit sc: ScoobiConfiguration): DList[ParseError \/ A] = {
+    val filtered = PartitionExpantion.filterGlob(paths, from, to).toSeq
+    if(!filtered.isEmpty)
+      valueFromSequenceFileWithPaths[ThriftFact](filtered.toSeq).map({ case (partition, tfact) =>
         for {
           p    <- Partition.parseWith(new URI(partition).toString).leftMap(ParseError.withLine(new URI(partition).toString)).disjunction
           fact  = FatThriftFact(p.namespace, p.date, tfact)
@@ -73,16 +73,16 @@ object PartitionFactThriftStorageV2 {
       DList[ParseError \/ A]()
   }
 
-  case class PartitionedFactThriftLoader(path: String, from: Option[Date] = None, to: Option[Date] = None) extends IvoryScoobiLoader[Fact] {
+  case class PartitionedFactThriftLoader(paths: List[String], from: Option[Date] = None, to: Option[Date] = None) extends IvoryScoobiLoader[Fact] {
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ Fact] =
-      loadScoobiWith(path+"/*/*/*/*/*", (_, fact) => fact.right, from, to)
+      loadScoobiWith(paths.map(_+"/*/*/*/*"), (_, fact) => fact.right, from, to)
   }
 
   case class PartitionedMultiFactsetThriftLoader(base: String, factsets: List[PrioritizedFactset], from: Option[Date] = None, to: Option[Date] = None) extends IvoryScoobiLoader[(Priority, Factset, Fact)] {
     lazy val factsetMap: Map[Factset, Priority] = factsets.map(fs => (fs.set, fs.priority)).toMap
 
     def loadScoobi(implicit sc: ScoobiConfiguration): DList[ParseError \/ (Priority, Factset, Fact)] = {
-      loadScoobiWith(base + "/{" + factsets.map(_.set.name).mkString(",") + "}/*/*/*/*/*", (fs, fact) =>
+      loadScoobiWith(factsets.map(base + "/" + _.set.name + "/*/*/*/*"), (fs, fact) =>
         factsetMap.get(fs).map(pri => (pri, fs, fact).right).getOrElse(ParseError(fs.name, s"Factset '${fs}' not found in expected list '${factsets}'").left), from, to)
     }
   }
@@ -98,17 +98,17 @@ object PartitionFactThriftStorageV2 {
 }
 
 object PartitionExpantion {
-  def expandGlob(path: String, from: Option[Date], to: Option[Date])(implicit sc: ScoobiConfiguration): List[String] =
+  def filterGlob(paths: List[String], from: Option[Date], to: Option[Date])(implicit sc: ScoobiConfiguration): List[String] =
     (from, to) match {
-      case (None, None)         => List(path)
-      case (None, Some(td))     => expandGlobWith(path, p => Partitions.pathsBeforeOrEqual(p, td))
-      case (Some(fd), None)     => expandGlobWith(path, p => Partitions.pathsAfterOrEqual(p, fd))
-      case (Some(fd), Some(td)) => expandGlobWith(path, p => Partitions.pathsBetween(p, fd, td))
+      case (None, None)         => paths.map(_+"/*")
+      case (None, Some(td))     => filterGlobWith(paths, p => Partitions.pathsBeforeOrEqual(p, td))
+      case (Some(fd), None)     => filterGlobWith(paths, p => Partitions.pathsAfterOrEqual(p, fd))
+      case (Some(fd), Some(td)) => filterGlobWith(paths, p => Partitions.pathsBetween(p, fd, td))
     }
 
-  def expandGlobWith(path: String, f: List[Partition] => List[Partition])(implicit sc: ScoobiConfiguration): List[String] = (for {
-    paths      <- Hdfs.globFiles(new Path(path))
-    partitions <- paths.traverse(p => Hdfs.fromValidation(Partition.parseWith(p.toString)))
+  def filterGlobWith(paths: List[String], f: List[Partition] => List[Partition])(implicit sc: ScoobiConfiguration): List[String] = (for {
+    expanded   <- paths.traverse(p => Hdfs.globPaths(new Path(p))).map(_.flatten)
+    partitions <- expanded.traverse(p => Hdfs.fromValidation(Partition.parseWith(p.toString)))
   } yield f(partitions)).run(sc).run.unsafePerformIO() match {
     case Error(e) => sys.error(s"Could not access hdfs - ${e}")
     case Ok(glob) => glob.map(_.path)

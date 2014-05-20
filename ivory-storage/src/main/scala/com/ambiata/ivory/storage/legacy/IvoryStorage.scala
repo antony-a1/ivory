@@ -167,8 +167,8 @@ object IvoryStorage {
    * Get the loader for a given version
    */
   def factsetLoader(version: FactsetVersion, path: Path, from: Option[Date], to: Option[Date]): IvoryScoobiLoader[Fact] = version match {
-    case FactsetVersionOne => PartitionFactThriftStorageV1.PartitionedFactThriftLoader(path.toString, from, to)
-    case FactsetVersionTwo => PartitionFactThriftStorageV2.PartitionedFactThriftLoader(path.toString, from, to)
+    case FactsetVersionOne => PartitionFactThriftStorageV1.PartitionedFactThriftLoader(List(path.toString), from, to)
+    case FactsetVersionTwo => PartitionFactThriftStorageV2.PartitionedFactThriftLoader(List(path.toString), from, to)
   }
 
   def multiFactsetLoader(version: FactsetVersion, path: Path, factsets: List[PrioritizedFactset], from: Option[Date], to: Option[Date]): IvoryScoobiLoader[(Priority, Factset, Fact)] = version match {
