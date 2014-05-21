@@ -8,6 +8,7 @@ import com.ambiata.ivory.storage.repository._
 import org.apache.hadoop.fs.Path
 import org.joda.time.{LocalDate, DateTimeZone}
 import com.ambiata.mundane.testing.ResultTIOMatcher._
+import com.ambiata.mundane.testing.ResultMatcher.{beOk => beOkResult}
 import com.ambiata.mundane.io._
 import scalaz.effect.IO
 
@@ -32,7 +33,8 @@ class PrintFactsSpec extends HadoopSpecification with SampleFacts { def is = s2"
     val buffer = new StringBuffer
     val stringBufferLogging = (s: String) => IO { buffer.append(s+"\n"); ()}
 
-    PrintFacts.print(s"$testDir/out/thrift", "out-*", delimiter = "|", tombstone = "NA").execute(stringBufferLogging).unsafePerformIO
+    PrintFacts.print(s"$testDir/out/thrift", "out-*", delimiter = "|", tombstone = "NA").execute(stringBufferLogging).unsafePerformIO must
+     beOkResult
 
     buffer.toString must_==
       """|ns1|eid1|abc|2012-10-01|0:0:0

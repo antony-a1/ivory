@@ -17,6 +17,7 @@ import org.apache.hadoop.fs.{Path}
 import org.apache.hadoop.conf.Configuration
 import IOActions._
 import com.ambiata.ivory.alien.hdfs.Hdfs
+import com.ambiata.mundane.control.Result
 
 /**
  * Read a facts sequence file and print it to screen
@@ -34,7 +35,7 @@ object PrintFacts {
   def print(paths: List[Path], configuration: Configuration, delimiter: String, tombstone: String): IOAction[Unit] =
     paths.map(path => print(path, configuration, delimiter, tombstone)).sequenceU.map(_ => ())
 
-  def print(path: Path, configuration: Configuration, delimiter: String, tombstone: String): IOAction[Unit] = IOActions.reader { logger =>
+  def print(path: Path, configuration: Configuration, delimiter: String, tombstone: String): IOAction[Unit] = IOActions.result { logger =>
     val schema = SeqSchemas.factSeqSchema
     val reader = new SequenceFile.Reader(configuration, SequenceFile.Reader.file(path))
     def readValue(r: SequenceFile.Reader): schema.SeqType = {
@@ -57,8 +58,8 @@ object PrintFacts {
           .to(console)
 
     read.run.attemptRun.fold(
-      e => IOActions.fail(e.getMessage),
-      u => IOActions.ok(u)
+      e => Result.fail(e.getMessage),
+      u => Result.ok(u)
     )
   }
 
