@@ -44,7 +44,8 @@ trait WireFormats {
     }
   }
 
-  implicit def parseErrorWireFormat = new WireFormat[ParseError] {
+  /* WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
+  def parseErrorWireFormat = new WireFormat[ParseError] {
     import org.apache.thrift.protocol.TCompactProtocol
     import org.apache.thrift.{TSerializer, TDeserializer}
 

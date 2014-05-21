@@ -21,4 +21,6 @@ object FactFormats {
   implicit def PriorityWireFormat: WireFormat[Priority] =
     implicitly[WireFormat[Short]].xmap(Priority.unsafe, _.toShort)
 
+  implicit def ParseErrorWireFormat: WireFormat[ParseError] = WireFormats.parseErrorWireFormat
+  implicit def ParseErrorSeqSchema: SeqSchema[ParseError] = SeqSchemas.parseErrorSeqSchema
 }
