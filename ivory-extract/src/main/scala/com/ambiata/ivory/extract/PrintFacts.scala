@@ -37,7 +37,6 @@ object PrintFacts {
   def print(path: Path, configuration: Configuration, delimiter: String, tombstone: String): IOAction[Unit] = IOActions.reader { logger =>
     val schema = SeqSchemas.factSeqSchema
     val reader = new SequenceFile.Reader(configuration, SequenceFile.Reader.file(path))
-
     def readValue(r: SequenceFile.Reader): schema.SeqType = {
       val bytes = new BytesWritable()
       try {

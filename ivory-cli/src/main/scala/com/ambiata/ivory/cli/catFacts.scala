@@ -22,7 +22,7 @@ object catFacts extends ScoobiApp {
 
   def run {
     parser.parse(args, CliArguments()).map { c =>
-      PrintFacts.print(c.path, "**/out*", c.delimiter, c.tombstone).execute(consoleLogging).unsafePerformIO.fold(
+      PrintFacts.print(c.path, "out-*", c.delimiter, c.tombstone).execute(consoleLogging).unsafePerformIO.fold(
         ok => ok,
         err => println(err)
       )
