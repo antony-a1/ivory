@@ -48,6 +48,14 @@
   "class-name"   : "com.ambiata.ivory.cli.catFacts"
 },
 {
+  "service-name" : "cat-repo-facts",
+  "class-name"   : "com.ambiata.ivory.cli.catRepositoryFacts"
+},
+{
+  "service-name" : "cat-errors",
+  "class-name"   : "com.ambiata.ivory.cli.catErrors"
+},
+{
   "service-name" : "fact-diff",
   "class-name"   : "com.ambiata.ivory.cli.factDiff"
 },

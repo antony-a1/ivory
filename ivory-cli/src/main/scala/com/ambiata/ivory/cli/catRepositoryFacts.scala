@@ -2,14 +2,14 @@ package com.ambiata.ivory.cli
 
 import com.nicta.scoobi.Scoobi._
 import com.ambiata.mundane.io._
-import com.ambiata.ivory.extract.print.PrintFacts
+import com.ambiata.ivory.extract.print.PrintInternalFacts
 
-object catFacts extends App {
+object catRepositoryFacts extends App {
   case class CliArguments(delimiter: String = "|", tombstone: String = "NA", path: String = "")
 
-  val parser = new scopt.OptionParser[CliArguments]("ivory-cat-facts") {
+  val parser = new scopt.OptionParser[CliArguments]("ivory-cat-repo-facts") {
     head("""
-           |ivory-cat-facts [-d|--delimiter] [-t|--tombstone] GLOB_PATH_TO_FACT_SEQUENCE_FILE
+           |ivory-cat-repo-facts [-d|--delimiter] [-t|--tombstone] GLOB_PATH_TO_FACT_SEQUENCE_FILE_INSIDE_IVORY_REPOSITORY
            |Print facts as text (ENTITY-NAMESPACE-ATTRIBUTE-VALUE-DATETIME) to standard out, delimited by '|' or explicitly set delimiter.
            |The tombstone value is 'NA' by default.
            |""".stripMargin)
@@ -21,7 +21,7 @@ object catFacts extends App {
   }
 
   parser.parse(args, CliArguments()).map { c =>
-    PrintFacts.printGlob(c.path, "*out*", c.delimiter, c.tombstone).execute(consoleLogging).unsafePerformIO.fold(
+    PrintInternalFacts.printGlob(c.path, "*out*", c.delimiter, c.tombstone).execute(consoleLogging).unsafePerformIO.fold(
       ok  => ok,
       err => println(err)
     )

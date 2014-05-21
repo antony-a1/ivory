@@ -24,7 +24,7 @@ import com.nicta.scoobi.io.sequence.SeqSchema
  */
 object Print {
 
-  def printGlobWith[A](path: String, glob: String, schema: SeqSchema[A], printA: A => Task[Unit]): IOAction[Unit] = {
+  def printGlobWith[A](path: String, glob: String, schema: SeqSchema[A], printA: (Path, A) => Task[Unit]): IOAction[Unit] = {
     val configuration = new Configuration
     for {
       paths <- IOActions.fromResultT(Hdfs.globFilesRecursively(new Path(path), glob).run(configuration))
@@ -32,10 +32,10 @@ object Print {
     } yield ()
   }
 
-  def printPathsWith[A](paths: List[Path], configuration: Configuration, schema: SeqSchema[A], printA: A => Task[Unit]): IOAction[Unit] =
+  def printPathsWith[A](paths: List[Path], configuration: Configuration, schema: SeqSchema[A], printA: (Path, A) => Task[Unit]): IOAction[Unit] =
     paths.map(path => printWith(path, configuration, schema, printA)).sequenceU.map(_ => ())
 
-  def printWith[A](path: Path, configuration: Configuration, schema: SeqSchema[A], printA: A => Task[Unit]): IOAction[Unit] = IOActions.result { logger =>
+  def printWith[A](path: Path, configuration: Configuration, schema: SeqSchema[A], printA: (Path, A) => Task[Unit]): IOAction[Unit] = IOActions.result { logger =>
     val reader = new SequenceFile.Reader(configuration, SequenceFile.Reader.file(path))
     def readValue(r: SequenceFile.Reader): schema.SeqType = {
       val bytes = new BytesWritable()
@@ -45,7 +45,7 @@ object Print {
       bytes.asInstanceOf[schema.SeqType]
     }
 
-    val console: Sink[Task, A] = io.channel(printA)
+    val console: Sink[Task, A] = io.channel(a => printA(path, a))
 
     val source: Process[Task, schema.SeqType] =
       io.resource(Task.delay(reader))(r => Task.delay(r.close))(

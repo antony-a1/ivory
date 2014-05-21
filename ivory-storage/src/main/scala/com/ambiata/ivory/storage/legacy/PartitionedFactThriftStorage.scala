@@ -19,16 +19,19 @@ import java.net.URI
 
 object PartitionFactThriftStorageV1 {
 
+  def parseFact(partition: String, tfact: ThriftFact): ParseError \/ Fact =
+    parseFactWith(partition, tfact, (_, f) => f.right)
+
+  def parseFactWith[A](partition: String, tfact: ThriftFact, f: (Factset, Fact) => ParseError \/ A): ParseError \/ A = for {
+    p    <- Partition.parseWith(new URI(partition).toString).leftMap(ParseError.withLine(new URI(partition).toString)).disjunction
+    fact  = FatThriftFact(p.namespace, p.date, tfact)
+    a    <- f(p.factset, fact)
+  } yield a
+
   def loadScoobiWith[A : WireFormat](paths: List[String], f: (Factset, Fact) => ParseError \/ A, from: Option[Date] = None, to: Option[Date] = None)(implicit sc: ScoobiConfiguration): DList[ParseError \/ A] = {
     val filtered = PartitionExpantion.filterGlob(paths, from, to).toSeq
     if(!filtered.isEmpty)
-      valueFromSequenceFileWithPaths[ThriftFact](filtered.toSeq).map({ case (partition, tfact) =>
-        for {
-          p    <- Partition.parseWith(new URI(partition).toString).leftMap(ParseError.withLine(new URI(partition).toString)).disjunction
-          fact  = FatThriftFact(p.namespace, p.date, tfact)
-          a    <- f(p.factset, fact)
-        } yield a
-      })
+      valueFromSequenceFileWithPaths[ThriftFact](filtered.toSeq).map({ case (partition, tfact) => parseFactWith(partition, tfact, f) })
     else
       DList[ParseError \/ A]()
   }
@@ -59,16 +62,19 @@ object PartitionFactThriftStorageV1 {
 
 object PartitionFactThriftStorageV2 {
 
+  def parseFact(partition: String, tfact: ThriftFact): ParseError \/ Fact =
+    parseFactWith(partition, tfact, (_, f) => f.right)
+
+  def parseFactWith[A](partition: String, tfact: ThriftFact, f: (Factset, Fact) => ParseError \/ A): ParseError \/ A = for {
+    p    <- Partition.parseWith(new URI(partition).toString).leftMap(ParseError.withLine(new URI(partition).toString)).disjunction
+    fact  = FatThriftFact(p.namespace, p.date, tfact)
+    a    <- f(p.factset, fact)
+  } yield a
+
   def loadScoobiWith[A : WireFormat](paths: List[String], f: (Factset, Fact) => ParseError \/ A, from: Option[Date] = None, to: Option[Date] = None)(implicit sc: ScoobiConfiguration): DList[ParseError \/ A] = {
     val filtered = PartitionExpantion.filterGlob(paths, from, to).toSeq
     if(!filtered.isEmpty)
-      valueFromSequenceFileWithPaths[ThriftFact](filtered.toSeq).map({ case (partition, tfact) =>
-        for {
-          p    <- Partition.parseWith(new URI(partition).toString).leftMap(ParseError.withLine(new URI(partition).toString)).disjunction
-          fact  = FatThriftFact(p.namespace, p.date, tfact)
-          a    <- f(p.factset, fact)
-        } yield a
-      })
+      valueFromSequenceFileWithPaths[ThriftFact](filtered.toSeq).map({ case (partition, tfact) => parseFactWith(partition, tfact, f) })
     else
       DList[ParseError \/ A]()
   }

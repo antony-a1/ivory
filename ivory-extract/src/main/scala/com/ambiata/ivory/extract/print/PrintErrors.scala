@@ -30,7 +30,7 @@ object PrintErrors {
     _ <- Print.printWith(path, config, SeqSchemas.parseErrorSeqSchema, printParseError(delim, l))
   } yield ()
 
-  def printParseError(delim: String, logger: Logger)(p: ParseError): Task[Unit] = Task.delay {
+  def printParseError(delim: String, logger: Logger)(path: Path, p: ParseError): Task[Unit] = Task.delay {
     val logged = Seq(p.line, p.message).mkString(delim)
     logger(logged).unsafePerformIO
   }

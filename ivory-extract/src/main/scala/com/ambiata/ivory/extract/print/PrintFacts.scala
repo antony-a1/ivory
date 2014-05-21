@@ -38,10 +38,13 @@ object PrintFacts {
     _ <- Print.printWith(path, config, SeqSchemas.factSeqSchema, printFact(delim, tombstone, l))
   } yield ()
 
-  def printFact(delim: String, tombstone: String, logger: Logger)(f: Fact): Task[Unit] = Task.delay {
+  def printFact(delim: String, tombstone: String, logger: Logger)(path: Path, f: Fact): Task[Unit] = Task.delay {
     val logged =
-      if (f.isTombstone) tombstone
-      else               Seq(f.namespace, f.entity, f.value.stringValue.getOrElse(""), f.date.hyphenated+delim+f.time.hhmmss).mkString(delim)
+      Seq(f.entity,
+          f.namespace,
+          f.feature,
+          if(f.isTombstone) tombstone else f.value.stringValue.getOrElse(""),
+          f.date.hyphenated+delim+f.time.hhmmss).mkString(delim)
 
     logger(logged).unsafePerformIO
   }

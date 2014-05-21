@@ -11,7 +11,7 @@ case class ParseError(line: String, message: String) {
   def appendToMessage(msg: String) = copy(message = message + msg)
 }
 
-
 object ParseError {
   def withLine(line: String) = (msg: String) => ParseError(line, msg)
+  def fromThrift(t: ThriftParseError): ParseError = ParseError(t.line, t.message)
 }

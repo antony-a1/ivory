@@ -62,7 +62,7 @@ trait WireFormats {
       in.readFully(bytes)
       val e = new ThriftParseError()
       deserialiser.deserialize(e, bytes)
-      ParseError(e.line, e.message)
+      ParseError.fromThrift(e)
     }
 
   }

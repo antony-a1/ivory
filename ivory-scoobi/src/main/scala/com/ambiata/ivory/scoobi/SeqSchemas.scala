@@ -32,10 +32,8 @@ object SeqSchemas {
     def empty = new ThriftParseError
     val serialiser = ThriftSerialiser()
     def toWritable(x: ParseError) = new BytesWritable(serialiser.toBytes(x.toThrift))
-    def fromWritable(x: BytesWritable): ParseError = {
-      val asThrift = serialiser.fromBytes1(() => empty, x.getBytes)
-      ParseError(asThrift.line, asThrift.message)
-    }
+    def fromWritable(x: BytesWritable): ParseError =
+      ParseError.fromThrift(serialiser.fromBytes1(() => empty, x.getBytes))
 
     val mf: Manifest[SeqType] = implicitly
   }
