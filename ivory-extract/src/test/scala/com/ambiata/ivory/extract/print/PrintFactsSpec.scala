@@ -34,7 +34,7 @@ class PrintFactsSpec extends HadoopSpecification with SampleFacts { def is = s2"
     val buffer = new StringBuffer
     val stringBufferLogging = (s: String) => IO { buffer.append(s+"\n"); ()}
 
-    PrintFacts.printGlob(s"$testDir/out/thrift", "out-*", delim = "|", tombstone = "NA").execute(stringBufferLogging).unsafePerformIO must beOkResult
+    PrintFacts.printGlob(repo.snapshots.toHdfs.toString + "/00000000", "out-*", delim = "|", tombstone = "NA").execute(stringBufferLogging).unsafePerformIO must beOkResult
 
     buffer.toString must_==
       """|eid1|ns1|fid1|abc|2012-10-01|0:0:0
