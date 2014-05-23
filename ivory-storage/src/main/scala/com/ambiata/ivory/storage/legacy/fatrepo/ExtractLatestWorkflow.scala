@@ -75,6 +75,7 @@ object ExtractLatestWorkflow {
     Hdfs.globPaths(base).map(_.flatMap(p => Identifier.parse(p.getName)).sorted(Identifier.IdentifierOrdering.reverse).headOption)
 
   def outputDirectory(repo: HdfsRepository): Hdfs[Path] = for {
+    _ <- Hdfs.mkdir(repo.snapshots.toHdfs)
     _ <- Hdfs.value(logger.info(s"Finding snapshot output dir in '${repo.root.path}' repository."))
     l <- latestIdentifier(repo.snapshots.toHdfs)
     _  = logger.info(s"Latest snapshot output id is '${l}'")
