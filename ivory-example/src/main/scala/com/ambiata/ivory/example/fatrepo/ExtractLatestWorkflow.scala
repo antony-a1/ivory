@@ -29,12 +29,12 @@ object ExtractLatestWorkflow {
 
   private implicit val logger = LogFactory.getLog("ivory.example.fatrepo.ExtractLatestWorkflow")
 
-  def onHdfs(repoPath: Path, outputPath: Path, errorPath: Path, date: LocalDate): ScoobiAction[(String, String)] =
-    fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(outputPath, errorPath), date)
+  def onHdfs(repoPath: Path, outputPath: Path, errorPath: Path, date: LocalDate): ScoobiAction[(String, String, Path)] =
+    fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(errorPath), date, false)
 
-  def extractLatest(outputPath: Path, errorPath: Path)(repo: HdfsRepository, store: String, dictName: String, date: LocalDate): ScoobiAction[Unit] = for {
+  def extractLatest(errorPath: Path)(repo: HdfsRepository, store: String, dictName: String, date: LocalDate, outputPath: Path, incremental: Boolean): ScoobiAction[Unit] = for {
     _ <- ScoobiAction.value(logger.info(s"Extracting latest features from '${date.toString("yyyy-MM-dd")}' using the store '${store}' and dictionary '${dictName}', from the '${repo.root}' repository. Output '${outputPath}'. Errors '${errorPath}'"))
-    _ <- HdfsSnapshot(repo.root.toHdfs, store, dictName, None, date, outputPath, errorPath, None).run
+    _ <- HdfsSnapshot(repo.root.toHdfs, store, dictName, None, date, outputPath, errorPath, incremental).run
     _ <- storeInFormat(new Path(outputPath, "thrift"), new Path(outputPath, "eavt"), new Path(errorPath, "snapshot"))
     _  = logger.info(s"Successfully extracted latest features to '${outputPath}'")
   } yield ()

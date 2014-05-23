@@ -21,27 +21,26 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
 
-case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: LocalDate, outputPath: Path, errorPath: Path, incremental: Option[Path]) {
+case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: LocalDate, outputPath: Path, errorPath: Path, incremental: Boolean) {
   import IvoryStorage._
 
   lazy val snapshotDate = Date.fromLocalDate(snapshot)
 
-  lazy val factsOutputPath = new Path(outputPath, "thrift")
-
   def run: ScoobiAction[Unit] = for {
-    r  <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
-    d  <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dictName))
-    s  <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
-    es <- ScoobiAction.fromHdfs(entities.traverseU(e => Hdfs.readLines(e)))
-    in <- incremental.traverseU(path => for {
-      sm <- ScoobiAction.fromHdfs(SnapshotMeta.fromHdfs(new Path(path, ".snapmeta")))
-      _   = println(s"Previous store was '${sm.store}'")
-      _   = println(s"Previous date was '${sm.date.string("-")}'")
-      s  <- ScoobiAction.fromHdfs(storeFromIvory(r, sm.store))
-    } yield (path, s, sm))
-    _  <- scoobiJob(r, d, s, es.map(_.toSet), in)
-    _  <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextStorer(new Path(outputPath, "dictionary")).store(d))
-    _  <- ScoobiAction.fromHdfs(SnapshotMeta(snapshotDate, store).toHdfs(new Path(factsOutputPath, ".snapmeta")))
+    r    <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
+    d    <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dictName))
+    s    <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
+    es   <- ScoobiAction.fromHdfs(entities.traverseU(e => Hdfs.readLines(e)))
+    incr <- ScoobiAction.fromHdfs(if(incremental) HdfsSnapshot.latestIncremental(r, snapshotDate) else Hdfs.ok(None))
+    in   <- incr.traverseU(path => for {
+        sm <- ScoobiAction.fromHdfs(SnapshotMeta.fromHdfs(new Path(path, SnapshotMeta.fname)))
+        _   = println(s"Previous store was '${sm.store}'")
+        _   = println(s"Previous date was '${sm.date.string("-")}'")
+        s  <- ScoobiAction.fromHdfs(storeFromIvory(r, sm.store))
+      } yield (path, s, sm))
+    _    <- scoobiJob(r, d, s, es.map(_.toSet), in)
+    _    <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextStorer(new Path(outputPath, ".dictionary")).store(d))
+    _    <- ScoobiAction.fromHdfs(SnapshotMeta(snapshotDate, store).toHdfs(new Path(outputPath, SnapshotMeta.fname)))
   } yield ()
 
   def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Option[Set[String]], incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ScoobiAction[Unit] =
@@ -81,7 +80,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
           case \/-(v) => v
         })
 
-        persist(validated.valueToSequenceFile(factsOutputPath.toString, overwrite = true).compressWith(new SnappyCodec))
+        persist(validated.valueToSequenceFile(outputPath.toString, overwrite = true).compressWith(new SnappyCodec))
 
         ()
       })
@@ -92,10 +91,10 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
 object HdfsSnapshot {
   val SnapshotName: String = "ivory-incremental-snapshot"
 
-  def takeSnapshot(repo: Path, output: Path, errors: Path, date: LocalDate, incremental: Option[Path]): ScoobiAction[(String, String)] =
-    fatrepo.ExtractLatestWorkflow.onHdfs(repo, extractLatest(output, errors, incremental), date)
+  def takeSnapshot(repoPath: Path, errors: Path, date: LocalDate, incremental: Boolean): ScoobiAction[(String, String, Path)] =
+    fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(errors), date, incremental)
 
-  def extractLatest(outputPath: Path, errorPath: Path, incremental: Option[Path])(repo: HdfsRepository, store: String, dictName: String, date: LocalDate): ScoobiAction[Unit] = for {
+  def extractLatest(errorPath: Path)(repo: HdfsRepository, store: String, dictName: String, date: LocalDate, outputPath: Path, incremental: Boolean): ScoobiAction[Unit] = for {
     d  <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dictName))
     _  <- HdfsSnapshot(repo.root.toHdfs, store, dictName, None, date, outputPath, errorPath, incremental).run
   } yield ()
@@ -112,6 +111,15 @@ object HdfsSnapshot {
       } yield o ++ n ++ valueFromSequenceFile[Fact](p.toString).map(fact => (Priority.Max, Factset(SnapshotName), fact).right[ParseError])
     }
   }
+
+  def latestIncremental(repo: HdfsRepository, date: Date): Hdfs[Option[Path]] = for {
+    paths <- Hdfs.globPaths(repo.snapshots.toHdfs)
+    metas <- paths.traverse(p => {
+      val snapmeta = new Path(p, SnapshotMeta.fname)
+      Hdfs.exists(snapmeta).flatMap(e =>
+        if(e) SnapshotMeta.fromHdfs(snapmeta).map[Option[(Path, SnapshotMeta)]](sm => Some((p, sm))) else Hdfs.value(None))
+    }).map(_.flatten)
+  } yield metas.filter(_._2.date.isBeforeOrEqual(date)).sortBy(_._2.date).map(_._1).lastOption
 }
 
 case class SnapshotMeta(date: Date, store: String) {
@@ -124,6 +132,8 @@ case class SnapshotMeta(date: Date, store: String) {
 }
 
 object SnapshotMeta {
+
+  val fname = ".snapmeta"
 
   def fromHdfs(path: Path): Hdfs[SnapshotMeta] = for {
     raw <- Hdfs.readWith(path, is => Streams.read(is))

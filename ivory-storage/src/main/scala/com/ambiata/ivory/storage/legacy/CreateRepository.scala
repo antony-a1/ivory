@@ -16,12 +16,16 @@ object CreateRepository {
     val dict = new Path(meta, "dictionaries")
     val store = new Path(meta, "stores")
     val factsets = new Path(path, "factsets")
+    val errors = new Path(path, "errors")
+    val snapshots = new Path(path, "snapshots")
     for {
       e <- Hdfs.exists(path)
       r <- if(e) Hdfs.ok(false) else for {
         _ <- Hdfs.mkdir(dict)
         _ <- Hdfs.mkdir(store)
         _ <- Hdfs.mkdir(factsets)
+        _ <- Hdfs.mkdir(errors)
+        _ <- Hdfs.mkdir(snapshots)
       } yield true
     } yield r
   }

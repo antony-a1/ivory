@@ -161,7 +161,7 @@ object build extends Build {
       name := "ivory-storage"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.saws)
   )
-  .dependsOn(core, scoobi, alien_hdfs, core % "test->test")
+  .dependsOn(core, data, scoobi, alien_hdfs, core % "test->test")
 
   lazy val validate = Project(
     id = "validate"

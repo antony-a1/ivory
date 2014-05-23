@@ -28,7 +28,7 @@ class PrintFactsSpec extends HadoopSpecification with SampleFacts { def is = s2"
     createFacts(repo)
 
     val testDir = "target/"+getClass.getSimpleName+"/"
-    val snapshot1 = HdfsSnapshot.takeSnapshot(repo.root.toHdfs, new Path(s"$testDir/out"), new Path(s"testDir/errors"), LocalDate.now, None)
+    val snapshot1 = HdfsSnapshot.takeSnapshot(repo.root.toHdfs, new Path(s"testDir/errors"), LocalDate.now, false)
     snapshot1.run(sc) must beOk
 
     val buffer = new StringBuffer

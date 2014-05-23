@@ -44,6 +44,9 @@ class Date private(val underlying: Int) extends AnyVal {
 
   override def toString: String =
     s"Date($year,$month,$day)"
+
+  def order(d: Date): Ordering =
+    underlying ?|? d.underlying
 }
 
 
@@ -113,6 +116,11 @@ object Date {
     } yield result
   }
 
+  implicit def DateOrder: Order[Date] =
+    Order.order(_ order _)
+
+  implicit def DateOrdering =
+    DateOrder.toScalaOrdering
 
   /**
    * This is not epoch! It will take a long which was created from Date.addSeconds and

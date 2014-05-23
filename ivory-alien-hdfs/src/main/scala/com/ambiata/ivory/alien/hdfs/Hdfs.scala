@@ -2,8 +2,9 @@ package com.ambiata.ivory.alien.hdfs
 
 import scalaz._, Scalaz._, \&/._, effect._, Effect._
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileSystem, FileUtil, Path}
+import org.apache.hadoop.fs.{FileSystem, FileUtil, FileContext, Path}
 import java.io._
+import java.util.UUID
 
 import com.ambiata.mundane.control._
 import com.ambiata.mundane.io.Streams
@@ -58,6 +59,9 @@ object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
 
   def filesystem: Hdfs[FileSystem] =
     Hdfs(reader((c: Configuration) => FileSystem.get(c)))
+
+  def filecontext: Hdfs[FileContext] =
+    Hdfs(reader((c: Configuration) => FileContext.getFileContext(c)))
 
   def configuration: Hdfs[Configuration] =
     Hdfs(reader(identity))
@@ -138,6 +142,34 @@ object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
 
   def mkdir(p: Path): Hdfs[Boolean] =
     filesystem.map(fs => fs.mkdirs(p))
+
+  /**
+   * Create a new dir, and if it fails, retry with a new name. This should be atomic
+   *
+   * Steps:
+   * 1. Create a tmp base dir under /tmp/UUID.randomUUID
+   * 2. Create the parent destination dir if it doesn't exist
+   * 3. In a loop:
+   *   1. Create a new dir under the tmp dir with the name of the destination dir
+   *   2. Try moving the new dir to the parent destination dir (using FileSystem.rename)
+   *   3. If the move fails, get the next name and try again
+   */
+  def mkdirWithRetry(p: Path, nextName: String => Option[String]): Hdfs[Option[Path]] =
+    filesystem.map(fs => {
+      val tmp = new Path("/tmp", UUID.randomUUID.toString)
+      fs.mkdirs(tmp)
+      val parent = p.getParent
+      fs.mkdirs(parent)
+      val names = Stream.iterate[Option[String]](Some(p.getName))(_.flatMap(nextName))
+      names.dropWhile({
+        case None    => false
+        case Some(n) =>
+          val tp = new Path(tmp, n)
+          try { !fs.mkdirs(tp) || !fs.rename(tp, parent) }
+          // hack to catch local mode inconsistency
+          catch { case ioe: IOException => if(ioe.getMessage.startsWith("Target") && ioe.getMessage.endsWith("is a directory")) true else throw ioe }
+      }).headOption.flatten.map(n => new Path(parent, n))
+    })
 
   def delete(p: Path): Hdfs[Unit] =
     filesystem.map(fs => fs.delete(p, false))

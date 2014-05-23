@@ -19,6 +19,7 @@ sealed trait Repository {
   def root: FilePath
   def errors: FilePath = root </> "errors"
   def factsets: FilePath = root </> "factsets"
+  def snapshots: FilePath = root </> "snapshots"
   def metadata: FilePath = root </> "metadata"
   def dictionaries: FilePath = metadata </> "dictionaries"
   def stores: FilePath = metadata </> "stores"
@@ -52,6 +53,7 @@ object Repository {
   def root: FilePath = FilePath.root
   def errors: FilePath = root </> "errors"
   def factsets: FilePath = root </> "factsets"
+  def snapshots: FilePath = root </> "snapshots"
   def metadata: FilePath = root </> "metadata"
   def dictionaries: FilePath = metadata </> "dictionaries"
   def stores: FilePath = metadata </> "stores"

@@ -19,7 +19,7 @@ import scalaz.{DList => _, _}, Scalaz._
 
 object snapshot extends ScoobiApp {
 
-  case class CliArguments(repo: String, output: String, date: LocalDate, incremental: Option[String])
+  case class CliArguments(repo: String, date: LocalDate, incremental: Boolean)
 
   val parser = new scopt.OptionParser[CliArguments]("snapshot") {
     head("""
@@ -30,16 +30,15 @@ object snapshot extends ScoobiApp {
          |""".stripMargin)
 
     help("help") text "shows this usage text"
-    opt[String]('r', "repo")        action { (x, c) => c.copy(repo = x) }   required() text "Path to an ivory repository."
-    opt[String]('o', "output")      action { (x, c) => c.copy(output = x) } required() text "Path to store snapshot."
-    opt[String]('i', "incremental") action { (x, c) => c.copy(incremental = Some(x)) } text "Path to a snapshot to add in. Path must contain a .snapmeta file."
-    opt[Calendar]('d', "date")      action { (x, c) => c.copy(date = LocalDate.fromCalendarFields(x)) } text
+    opt[String]('r', "repo")    action { (x, c) => c.copy(repo = x) }   required() text "Path to an ivory repository."
+    opt[Unit]("no-incremental") action { (x, c) => c.copy(incremental = false) }   text "Flag to turn off incremental mode"
+    opt[Calendar]('d', "date")  action { (x, c) => c.copy(date = LocalDate.fromCalendarFields(x)) } text
       s"Optional date to take snapshot from, default is now."
   }
 
   def run {
     val runId = UUID.randomUUID
-    parser.parse(args, CliArguments("", "", LocalDate.now(), None)).map(c => {
+    parser.parse(args, CliArguments("", LocalDate.now(), true)).map(c => {
       val errors = s"${c.repo}/errors/snapshot/${runId}"
       val banner = s"""======================= snapshot =======================
                       |
@@ -48,13 +47,12 @@ object snapshot extends ScoobiApp {
                       |  Run ID                  : ${runId}
                       |  Ivory Repository        : ${c.repo}
                       |  Extract At Date         : ${c.date.toString("yyyy/MM/dd")}
-                      |  Output Path             : ${c.output}
                       |  Errors                  : ${errors}
-                      |  Incremental             : ${c.incremental.getOrElse("")}
+                      |  Incremental             : ${c.incremental}
                       |
                       |""".stripMargin
       println(banner)
-      val res = HdfsSnapshot.takeSnapshot(new Path(c.repo), new Path(c.output), new Path(errors), c.date, c.incremental.map(i => new Path(i)))
+      val res = HdfsSnapshot.takeSnapshot(new Path(c.repo), new Path(errors), c.date, c.incremental)
       res.run(configuration <| { c =>
         // MR1
         c.set("mapred.compress.map.output", "true")
@@ -64,8 +62,9 @@ object snapshot extends ScoobiApp {
         c.set("mapreduce.map.output.compress", "true")
         c.set("mapred.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec")
       }).run.unsafePerformIO() match {
-        case Ok(_) =>
+        case Ok((_, _, out)) =>
           println(banner)
+          println(s"Output path: $out")
           println("Status -- SUCCESS")
         case Error(e) =>
           println(s"Failed! - ${e}")

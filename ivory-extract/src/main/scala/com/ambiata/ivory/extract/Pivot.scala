@@ -35,7 +35,7 @@ object Pivot {
 
   def scoobiJob(input: Path, storer: DenseRowTextStorageV1.DenseRowTextStorer, errorPath: Path): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob { implicit sc: ScoobiConfiguration =>
-      val facts = valueFromSequenceFile[Fact](input.toString+"/thrift")
+      val facts = valueFromSequenceFile[Fact](input.toString)
       persist(storer.storeScoobi(facts))
     }
 }
