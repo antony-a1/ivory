@@ -7,6 +7,7 @@ import com.ambiata.ivory.extract._
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.alien.hdfs._
 
 import com.nicta.scoobi.Scoobi._
 
@@ -17,7 +18,17 @@ import scalaz.{DList => _, _}, Scalaz._
 
 object chord extends ScoobiApp {
 
-  case class CliArguments(repo: String, output: String, tmp: String, errors: String, entities: String, incremental: Option[String])
+  case class CliArguments(repo: String, output: String, tmp: String, errors: String, entities: String, pivot: Boolean, delim: Char, tombstone: String)
+
+  implicit val charRead: scopt.Read[Char] =
+    scopt.Read.reads(str => {
+      val chars = str.toCharArray
+      chars.length match {
+        case 0 => throw new IllegalArgumentException(s"'${str}' can not be empty!")
+        case 1 => chars(0)
+        case l => throw new IllegalArgumentException(s"'${str}' is not a char!")
+      }
+    })
 
   val parser = new scopt.OptionParser[CliArguments]("chord") {
     head("""
@@ -27,17 +38,19 @@ object chord extends ScoobiApp {
          |""".stripMargin)
 
     help("help") text "shows this usage text"
-    opt[String]('r', "repo")        action { (x, c) => c.copy(repo = x) }     required() text "Path to an ivory repository."
-    opt[String]('o', "output")      action { (x, c) => c.copy(output = x) }   required() text "Path to store snapshot."
-    opt[String]('t', "tmp")         action { (x, c) => c.copy(tmp = x) }      required() text "Path to store tmp data."
-    opt[String]('e', "errors")      action { (x, c) => c.copy(errors = x) }   required() text "Path to store any errors."
-    opt[String]('i', "incremental") action { (x, c) => c.copy(incremental = Some(x)) }   text "Path to incremental snapshot."
-    opt[String]('c', "entities")    action { (x, c) => c.copy(entities = x) } required() text "Path to file containing entity/date pairs (eid|yyyy-MM-dd)."
+    opt[String]('r', "repo")     action { (x, c) => c.copy(repo = x) }      required() text "Path to an ivory repository."
+    opt[String]('o', "output")   action { (x, c) => c.copy(output = x) }    required() text "Path to store snapshot."
+    opt[String]('t', "tmp")      action { (x, c) => c.copy(tmp = x) }       required() text "Path to store tmp data."
+    opt[String]('e', "errors")   action { (x, c) => c.copy(errors = x) }    required() text "Path to store any errors."
+    opt[String]('c', "entities") action { (x, c) => c.copy(entities = x) }  required() text "Path to file containing entity/date pairs (eid|yyyy-MM-dd)."
+    opt[Unit]("pivot")           action { (x, c) => c.copy(pivot = true) }             text "Pivot the output data."
+    opt[Char]("delim")           action { (x, c) => c.copy(delim = x) }                text "Delimiter for pivot file, default '|'."
+    opt[String]("tombstone")     action { (x, c) => c.copy(tombstone = x) }            text "Tombstone for pivot file, default 'NA'."
   }
 
   def run {
-    parser.parse(args, CliArguments("", "", "", "", "", None)).map(c => {
-      val res = onHdfs(new Path(c.repo), new Path(c.output), new Path(c.tmp), new Path(c.errors), new Path(c.entities), c.incremental.map(p => new Path(p)))
+    parser.parse(args, CliArguments("", "", "", "", "", false, '|', "NA")).map(c => {
+      val res = onHdfs(new Path(c.repo), new Path(c.output), new Path(c.tmp), new Path(c.errors), new Path(c.entities), c.pivot, c.delim, c.tombstone)
       res.run(configuration).run.unsafePerformIO() match {
         case Ok(_)    => println(s"Successfully extracted chord from '${c.repo}' and stored in '${c.output}'")
         case Error(e) => println(s"Failed! - ${e}")
@@ -45,11 +58,13 @@ object chord extends ScoobiApp {
     })
   }
 
-  def onHdfs(repo: Path, output: Path, tmp: Path, errors: Path, entities: Path, incremental: Option[Path]): ScoobiAction[(String, String)] =
-    fatrepo.ExtractChordWorkflow.onHdfs(repo, extractChord(entities, output, tmp, errors, incremental))
-
-  def extractChord(entities: Path, outputPath: Path, tmpPath: Path, errorPath: Path, incremental: Option[Path])(repo: HdfsRepository, store: String, dictName: String): ScoobiAction[Unit] = for {
-    d  <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dictName))
-    _  <- Chord.onHdfs(repo.root.toHdfs, store, dictName, entities, outputPath, tmpPath, errorPath, incremental)
+  def onHdfs(repoPath: Path, outputPath: Path, tmpPath: Path, errorPath: Path, entitiesPath: Path, pivot: Boolean, delim: Char, tombstone: String): ScoobiAction[Unit] = for {
+    tout <- ScoobiAction.value(new Path(outputPath, "thrift"))
+    dout <- ScoobiAction.value(new Path(outputPath, "dense"))
+    _    <- Chord.onHdfs(repoPath, entitiesPath, tout, new Path(tmpPath, "chord"), new Path(errorPath, "chord"))
+    _    <- if(pivot) {
+              println("Pivoting extracted chord in '${tout}' to '${dout}'")
+              Pivot.onHdfs(tout, dout, new Path(errorPath, "dense"), new Path(tout, ".dictionary"), delim, tombstone)
+            } else ScoobiAction.ok(())
   } yield ()
 }

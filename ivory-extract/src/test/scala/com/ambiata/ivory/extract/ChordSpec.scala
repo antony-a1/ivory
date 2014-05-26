@@ -34,9 +34,9 @@ class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers wi
     createFacts(repo)
 
     val outPath = new Path(directory+"/out")
-    Chord.onHdfs(repo.root.toHdfs, "store1", "dict1", new Path(directory+"/entities"), outPath, new Path(directory+"/tmp"), new Path(directory+"/err"), None).run(sc) must beOk
+    Chord.onHdfs(repo.root.toHdfs, new Path(directory+"/entities"), outPath, new Path(directory+"/tmp"), new Path(directory+"/err")).run(sc) must beOk
 
-    valueFromSequenceFile[Fact](new Path(outPath, "thrift").toString).run.toList must containTheSameElementsAs(List(
+    valueFromSequenceFile[Fact](outPath.toString).run.toList must containTheSameElementsAs(List(
       StringFact("eid1:2012-09-15", FeatureId("ns1", "fid1"), Date(2012, 9, 1), Time(0), "def"),
       StringFact("eid1:2012-11-01", FeatureId("ns1", "fid1"), Date(2012, 10, 1), Time(0), "abc"),
       IntFact("eid2:2012-12-01", FeatureId("ns1", "fid2"), Date(2012, 11, 1), Time(0), 11)))

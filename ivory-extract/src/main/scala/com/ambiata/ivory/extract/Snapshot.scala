@@ -92,10 +92,8 @@ object HdfsSnapshot {
   def takeSnapshot(repoPath: Path, errors: Path, date: Date, incremental: Boolean): ScoobiAction[(String, String, Path)] =
     fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(errors), date, incremental)
 
-  def extractLatest(errorPath: Path)(repo: HdfsRepository, store: String, dictName: String, date: Date, outputPath: Path, incremental: Option[(Path, SnapshotMeta)]): ScoobiAction[Unit] = for {
-    d  <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dictName))
-    _  <- HdfsSnapshot(repo.root.toHdfs, store, dictName, None, date, outputPath, errorPath, incremental).run
-  } yield ()
+  def extractLatest(errorPath: Path)(repo: HdfsRepository, store: String, dictName: String, date: Date, outputPath: Path, incremental: Option[(Path, SnapshotMeta)]): ScoobiAction[Unit] =
+    HdfsSnapshot(repo.root.toHdfs, store, dictName, None, date, outputPath, errorPath, incremental).run
 
   def readFacts(repo: HdfsRepository, store: FeatureStore, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] = {
     import IvoryStorage._

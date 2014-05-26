@@ -20,7 +20,7 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
 
-case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: Path, outputPath: Path, tmpPath: Path, errorPath: Path, incremental: Option[Path]) {
+case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: HashMap[String, Array[Int]], outputPath: Path, tmpPath: Path, errorPath: Path, incremental: Option[Path]) {
   import IvoryStorage._
 
   type PackedDate = Int
@@ -32,19 +32,15 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
   implicit val ord: Order[(Fact, Priority)] = Order.orderBy { case (f, p) => (-f.datetime.long, p) }
 
   val ChordName: String = "ivory-incremental-chord"
-  lazy val factsOutputPath = new Path(outputPath, "thrift")
 
   def run: ScoobiAction[Unit] = for {
     c  <- ScoobiAction.scoobiConfiguration
     r  <- ScoobiAction.value(Repository.fromHdfsPath(repoPath.toString.toFilePath, c))
     d  <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dictName))
     s  <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
-    es <- ScoobiAction.fromHdfs(Chord.readChords(entities))
-    (earliest, latest) = DateMap.bounds(es)
-    _ = println(s"Earliest date in chord file is '${earliest}'")
-    _ = println(s"Latest date in chord file is '${latest}'")
+    (earliest, latest) = DateMap.bounds(entities)
     chordPath = new Path(tmpPath, java.util.UUID.randomUUID().toString)
-    _  <- ScoobiAction.fromHdfs(Chord.serialiseChords(chordPath, es))
+    _  <- ScoobiAction.fromHdfs(Chord.serialiseChords(chordPath, entities))
     in <- incremental.traverseU(path => for {
       sm <- ScoobiAction.fromHdfs(SnapshotMeta.fromHdfs(new Path(path, ".snapmeta")))
       _   = println(s"Snapshot store was '${sm.store}'")
@@ -52,7 +48,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
       s  <- ScoobiAction.fromHdfs(storeFromIvory(r, sm.store))
     } yield (path, s, sm))
     _  <- scoobiJob(r, d, s, chordPath, latest, validateIncr(earliest, in))
-    _  <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextStorer(new Path(outputPath, "dictionary")).store(d))
+    _  <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextStorer(new Path(outputPath, ".dictionary")).store(d))
   } yield ()
 
   def validateIncr(earliest: Date, in: Option[(Path, FeatureStore, SnapshotMeta)]): Option[(Path, FeatureStore, SnapshotMeta)] =
@@ -125,7 +121,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
           case \/-(v) => v
         })
 
-        persist(validated.valueToSequenceFile(factsOutputPath.toString, overwrite = true).compressWith(new SnappyCodec))
+        persist(validated.valueToSequenceFile(outputPath.toString, overwrite = true).compressWith(new SnappyCodec))
 
         ()
       }
@@ -134,8 +130,15 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
 
 object Chord {
 
-  def onHdfs(repoPath: Path, store: String, dictName: String, entities: Path, outputPath: Path, tmpPath: Path, errorPath: Path, incremental: Option[Path]): ScoobiAction[Unit] =
-    HdfsChord(repoPath, store, dictName, entities, outputPath, tmpPath, errorPath, incremental).run
+  def onHdfs(repoPath: Path, entities: Path, outputPath: Path, tmpPath: Path, errorPath: Path): ScoobiAction[Unit] = for {
+    es                  <- ScoobiAction.fromHdfs(Chord.readChords(entities))
+    (earliest, latest)   = DateMap.bounds(es)
+    _                    = println(s"Earliest date in chord file is '${earliest}'")
+    _                    = println(s"Latest date in chord file is '${latest}'")
+    snap                <- HdfsSnapshot.takeSnapshot(repoPath, errorPath, earliest, true)
+    (store, dname, path) = snap
+    _                   <- HdfsChord(repoPath, store, dname, es, outputPath, tmpPath, errorPath, Some(path)).run
+  } yield ()
 
   def serialiseChords(path: Path, map: HashMap[String, Array[Int]]): Hdfs[Unit] = {
     import java.io.ObjectOutputStream

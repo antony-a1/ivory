@@ -171,6 +171,11 @@ object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
       }).headOption.flatten.map(n => new Path(parent, n))
     })
 
+  def mv(src: Path, dest: Path): Hdfs[Path] = for {
+    fs <- filesystem
+    r  <- if(fs.rename(src, dest)) Hdfs.value(dest) else Hdfs.fail(s"Could not move ${src} to ${dest}")
+  } yield r
+
   def delete(p: Path): Hdfs[Unit] =
     filesystem.map(fs => fs.delete(p, false))
 
