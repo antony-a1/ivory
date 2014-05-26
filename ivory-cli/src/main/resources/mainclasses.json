@@ -40,6 +40,10 @@
   "class-name"   : "com.ambiata.ivory.cli.pivot"
 },
 {
+  "service-name" : "extract-pivot-snapshot",
+  "class-name"   : "com.ambiata.ivory.cli.pivotSnapshot"
+},
+{
   "service-name" : "generate-dictionary",
   "class-name"   : "com.ambiata.ivory.cli.generateDictionary"
 },
