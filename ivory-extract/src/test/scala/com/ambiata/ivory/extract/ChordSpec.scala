@@ -20,6 +20,7 @@ import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.alien.hdfs._
 import IvoryStorage._
 
 class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers with SampleFacts {
@@ -32,6 +33,8 @@ class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers wi
     createEntitiesFiles(directory)
     createDictionary(repo)
     createFacts(repo)
+
+    Hdfs.mkdir(repo.snapshots.toHdfs).run(sc) must beOk
 
     val outPath = new Path(directory+"/out")
     Chord.onHdfs(repo.root.toHdfs, new Path(directory+"/entities"), outPath, new Path(directory+"/tmp"), new Path(directory+"/err")).run(sc) must beOk
