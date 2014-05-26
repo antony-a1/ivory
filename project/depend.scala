@@ -29,28 +29,28 @@ object depend {
       else                               "0.9.0-cdh5-20140507043919-3c13d11"
 
 
-    Seq("com.nicta" %% "scoobi" % scoobiVersion) ++ hadoop(version)
+    Seq("com.nicta" %% "scoobi" % scoobiVersion excludeAll(ExclusionRule(organization = "org.apache.hadoop"))) ++ hadoop(version)
   }
 
   def hadoop(version: String, hadoopVersion: String = "2.2.0") =
-    if (version.contains("cdh3"))      Seq("org.apache.hadoop" % "hadoop-core"   % "0.20.2-cdh3u1",
-                                           "org.apache.avro"   % "avro-mapred"   % "1.7.4")
+    if (version.contains("cdh3"))      Seq("org.apache.hadoop" % "hadoop-core"   % "0.20.2-cdh3u1" % "provided",
+                                           "org.apache.avro"   % "avro-mapred"   % "1.7.4" % "provided")
 
-    else if (version.contains("cdh4")) Seq("org.apache.hadoop" % "hadoop-client" % "2.0.0-mr1-cdh4.0.1" exclude("asm", "asm"),
-                                           "org.apache.hadoop" % "hadoop-core"   % "2.0.0-mr1-cdh4.0.1",
-                                           "org.apache.avro"   % "avro-mapred"   % "1.7.4" classifier "hadoop2")
+    else if (version.contains("cdh4")) Seq("org.apache.hadoop" % "hadoop-client" % "2.0.0-mr1-cdh4.0.1" % "provided" exclude("asm", "asm"),
+                                           "org.apache.hadoop" % "hadoop-core"   % "2.0.0-mr1-cdh4.0.1" % "provided",
+                                           "org.apache.avro"   % "avro-mapred"   % "1.7.4" % "provided" classifier "hadoop2")
 
-    else if (version.contains("cdh5")) Seq("org.apache.hadoop" % "hadoop-client" % "2.2.0-cdh5.0.0-beta-2" exclude("asm", "asm"),
-                                           "org.apache.avro"   % "avro-mapred"   % "1.7.5-cdh5.0.0-beta-2")
+    else if (version.contains("cdh5")) Seq("org.apache.hadoop" % "hadoop-client" % "2.2.0-cdh5.0.0-beta-2" % "provided" exclude("asm", "asm"),
+                                           "org.apache.avro"   % "avro-mapred"   % "1.7.5-cdh5.0.0-beta-2" % "provided")
 
-    else                               Seq("org.apache.hadoop" % "hadoop-common"                     % hadoopVersion exclude("asm", "asm"),
-                                           "org.apache.hadoop" % "hadoop-hdfs"                       % hadoopVersion exclude("asm", "asm"),
-                                           "org.apache.hadoop" % "hadoop-mapreduce-client-app"       % hadoopVersion exclude("asm", "asm"),
-                                           "org.apache.hadoop" % "hadoop-mapreduce-client-core"      % hadoopVersion exclude("asm", "asm"),
-                                           "org.apache.hadoop" % "hadoop-mapreduce-client-jobclient" % hadoopVersion exclude("asm", "asm"),
-                                           "org.apache.hadoop" % "hadoop-mapreduce-client-core"      % hadoopVersion exclude("asm", "asm"),
-                                           "org.apache.hadoop" % "hadoop-annotations"                % hadoopVersion exclude("asm", "asm"),
-                                           "org.apache.avro"   % "avro-mapred"                       % "1.7.4" classifier "hadoop2")
+    else                               Seq("org.apache.hadoop" % "hadoop-common"                     % hadoopVersion % "provided" exclude("asm", "asm"),
+                                           "org.apache.hadoop" % "hadoop-hdfs"                       % hadoopVersion % "provided" exclude("asm", "asm"),
+                                           "org.apache.hadoop" % "hadoop-mapreduce-client-app"       % hadoopVersion % "provided" exclude("asm", "asm"),
+                                           "org.apache.hadoop" % "hadoop-mapreduce-client-core"      % hadoopVersion % "provided" exclude("asm", "asm"),
+                                           "org.apache.hadoop" % "hadoop-mapreduce-client-jobclient" % hadoopVersion % "provided" exclude("asm", "asm"),
+                                           "org.apache.hadoop" % "hadoop-mapreduce-client-core"      % hadoopVersion % "provided" exclude("asm", "asm"),
+                                           "org.apache.hadoop" % "hadoop-annotations"                % hadoopVersion % "provided" exclude("asm", "asm"),
+                                           "org.apache.avro"   % "avro-mapred"                       % "1.7.4" % "provided" classifier "hadoop2")
 
   val resolvers = Seq(
       Resolver.sonatypeRepo("releases"),

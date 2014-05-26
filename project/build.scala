@@ -79,7 +79,7 @@ object build extends Build {
   , base = file("ivory-cli")
   , settings = standardSettings ++ app("cli") ++ Seq[Settings](
       name := "ivory-cli"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.scoobi(version.value))
   )
   .dependsOn(api)
 
@@ -123,7 +123,7 @@ object build extends Build {
   , base = file("ivory-extract")
   , settings = standardSettings ++ lib("extract") ++ Seq[Settings](
       name := "ivory-extract"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value))
   )
   .dependsOn(core, scoobi, storage, validate)
 
@@ -132,7 +132,7 @@ object build extends Build {
   , base = file("ivory-generate")
   , settings = standardSettings ++ lib("generate") ++ Seq[Settings](
       name := "ivory-generate"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.scoobi(version.value))
   )
   .dependsOn(core, storage)
 
@@ -141,7 +141,7 @@ object build extends Build {
   , base = file("ivory-ingest")
   , settings = standardSettings ++ lib("ingest") ++ Seq[Settings](
       name := "ivory-ingest"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.specs2 ++ depend.saws)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.specs2 ++ depend.scoobi(version.value) ++ depend.saws)
   )
   .dependsOn(core, storage, alien_hdfs, scoobi)
 
@@ -159,7 +159,7 @@ object build extends Build {
   , base = file("ivory-storage")
   , settings = standardSettings ++ lib("storage") ++ Seq[Settings](
       name := "ivory-storage"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.saws)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.saws)
   )
   .dependsOn(core, data, scoobi, alien_hdfs, core % "test->test")
 
@@ -168,7 +168,7 @@ object build extends Build {
   , base = file("ivory-validate")
   , settings = standardSettings ++ lib("validate") ++ Seq[Settings](
       name := "ivory-validate"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.specs2)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.specs2)
   )
   .dependsOn(core, scoobi, storage)
 
