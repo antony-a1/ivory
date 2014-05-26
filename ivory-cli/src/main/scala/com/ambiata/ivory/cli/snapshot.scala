@@ -52,7 +52,7 @@ object snapshot extends ScoobiApp {
                       |
                       |""".stripMargin
       println(banner)
-      val res = HdfsSnapshot.takeSnapshot(new Path(c.repo), new Path(errors), c.date, c.incremental)
+      val res = HdfsSnapshot.takeSnapshot(new Path(c.repo), new Path(errors), Date.fromLocalDate(c.date), c.incremental)
       res.run(configuration <| { c =>
         // MR1
         c.set("mapred.compress.map.output", "true")

@@ -7,6 +7,8 @@ import org.joda.time.LocalDate
 import java.util.Calendar
 import com.ambiata.mundane.control._
 
+import com.ambiata.ivory.core.Date
+
 object ExtractLatestWorkflowCli extends ScoobiApp {
 
   case class CliArguments(repo: String, output: String, errors: String, date: LocalDate)
@@ -25,7 +27,7 @@ object ExtractLatestWorkflowCli extends ScoobiApp {
 
   def run {
     parser.parse(args, CliArguments("", "", "", LocalDate.now())).map(c => {
-      val res = ExtractLatestWorkflow.onHdfs(new Path(c.repo), new Path(c.output), new Path(c.errors), c.date)
+      val res = ExtractLatestWorkflow.onHdfs(new Path(c.repo), new Path(c.output), new Path(c.errors), Date.fromLocalDate(c.date))
       res.run(configuration).run.unsafePerformIO() match {
         case Ok(_)    => println(s"Successfully extracted latest facts at '${c.date.toString("yyyy-MM-dd")}' from '${c.repo}' to '${c.output}'")
         case Error(e) => println(s"Failed! - ${e}")

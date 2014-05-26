@@ -28,29 +28,35 @@ object ExtractLatestWorkflow {
 
   type FeatureStoreName = String
   type DictionaryName = String
-  type Incremental = Boolean
-  type Extractor = (HdfsRepository, FeatureStoreName, DictionaryName, LocalDate, Path, Incremental) => ScoobiAction[Unit]
+  type Incremental = Option[(Path, SnapshotMeta)]
+  type Extractor = (HdfsRepository, FeatureStoreName, DictionaryName, Date, Path, Incremental) => ScoobiAction[Unit]
 
   private implicit val logger = LogFactory.getLog("ivory.repository.fatrepo.ExtractLatestWorkflow")
 
-  def onHdfs(repoPath: Path, extractor: Extractor, date: LocalDate, incremental: Boolean): ScoobiAction[(String, String, Path)] = {
+  def onHdfs(repoPath: Path, extractor: Extractor, date: Date, incremental: Boolean): ScoobiAction[(String, String, Path)] = {
     for {
       repo   <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
       store  <- ScoobiAction.fromHdfs(latestStore(repo))
       dname  <- ScoobiAction.fromHdfs(latestDictionary(repo))
-      output <- ScoobiAction.fromHdfs(outputDirectory(repo))
-      _       = logger.info(s"""
-                              | Running extractor on:
-                              | 
-                              | Repository     : ${repo.root.path}
-                              | Feature Store  : ${store}
-                              | Dictionary     : ${dname}
-                              | Date           : ${date.toString("yyyy-MM-dd")}
-                              | Output         : ${output}
-                              | Incremental    : ${incremental}
-                              |
-                              """.stripMargin)
-      _      <- extractor(repo, store, dname, date, output, incremental)
+      incr   <- ScoobiAction.fromHdfs(if(incremental) SnapshotMeta.latest(repo.snapshots.toHdfs, date) else Hdfs.ok(None))
+      output <- incr.collect({ case (p, sm) if sm.date <= date && sm.store == store =>
+                  logger.info(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${store}'")
+                  ScoobiAction.value(p)
+                }).getOrElse(for {
+                  out <- ScoobiAction.fromHdfs(outputDirectory(repo))
+                  _    = logger.info(s"""
+                                      | Running extractor on:
+                                      | 
+                                      | Repository     : ${repo.root.path}
+                                      | Feature Store  : ${store}
+                                      | Dictionary     : ${dname}
+                                      | Date           : ${date.hyphenated}
+                                      | Output         : ${out}
+                                      | Incremental    : ${incr}
+                                      |
+                                      """.stripMargin)
+                  _   <- extractor(repo, store, dname, date, out, incr)
+                } yield out)
     } yield (store, dname, output)
   }
 

@@ -3,15 +3,17 @@ package com.ambiata.ivory.extract
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, Scalaz._
 import org.apache.hadoop.fs.Path
+import com.ambiata.mundane.io._
 
-import com.ambiata.ivory.core._
+import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.scoobi._
 import WireFormats._
 import FactFormats._
 import SeqSchemas._
 import com.ambiata.ivory.storage._
-import com.ambiata.ivory.alien.hdfs._
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.alien.hdfs._
 
 /**
  * Takes a snapshot containing EAVTs
@@ -19,6 +21,13 @@ import com.ambiata.ivory.storage.legacy._
  * and create a "dense" file where there is one line per entity id and all the values for that entity
  */
 object Pivot {
+
+  def onHdfsFromSnapshot(repoPath: Path, output: Path, errors: Path, delim: Char, tombstone: String, date: Date): ScoobiAction[Unit] = for {
+    repo <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
+    snap <- HdfsSnapshot.takeSnapshot(repoPath, errors, date, true)
+    (store, dname, path) = snap
+    _    <- onHdfs(path, output, errors, repo.dictionaryByName(dname).toHdfs, delim, tombstone)
+  } yield ()
 
   def onHdfs(input: Path, output: Path, errors: Path, dictionary: Path, delim: Char, tombstone: String): ScoobiAction[Unit] = for {
     d <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextLoader(dictionary).load)
