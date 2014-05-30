@@ -37,6 +37,9 @@ object Recompress {
   def select(input: Path, output: Path, seq: Boolean): Hdfs[List[Stat]] =
     Hdfs.globFilesRecursively(input).flatMap(_.traverse(a => Hdfs.size(a).map(s => {
       val in = a
+      println("A: " + in.toString)
+      println("B: " + in.toString.replace(input.toString + "/", ""))
+      println("C: " + new Path(output, in.toString.replace(input.toString + "/", "")))
       val out = new Path(output, in.toString.replace(input.toString + "/", ""))
       Stat(in.toString, out.toString, s, seq && !in.getName.startsWith(".") && !in.getName.startsWith("_"))
    })))
