@@ -71,8 +71,10 @@ object Recompress {
         Hdfs.mkdir(stat.path.getParent).run(new Configuration).run.unsafePerformIO
         if (stat.seq)
           facts(stat.path, stat.target)
-        else
+        else {
+          println(s"cp ${stat.path} ${stat.target}")
           Hdfs.cp(stat.path, stat.target, false).run(new Configuration).run.unsafePerformIO.toOption.getOrElse(sys.error("Couldn't copy: " + stat.path))
+        }
       }))(c)
   )
 
