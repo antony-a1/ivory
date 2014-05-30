@@ -68,6 +68,7 @@ object Recompress {
   def gox(stats: List[Stat], distribution: Int): ScoobiAction[Unit] =
     ScoobiAction.scoobiConfiguration.map(c =>
       run(fromSource(new PathSource(stats, distribution, classOf[PathInputFormat])).parallelDo((stat: Stat, emmitter: Emitter[Unit]) => {
+        Hdfs.mkdir(stat.path.getParent).run(new Configuration).run.unsafePerformIO
         if (stat.seq)
           facts(stat.path, stat.target)
         else
