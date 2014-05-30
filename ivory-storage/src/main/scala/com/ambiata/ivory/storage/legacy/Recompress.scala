@@ -13,7 +13,7 @@ import com.nicta.scoobi.Scoobi.ScoobiConfiguration
 import com.nicta.scoobi.impl.util.DistCache
 
 import java.io.{DataInput, DataOutput}
-import org.apache.hadoop.fs.Path
+import org.apache.hadoop.fs.{Path, FileSystem}
 import org.apache.hadoop.mapreduce._
 import org.apache.hadoop.io._
 import org.apache.hadoop.io.compress._
@@ -34,25 +34,28 @@ case class Stat(in: String, out: String, size: Long, seq: Boolean) {
 }
 
 object Recompress {
-  def select(input: Path, output: Path, seq: Boolean): Hdfs[List[Stat]] =
+  def select(input: Path, output: Path, seq: Boolean, conf: Configuration): Hdfs[List[Stat]] =
     Hdfs.globFilesRecursively(input).flatMap(_.traverse(a => Hdfs.size(a).map(s => {
+      val absolute = FileSystem.get(conf).getFileStatus(input).getPath()
       val in = a
       println("A: " + in.toString)
-      println("B: " + in.toString.replace(input.toString + "/", ""))
-      println("C: " + new Path(output, in.toString.replace(input.toString + "/", "")))
-      val out = new Path(output, in.toString.replace(input.toString + "/", ""))
+      println("B: " + absolute.toString)
+      println("C: " + in.toString.replace(absolute.toString + "/", ""))
+      println("D: " + new Path(output, in.toString.replace(absolute.toString + "/", "")))
+      val out = new Path(output, in.toString.replace(absolute.toString + "/", ""))
       Stat(in.toString, out.toString, s, seq && !in.getName.startsWith(".") && !in.getName.startsWith("_"))
    })))
 
-  def all(input: String, output: String): Hdfs[List[Stat]] = for {
-    errors <- select(new Path(input, "errors"), new Path(output, "errors"), false)
-    factsets <- select(new Path(input, "factsets"), new Path(output, "factsets"), true)
-    metadata <- select(new Path(input, "metadata"), new Path(output, "metadata"), false)
-    snapshots <- select(new Path(input, "snapshots"), new Path(output, "snapshots"), true)
+  def all(input: String, output: String, conf: Configuration): Hdfs[List[Stat]] = for {
+    errors <- select(new Path(input, "errors"), new Path(output, "errors"), false, conf)
+    factsets <- select(new Path(input, "factsets"), new Path(output, "factsets"), true, conf)
+    metadata <- select(new Path(input, "metadata"), new Path(output, "metadata"), false, conf)
+    snapshots <- select(new Path(input, "snapshots"), new Path(output, "snapshots"), true, conf)
   } yield errors ++ factsets ++ metadata ++ snapshots
 
   def go(input: String, output: String, distribution: Int, dry: Boolean): ScoobiAction[Unit] = for {
-    stats <- ScoobiAction.fromHdfs { all(input, output) }
+    conf  <- ScoobiAction.scoobiConfiguration
+    stats <- ScoobiAction.fromHdfs { all(input, output, conf) }
     _     <- if (dry) print(stats) else gox(stats, distribution)
   } yield ()
 
