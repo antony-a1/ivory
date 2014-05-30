@@ -130,7 +130,7 @@ class PathSource(val paths: List[Stat], val mappersNumber: Int, val inputFormat:
 
   def inputConfigure(job: Job)(implicit sc: ScoobiConfiguration) {
     DistCache.pushObject[List[Stat]](sc.configuration, paths, FILES)
-    sc.set(MAPPERS_NUMBER, mappersNumber)
+    job.getConfiguration.set(MAPPERS_NUMBER, mappersNumber)
   }
 
   def inputSize(implicit sc: ScoobiConfiguration): Long = paths.map(_.size).sum
