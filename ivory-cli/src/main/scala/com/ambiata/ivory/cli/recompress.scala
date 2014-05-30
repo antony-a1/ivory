@@ -16,9 +16,9 @@ object recompress extends ScoobiApp {
 
     opt[String]('o', "output")       action { (x, c) => c.copy(output = x) } required() text "Output ivory repository."
 
-    opt[Unit]('d', "dry-run")       action { (_, c) => c.copy(dry = true) } required() text "Do a dry run only."
+    opt[Unit]('d', "dry-run")       action { (_, c) => c.copy(dry = true) } optional() text "Do a dry run only."
 
-    opt[Unit]('n', "distribution")       action { (_, c) => c.copy(dry = true) } required() text "Number of mappers."
+    opt[Int]('n', "distribution")       action { (x, c) => c.copy(distribution = x) } optional() text "Number of mappers."
   }
 
   def run {

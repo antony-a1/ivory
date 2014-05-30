@@ -36,9 +36,9 @@ case class Stat(in: String, out: String, size: Long, seq: Boolean) {
 object Recompress {
   def select(input: Path, output: Path, seq: Boolean): Hdfs[List[Stat]] =
     Hdfs.globFilesRecursively(input).flatMap(_.traverse(a => Hdfs.size(a).map(s => {
-      val in = a.toString
-      val out = new Path(output, in.replace(input.toString, "")).toString
-      Stat(in, out, s, seq)
+      val in = a
+      val out = new Path(output, in.toString.replace(input.toString + "/", ""))
+      Stat(in.toString, out.toString, s, seq && !in.getName.startsWith(".") && !in.getName.startsWith("_"))
    })))
 
   def all(input: String, output: String): Hdfs[List[Stat]] = for {
