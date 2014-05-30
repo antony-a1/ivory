@@ -70,5 +70,9 @@
 {
   "service-name" : "validate-store",
   "class-name"   : "com.ambiata.ivory.cli.validateStore"
+},
+{
+  "service-name" : "recompress",
+  "class-name"   : "com.ambiata.ivory.cli.recompress"
 }
 ]
