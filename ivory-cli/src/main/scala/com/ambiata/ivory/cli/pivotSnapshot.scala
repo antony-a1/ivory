@@ -8,6 +8,7 @@ import com.ambiata.ivory.extract._
 import com.nicta.scoobi.Scoobi._
 
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.io.compress._
 import org.apache.commons.logging.LogFactory
 
 import org.joda.time.LocalDate
@@ -64,7 +65,7 @@ object pivotSnapshot extends ScoobiApp {
                       |
                       |""".stripMargin
       println(banner)
-      val res = Pivot.onHdfsFromSnapshot(new Path(c.repo), new Path(c.output), new Path(c.errors), c.delim, c.tombstone, Date.fromLocalDate(c.date))
+      val res = Pivot.onHdfsFromSnapshot(new Path(c.repo), new Path(c.output), new Path(c.errors), c.delim, c.tombstone, Date.fromLocalDate(c.date), Some(new SnappyCodec))
       res.run(configuration).run.unsafePerformIO() match {
         case Ok(_) =>
           println(banner)

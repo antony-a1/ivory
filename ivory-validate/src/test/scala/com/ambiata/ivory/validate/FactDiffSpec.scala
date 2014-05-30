@@ -38,8 +38,8 @@ class FactDiffSpec extends HadoopSpecification with SimpleJobs with FileMatchers
     val output = directory + "/out"
     val errors = directory + "/errors"
 
-    persist(PartitionFactThriftStorageV1.PartitionedFactThriftStorer(input1).storeScoobi(facts1),
-            PartitionFactThriftStorageV1.PartitionedFactThriftStorer(input2).storeScoobi(facts2))
+    persist(PartitionFactThriftStorageV1.PartitionedFactThriftStorer(input1, None).storeScoobi(facts1),
+            PartitionFactThriftStorageV1.PartitionedFactThriftStorer(input2, None).storeScoobi(facts2))
 
     FactDiff.scoobiJob(input1, input2, output, errors).run(sc) must beOk
 
@@ -61,8 +61,8 @@ class FactDiffSpec extends HadoopSpecification with SimpleJobs with FileMatchers
     val output = directory + "/out"
     val errors = directory + "/errors"
 
-    persist(PartitionFactThriftStorageV1.PartitionedFactThriftStorer(input1).storeScoobi(facts1),
-            PartitionFactThriftStorageV1.PartitionedFactThriftStorer(input2).storeScoobi(facts1))
+    persist(PartitionFactThriftStorageV1.PartitionedFactThriftStorer(input1, None).storeScoobi(facts1),
+            PartitionFactThriftStorageV1.PartitionedFactThriftStorer(input2, None).storeScoobi(facts1))
 
     FactDiff.scoobiJob(input1, input2, output, errors).run(sc) must beOk
 

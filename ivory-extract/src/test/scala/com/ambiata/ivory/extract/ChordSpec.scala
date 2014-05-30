@@ -37,7 +37,7 @@ class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers wi
     Hdfs.mkdir(repo.snapshots.toHdfs).run(sc) must beOk
 
     val outPath = new Path(directory+"/out")
-    Chord.onHdfs(repo.root.toHdfs, new Path(directory+"/entities"), outPath, new Path(directory+"/tmp"), new Path(directory+"/err")).run(sc) must beOk
+    Chord.onHdfs(repo.root.toHdfs, new Path(directory+"/entities"), outPath, new Path(directory+"/tmp"), new Path(directory+"/err"), None).run(sc) must beOk
 
     valueFromSequenceFile[Fact](outPath.toString).run.toList must containTheSameElementsAs(List(
       StringFact("eid1:2012-09-15", FeatureId("ns1", "fid1"), Date(2012, 9, 1), Time(0), "def"),
@@ -77,7 +77,7 @@ trait SampleFacts extends MustThrownMatchers {
     val facts2 =
       fromLazySeq(Seq(StringFact("eid1", FeatureId("ns1", "fid1"), Date(2012, 9, 1), Time(0), "ghi")))
 
-    persist(facts1.toIvoryFactset(repo, Factset("factset1")), facts2.toIvoryFactset(repo, Factset("factset2")))
+    persist(facts1.toIvoryFactset(repo, Factset("factset1"), None), facts2.toIvoryFactset(repo, Factset("factset2"), None))
     writeFactsetVersion(repo, List(Factset("factset1"), Factset("factset2"))).run(sc) must beOk
 
     storeToIvory(repo, FeatureStore(List(PrioritizedFactset(Factset("factset1"), Priority(1)), PrioritizedFactset(Factset("factset2"), Priority(2)))), "store1").run(sc) must beOk

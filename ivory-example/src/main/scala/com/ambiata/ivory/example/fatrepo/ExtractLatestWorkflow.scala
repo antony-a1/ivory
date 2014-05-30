@@ -34,7 +34,7 @@ object ExtractLatestWorkflow {
 
   def extractLatest(errorPath: Path)(repo: HdfsRepository, store: String, dictName: String, date: Date, outputPath: Path, incremental: Option[(Path, SnapshotMeta)]): ScoobiAction[Unit] = for {
     _ <- ScoobiAction.value(logger.info(s"Extracting latest features from '${date.hyphenated}' using the store '${store}' and dictionary '${dictName}', from the '${repo.root}' repository. Output '${outputPath}'. Errors '${errorPath}'"))
-    _ <- HdfsSnapshot(repo.root.toHdfs, store, dictName, None, date, outputPath, errorPath, incremental).run
+    _ <- HdfsSnapshot(repo.root.toHdfs, store, dictName, None, date, outputPath, errorPath, incremental, None).run
     _ <- storeInFormat(new Path(outputPath, "thrift"), new Path(outputPath, "eavt"), new Path(errorPath, "snapshot"))
     _  = logger.info(s"Successfully extracted latest features to '${outputPath}'")
   } yield ()

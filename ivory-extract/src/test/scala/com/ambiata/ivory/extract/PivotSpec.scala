@@ -33,7 +33,7 @@ class PivotSpec extends HadoopSpecification with SampleFacts { def is = s2"""
 
     val testDir = "target/"+getClass.getSimpleName+"/"
     val errors = new Path(s"$testDir/errors")
-    val takeSnapshot = HdfsSnapshot.takeSnapshot(repo.root.toHdfs, errors, Date.fromLocalDate(LocalDate.now), false)
+    val takeSnapshot = HdfsSnapshot.takeSnapshot(repo.root.toHdfs, errors, Date.fromLocalDate(LocalDate.now), false, None)
 
     val pivot = new Path(s"$testDir/pivot")
     val action =

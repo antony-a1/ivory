@@ -12,6 +12,7 @@ import com.ambiata.ivory.alien.hdfs._
 import com.nicta.scoobi.Scoobi._
 
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.io.compress._
 import org.apache.commons.logging.LogFactory
 
 import scalaz.{DList => _, _}, Scalaz._
@@ -61,7 +62,7 @@ object chord extends ScoobiApp {
   def onHdfs(repoPath: Path, outputPath: Path, tmpPath: Path, errorPath: Path, entitiesPath: Path, pivot: Boolean, delim: Char, tombstone: String): ScoobiAction[Unit] = for {
     tout <- ScoobiAction.value(new Path(outputPath, "thrift"))
     dout <- ScoobiAction.value(new Path(outputPath, "dense"))
-    _    <- Chord.onHdfs(repoPath, entitiesPath, tout, new Path(tmpPath, "chord"), new Path(errorPath, "chord"))
+    _    <- Chord.onHdfs(repoPath, entitiesPath, tout, new Path(tmpPath, "chord"), new Path(errorPath, "chord"), Some(new SnappyCodec))
     _    <- if(pivot) {
               println("Pivoting extracted chord in '${tout}' to '${dout}'")
               Pivot.onHdfs(tout, dout, new Path(errorPath, "dense"), new Path(tout, ".dictionary"), delim, tombstone)

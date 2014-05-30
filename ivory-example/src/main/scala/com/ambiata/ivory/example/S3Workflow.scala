@@ -92,11 +92,9 @@ object S3Workflow extends OptionsParser[WorkflowOptions] {
     clusterId <- ScoobiS3EMRAction.safe(Option(System.getenv("EMR_CLUSTER_ID")))
     _         <- ScoobiS3EMRAction.reader { sc: ScoobiConfiguration =>
                    clusterId.foreach(c => sc.set("EMR_CLUSTER_ID", c))
-                   EavtTextImporter.onS3(repository, dictionary, factsetName, namespace, factsetPath, timezone).runScoobi(sc)
+                   EavtTextImporter.onS3(repository, dictionary, factsetName, namespace, factsetPath, timezone, None).runScoobi(sc)
                  }
   } yield ()
-
-
 
   def createFeatureStore(repository: S3Repository, storeName: String, storePath: FilePath): ScoobiS3EMRAction[Unit] =
     ScoobiS3EMRAction.fromHdfsS3(FeatureStoreImporter.onS3(repository, storeName, storePath))

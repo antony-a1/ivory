@@ -3,6 +3,7 @@ package com.ambiata.ivory.storage.legacy
 import scalaz.{DList => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.io.compress._
 import com.ambiata.saws.core._
 import com.ambiata.saws.s3.S3
 
@@ -64,9 +65,9 @@ case class InternalFeatureStoreFactLoader(repo: HdfsRepository, store: FeatureSt
   } yield if(loaded.isEmpty) DList[ParseError \/ (Priority, Factset, Fact)]() else loaded.reduce(_++_)
 }
 
-case class InternalFactsetFactStorer(repo: HdfsRepository, factset: Factset) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
+case class InternalFactsetFactStorer(repo: HdfsRepository, factset: Factset, codec: Option[CompressionCodec]) extends IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] {
   def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration) =
-    IvoryStorage.factsetStorer(repo.factset(factset).path).storeScoobi(dlist)
+    IvoryStorage.factsetStorer(repo.factset(factset).path, codec).storeScoobi(dlist)
 }
 
 /**
@@ -160,8 +161,8 @@ object IvoryStorage {
 
   // this is the version that factsets are written as
   val factsetVersion = FactsetVersionTwo
-  def factsetStorer(path: String): IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] =
-    PartitionFactThriftStorageV2.PartitionedFactThriftStorer(path)
+  def factsetStorer(path: String, codec: Option[CompressionCodec]): IvoryScoobiStorer[Fact, DList[(PartitionKey, ThriftFact)]] =
+    PartitionFactThriftStorageV2.PartitionedFactThriftStorer(path, codec)
 
   /**
    * Get the loader for a given version
@@ -180,8 +181,8 @@ object IvoryStorage {
     Hdfs.fromResultTIO(Versions.writeAll(repo, factsets, factsetVersion))
 
   implicit class IvoryFactStorage(dlist: DList[Fact]) {
-    def toIvoryFactset(repo: HdfsRepository, factset: Factset)(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] =
-      InternalFactsetFactStorer(repo, factset).storeScoobi(dlist)(sc)
+    def toIvoryFactset(repo: HdfsRepository, factset: Factset, codec: Option[CompressionCodec])(implicit sc: ScoobiConfiguration): DList[(PartitionKey, ThriftFact)] =
+      InternalFactsetFactStorer(repo, factset, codec).storeScoobi(dlist)(sc)
   }
 
   /* Facts */

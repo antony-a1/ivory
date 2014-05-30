@@ -63,7 +63,7 @@ object ingest {
     dict <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dname))
     conf <- ScoobiAction.scoobiConfiguration
     _    <- if (!runOnSingleMachine)
-              EavtTextImporter.onHdfs(repo, dict, factset, namespace, input, errorPath, timezone)
+              EavtTextImporter.onHdfs(repo, dict, factset, namespace, input, errorPath, timezone, Some(new SnappyCodec))
             else
               ScoobiAction.fromResultTIO { EavtTextImporter.onHdfsDirect(conf, repo, dict, factset, namespace, input, errorPath, timezone, identity) }
   } yield ()

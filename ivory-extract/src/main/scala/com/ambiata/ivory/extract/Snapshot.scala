@@ -21,7 +21,7 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
 
-case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: Date, outputPath: Path, errorPath: Path, incremental: Option[(Path, SnapshotMeta)]) {
+case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: Date, outputPath: Path, errorPath: Path, incremental: Option[(Path, SnapshotMeta)], codec: Option[CompressionCodec]) {
   import IvoryStorage._
 
   def run: ScoobiAction[Unit] = for {
@@ -36,12 +36,12 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
       })
       s <- ScoobiAction.fromHdfs(storeFromIvory(r, sm.store))
     } yield (path, s, sm) })
-    _    <- scoobiJob(r, d, s, es.map(_.toSet), in)
+    _    <- scoobiJob(r, d, s, es.map(_.toSet), in, codec)
     _    <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextStorer(new Path(outputPath, ".dictionary")).store(d))
     _    <- ScoobiAction.fromHdfs(SnapshotMeta(snapshot, store).toHdfs(new Path(outputPath, SnapshotMeta.fname)))
   } yield ()
 
-  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Option[Set[String]], incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ScoobiAction[Unit] =
+  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Option[Set[String]], incremental: Option[(Path, FeatureStore, SnapshotMeta)], codec: Option[CompressionCodec]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       // disable combiners as it's just overhead. The data is partitioned by date, so each mapper will have
       // only one date in it
@@ -78,7 +78,8 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
           case \/-(v) => v
         })
 
-        persist(validated.valueToSequenceFile(outputPath.toString, overwrite = true).compressWith(new SnappyCodec))
+        val toPersist = validated.valueToSequenceFile(outputPath.toString, overwrite = true)
+        persist(codec.map(toPersist.compressWith(_)).getOrElse(toPersist))
 
         ()
       })
@@ -89,11 +90,11 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
 object HdfsSnapshot {
   val SnapshotName: String = "ivory-incremental-snapshot"
 
-  def takeSnapshot(repoPath: Path, errors: Path, date: Date, incremental: Boolean): ScoobiAction[(String, String, Path)] =
-    fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(errors), date, incremental)
+  def takeSnapshot(repoPath: Path, errors: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[(String, String, Path)] =
+    fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(errors, codec), date, incremental)
 
-  def extractLatest(errorPath: Path)(repo: HdfsRepository, store: String, dictName: String, date: Date, outputPath: Path, incremental: Option[(Path, SnapshotMeta)]): ScoobiAction[Unit] =
-    HdfsSnapshot(repo.root.toHdfs, store, dictName, None, date, outputPath, errorPath, incremental).run
+  def extractLatest(errorPath: Path, codec: Option[CompressionCodec])(repo: HdfsRepository, store: String, dictName: String, date: Date, outputPath: Path, incremental: Option[(Path, SnapshotMeta)]): ScoobiAction[Unit] =
+    HdfsSnapshot(repo.root.toHdfs, store, dictName, None, date, outputPath, errorPath, incremental, codec).run
 
   def readFacts(repo: HdfsRepository, store: FeatureStore, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] = {
     import IvoryStorage._

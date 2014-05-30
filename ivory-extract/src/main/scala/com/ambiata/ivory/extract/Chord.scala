@@ -20,7 +20,7 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
 
-case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: HashMap[String, Array[Int]], outputPath: Path, tmpPath: Path, errorPath: Path, incremental: Option[Path]) {
+case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: HashMap[String, Array[Int]], outputPath: Path, tmpPath: Path, errorPath: Path, incremental: Option[Path], codec: Option[CompressionCodec]) {
   import IvoryStorage._
 
   type PackedDate = Int
@@ -47,7 +47,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
       _   = println(s"Snapshot date was '${sm.date.string("-")}'")
       s  <- ScoobiAction.fromHdfs(storeFromIvory(r, sm.store))
     } yield (path, s, sm))
-    _  <- scoobiJob(r, d, s, chordPath, latest, validateIncr(earliest, in))
+    _  <- scoobiJob(r, d, s, chordPath, latest, validateIncr(earliest, in), codec)
     _  <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextStorer(new Path(outputPath, ".dictionary")).store(d))
   } yield ()
 
@@ -64,7 +64,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
   /**
    * Persist facts which are the latest corresponding to a set of dates given for each entity
    */
-  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, chordPath: Path, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ScoobiAction[Unit] =
+  def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, chordPath: Path, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)], codec: Option[CompressionCodec]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       lazy val factsetMap: Map[Priority, Factset] = store.factsets.map(fs => (fs.priority, fs.set)).toMap
 
@@ -121,7 +121,8 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
           case \/-(v) => v
         })
 
-        persist(validated.valueToSequenceFile(outputPath.toString, overwrite = true).compressWith(new SnappyCodec))
+        val toPersist = validated.valueToSequenceFile(outputPath.toString, overwrite = true)
+        persist(codec.map(toPersist.compressWith(_)).getOrElse(toPersist))
 
         ()
       }
@@ -130,14 +131,14 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
 
 object Chord {
 
-  def onHdfs(repoPath: Path, entities: Path, outputPath: Path, tmpPath: Path, errorPath: Path): ScoobiAction[Unit] = for {
+  def onHdfs(repoPath: Path, entities: Path, outputPath: Path, tmpPath: Path, errorPath: Path, codec: Option[CompressionCodec]): ScoobiAction[Unit] = for {
     es                  <- ScoobiAction.fromHdfs(Chord.readChords(entities))
     (earliest, latest)   = DateMap.bounds(es)
     _                    = println(s"Earliest date in chord file is '${earliest}'")
     _                    = println(s"Latest date in chord file is '${latest}'")
-    snap                <- HdfsSnapshot.takeSnapshot(repoPath, errorPath, earliest, true)
+    snap                <- HdfsSnapshot.takeSnapshot(repoPath, errorPath, earliest, true, codec)
     (store, dname, path) = snap
-    _                   <- HdfsChord(repoPath, store, dname, es, outputPath, tmpPath, errorPath, Some(path)).run
+    _                   <- HdfsChord(repoPath, store, dname, es, outputPath, tmpPath, errorPath, Some(path), codec).run
   } yield ()
 
   def serialiseChords(path: Path, map: HashMap[String, Array[Int]]): Hdfs[Unit] = {

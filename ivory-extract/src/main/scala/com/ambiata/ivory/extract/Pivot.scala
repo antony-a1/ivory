@@ -3,6 +3,7 @@ package com.ambiata.ivory.extract
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, Scalaz._
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.io.compress._
 import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.core._, IvorySyntax._
@@ -22,9 +23,9 @@ import com.ambiata.ivory.alien.hdfs._
  */
 object Pivot {
 
-  def onHdfsFromSnapshot(repoPath: Path, output: Path, errors: Path, delim: Char, tombstone: String, date: Date): ScoobiAction[Unit] = for {
+  def onHdfsFromSnapshot(repoPath: Path, output: Path, errors: Path, delim: Char, tombstone: String, date: Date, codec: Option[CompressionCodec]): ScoobiAction[Unit] = for {
     repo <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
-    snap <- HdfsSnapshot.takeSnapshot(repoPath, errors, date, true)
+    snap <- HdfsSnapshot.takeSnapshot(repoPath, errors, date, true, codec)
     (store, dname, path) = snap
     _    <- onHdfs(path, output, errors, repo.dictionaryByName(dname).toHdfs, delim, tombstone)
   } yield ()

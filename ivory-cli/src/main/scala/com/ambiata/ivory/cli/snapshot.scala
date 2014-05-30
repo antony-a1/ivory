@@ -10,6 +10,7 @@ import com.ambiata.ivory.storage.legacy._
 import com.nicta.scoobi.Scoobi._
 
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.io.compress._
 import org.apache.commons.logging.LogFactory
 import org.joda.time.LocalDate
 import java.util.Calendar
@@ -52,7 +53,7 @@ object snapshot extends ScoobiApp {
                       |
                       |""".stripMargin
       println(banner)
-      val res = HdfsSnapshot.takeSnapshot(new Path(c.repo), new Path(errors), Date.fromLocalDate(c.date), c.incremental)
+      val res = HdfsSnapshot.takeSnapshot(new Path(c.repo), new Path(errors), Date.fromLocalDate(c.date), c.incremental, Some(new SnappyCodec))
       res.run(configuration <| { c =>
         // MR1
         c.set("mapred.compress.map.output", "true")
