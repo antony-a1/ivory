@@ -29,7 +29,7 @@ import scalaz._, Scalaz._
 import scala.collection.JavaConverters._
 
 case class Stat(in: String, out: String, size: Long, seq: Boolean) {
-  def path = new Path(out)
+  def path = new Path(in)
   def target = new Path(out)
 }
 
