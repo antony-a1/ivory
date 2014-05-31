@@ -71,7 +71,7 @@ object Recompress {
         emitter.tick
         val fs = FileSystem.get(c)
         Hdfs.mkdir(stat.path.getParent).run(new Configuration).run.unsafePerformIO
-        if (fs.exists(stat.target)) {
+        if (!fs.exists(stat.target)) {
           if (stat.seq) {
             println(s"compress ${stat.path} ${stat.target}")
             facts(stat.path, stat.target, emitter)
