@@ -67,21 +67,29 @@ object Recompress {
 
   def gox(stats: List[Stat], distribution: Int): ScoobiAction[Unit] =
     ScoobiAction.scoobiConfiguration.map(c =>
-      run(fromSource(new PathSource(stats, distribution, classOf[PathInputFormat])).parallelDo((stat: Stat, emmitter: Emitter[Unit]) => {
+      run(fromSource(new PathSource(stats, distribution, classOf[PathInputFormat])).parallelDo((stat: Stat, emitter: Emitter[Unit]) => {
+        emitter.tick
+        val fs = FileSystem.get(c)
         Hdfs.mkdir(stat.path.getParent).run(new Configuration).run.unsafePerformIO
-        if (stat.seq)
-          facts(stat.path, stat.target)
-        else {
-          println(s"cp ${stat.path} ${stat.target}")
-          Hdfs.cp(stat.path, stat.target, false).run(new Configuration).run.unsafePerformIO.toOption.getOrElse(sys.error("Couldn't copy: " + stat.path))
+        if (fs.exists(stat.target)) {
+          if (stat.seq) {
+            println(s"compress ${stat.path} ${stat.target}")
+            facts(stat.path, stat.target, emitter)
+          } else {
+            println(s"cp ${stat.path} ${stat.target}")
+            Hdfs.cp(stat.path, stat.target, false).run(new Configuration).run.unsafePerformIO.toOption.getOrElse(sys.error("Couldn't copy: " + stat.path))
+          }
+        } else {
+          println(s"skipping ${stat.path} looks like it has already been copied")
         }
+
       }))(c)
   )
 
   //******************************** Ignore below here for now, this is based on the dist-copy related code, can be factored out
   //                                 when that is ready.
 
-  def facts(from: Path, to: Path): Unit = {
+  def facts(from: Path, to: Path, emitter: Emitter[Unit]): Unit = {
     val reader = new SequenceFile.Reader(new Configuration, SequenceFile.Reader.file(from))
     val opts = List(
       SequenceFile.Writer.file(to),
@@ -92,8 +100,12 @@ object Recompress {
     val bytes = new BytesWritable
     val nul = NullWritable.get
     try {
-      while (reader.next(nul, bytes))
+      var n: Long = 0
+      while (reader.next(nul, bytes)) {
+        n += 1
+        if (n % 1000 == 0) emitter.tick
         writer.append(nul, bytes)
+      }
     } finally {
       writer.close
       reader.close
