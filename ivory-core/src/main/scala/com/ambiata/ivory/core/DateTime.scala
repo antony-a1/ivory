@@ -1,5 +1,9 @@
 package com.ambiata.ivory.core
 
+import org.joda.time.DateTimeZone
+import org.joda.time.format.DateTimeFormat
+import org.joda.time.{DateTime => JodaDateTime}
+
 import scalaz._, Scalaz._
 
 /* a packed long | 16 bits: year represented as a short | 8 bits: month represented as a byte | 8 bits: day represented as a byte | 32 bits: seconds since start of day */
@@ -16,14 +20,22 @@ class DateTime private(val underlying: Long) extends AnyVal {
   def long: Long =
     underlying
 
-  def iso8601: String =
-    s"${date.hyphenated}T${time.hhmmss}Z"
+  def joda(z: DateTimeZone): JodaDateTime =
+    new JodaDateTime(date.year.toInt, date.month.toInt, date.day.toInt, time.hours, time.minuteOfHour, time.secondOfMinute, z)
+
+  def iso8601(z: DateTimeZone): String =
+    joda(z).toString("yyyy-MM-dd'T'HH:mm:ssZ")
+
+  def localIso8601: String =
+    s"${date.hyphenated}T${time.hhmmss}"
 
   override def toString: String =
     s"DateTime(${date.year},${date.month},${date.day},$time)"
+
 }
 
 object DateTime {
+
   def apply(year: Short, month: Byte, day: Byte, seconds: Int): DateTime =
     macro Macros.literal
 

@@ -2,6 +2,9 @@ package com.ambiata.ivory.core
 
 import org.scalacheck._, Arbitrary._
 
+import org.joda.time.DateTimeZone
+import scala.collection.JavaConverters._
+
 import scalaz._, Scalaz._
 
 object Arbitraries {
@@ -10,7 +13,7 @@ object Arbitraries {
 
   implicit def DateArbitrary: Arbitrary[Date] =
     Arbitrary(for {
-      y <- Gen.choose(1000, 3000)
+      y <- Gen.choose(1970, 3000)
       m <- Gen.choose(1, 12)
       d <- Gen.choose(1, 31)
       r = Date.create(y.toShort, m.toByte, d.toByte)
@@ -58,4 +61,8 @@ object Arbitraries {
     t <- arbitrary[Time]
     v <- Gen.frequency(1 -> Gen.const(TombstoneValue()), 99 -> valueOf(m.encoding))
   } yield Fact.newFact(e, f.namespace, f.name, d, t, v))
+
+  implicit def DateTimeZoneArbitrary: Arbitrary[DateTimeZone] = Arbitrary(for {
+    zid <- Gen.oneOf(DateTimeZone.getAvailableIDs().asScala.toSeq)
+  } yield DateTimeZone.forID(zid))
 }

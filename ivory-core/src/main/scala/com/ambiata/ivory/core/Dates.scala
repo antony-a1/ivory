@@ -37,5 +37,5 @@ object Dates {
     try {
       val d = format.parseDateTime(s).withZone(ivory)
       DateTime.create(d.getYear.toShort, d.getMonthOfYear.toByte, d.getDayOfMonth.toByte, d.getSecondOfDay)
-    } catch { case e: Throwable => None }
+    } catch { case e: Throwable => println(e.getMessage); None }
 }

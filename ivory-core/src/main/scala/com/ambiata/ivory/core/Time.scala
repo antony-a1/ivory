@@ -4,18 +4,29 @@ import scalaz._, Scalaz._
 
 /* Seconds since start of day */
 class Time private(val underlying: Int) extends AnyVal {
-  def seconds =
+  def hours: Int =
+    seconds / 3600
+
+  def minutes: Int =
+    seconds / 60
+
+  def minuteOfHour: Int =
+    secondOfHour / 60
+
+  def seconds: Int =
     underlying
 
-  override def toString: String =
-    seconds.toString
+  def secondOfMinute: Int =
+    secondOfHour - (minuteOfHour * 60)
 
-  def hhmmss = {
-    val (hh, resth) = (seconds / 3600, seconds % 3600)
-    val (mm, restm) = (resth / 60, resth % 60)
-    val ss = restm / 60
-    hh+":"+mm+":"+ss
-  }
+  def secondOfHour: Int =
+    seconds - (hours * 3600)
+
+  override def toString: String =
+    hhmmss
+
+  def hhmmss =
+    s"%02d:%02d:%02d".format(hours, minuteOfHour, secondOfMinute)
 }
 
 object Time {
