@@ -36,12 +36,16 @@ Eavt Parse Formats
     , fact.date.hyphenated + " " + fact.time.hhmmss
     )) must_== Success(fact))
 
-  // FIX need to add support for a more sensible 8601 format, see /doc/dates.md
-  def standard =
-    pending
+  def standard = prop((fact: Fact, z: DateTimeZone) =>
+    EavtParsers.fact(TestDictionary, fact.namespace, z).run(List(
+      fact.entity
+    , fact.feature
+    , fact.value.stringValue.getOrElse("?")
+    , fact.datetime.iso8601(z)
+    )) must_== Success(fact))
 
-  def zones = prop((fact: Fact) =>
-    EavtParsers.fact(TestDictionary, fact.namespace, DateTimeZone.forID("Indian/Maldives")).run(List(
+  def zones = prop((fact: Fact, z: DateTimeZone) =>
+    EavtParsers.fact(TestDictionary, fact.namespace, z).run(List(
       fact.entity
     , fact.feature
     , fact.value.stringValue.getOrElse("?")

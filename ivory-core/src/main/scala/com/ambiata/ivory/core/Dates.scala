@@ -38,4 +38,13 @@ object Dates {
       val d = format.parseDateTime(s).withZone(ivory)
       DateTime.create(d.getYear.toShort, d.getMonthOfYear.toByte, d.getDayOfMonth.toByte, d.getSecondOfDay)
     } catch { case e: Throwable => None }
+
+  def parser(local: DateTimeZone, ivory: DateTimeZone): ListParser[Date \/ DateTime] = {
+    import ListParser._
+    for {
+      s <- string
+      p <- getPosition
+      r <- value(parse(s, local, ivory).map(_.success).getOrElse(s"Could not parse '${s}' at position '${p}'".failure))
+    } yield r
+  }
 }

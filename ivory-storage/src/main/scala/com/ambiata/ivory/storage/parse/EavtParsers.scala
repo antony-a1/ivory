@@ -20,23 +20,13 @@ object EavtParsers {
       name   <- string.nonempty
       rawv   <- string
       v      <- value(dictionary.meta.get(FeatureId(namespace, name)).map(fm => valueFromString(fm, rawv)).getOrElse(s"Could not find dictionary entry for '$namespace.$name'".failure))
-      // FIX support proper time format
-      time   <- either(localDatetime("yyyy-MM-dd HH:mm:ss"), localDate("yyyy-MM-dd")) // TODO replace with something that doesn't use joda
+      time   <- Dates.parser(timezone, timezone)
     } yield time match {
-      case -\/(t) =>
-        // FIX this looks wrong, it is getting the date with timezone, but millisOfDay without
-        Fact.newFact(entity, namespace, name, Date.fromLocalDate(t.toDateTime(timezone).toLocalDate), Time.unsafe(t.getMillisOfDay / 1000), v)
-      case \/-(t) =>
-        Fact.newFact(entity, namespace, name, Date.fromLocalDate(t), Time(0), v)
+      case \/-(dt) =>
+        Fact.newFact(entity, namespace, name, dt.date, dt.time, v)
+      case -\/(d) =>
+        Fact.newFact(entity, namespace, name, d, Time(0), v)
     }
-
-  // FIX this probably belongs back in mundane.
-  def either[A, B](x: ListParser[A], y: ListParser[B]): ListParser[A \/ B] =
-    ListParser((n, ls) =>
-      x.parse(n, ls) match {
-        case Success((m, rest, a)) => Success((m, rest, a.left[B]))
-        case Failure(_) => y.parse(n, ls).map(_.map(_.right[A]))
-      })
 
   def valueFromString(meta: FeatureMeta, raw: String): Validation[String, Value] = meta.encoding match {
     case _ if(meta.tombstoneValue.contains(raw)) => TombstoneValue().success[String]
