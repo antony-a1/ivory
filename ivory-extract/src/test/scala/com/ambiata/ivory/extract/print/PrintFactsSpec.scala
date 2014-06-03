@@ -37,9 +37,9 @@ class PrintFactsSpec extends HadoopSpecification with SampleFacts { def is = s2"
     PrintFacts.printGlob(repo.snapshots.toHdfs.toString + "/00000000", "out-*", delim = "|", tombstone = "NA").execute(stringBufferLogging).unsafePerformIO must beOkResult
 
     buffer.toString must_==
-      """|eid1|ns1|fid1|abc|2012-10-01|0:0:0
-         |eid2|ns1|fid2|11|2012-11-01|0:0:0
-         |eid3|ns2|fid3|true|2012-03-20|0:0:0
+      """|eid1|ns1|fid1|abc|2012-10-01|00:00:00
+         |eid2|ns1|fid2|11|2012-11-01|00:00:00
+         |eid3|ns2|fid3|true|2012-03-20|00:00:00
          |""".stripMargin
   }
 
