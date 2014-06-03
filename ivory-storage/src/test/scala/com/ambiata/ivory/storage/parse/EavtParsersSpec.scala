@@ -34,7 +34,7 @@ Eavt Parse Formats
     , fact.feature
     , fact.value.stringValue.getOrElse("?")
     , fact.date.hyphenated + " " + fact.time.hhmmss
-    )) must_== Success(fact)).pendingUntilFixed
+    )) must_== Success(fact))
 
   // FIX need to add support for a more sensible 8601 format, see /doc/dates.md
   def standard =
@@ -46,5 +46,5 @@ Eavt Parse Formats
     , fact.feature
     , fact.value.stringValue.getOrElse("?")
     , fact.date.hyphenated + " " + fact.time.hhmmss
-    )) must_== Success(fact)).pendingUntilFixed
+    )) must_== Success(fact))
 }
