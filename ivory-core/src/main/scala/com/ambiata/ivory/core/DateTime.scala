@@ -32,6 +32,11 @@ class DateTime private(val underlying: Long) extends AnyVal {
   override def toString: String =
     s"DateTime(${date.year},${date.month},${date.day},$time)"
 
+  def isDstOverlap(z: DateTimeZone): Boolean = {
+    val e = joda(z).withEarlierOffsetAtOverlap
+    val l = e.withLaterOffsetAtOverlap
+    e.getMillis != l.getMillis
+  }
 }
 
 object DateTime {
@@ -49,6 +54,9 @@ object DateTime {
 
   def unsafeFromLong(l: Long): DateTime =
     new DateTime(l)
+
+  def fromJoda(dt: JodaDateTime): DateTime =
+    unsafe(dt.getYear.toShort, dt.getMonthOfYear.toByte, dt.getDayOfMonth.toByte, dt.getSecondOfDay)
 
   object Macros {
     import scala.reflect.macros.Context
