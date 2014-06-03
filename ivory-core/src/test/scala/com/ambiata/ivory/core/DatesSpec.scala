@@ -73,10 +73,14 @@ Generic Time Format Parsing
   def zonesymmetric = prop((d: DateTime, local: DateTimeZone, ivory: DateTimeZone) => runExample(d, local, ivory) ==> {
     (Dates.datetimezone(d.iso8601(local), local) must beSome(d)) and
     (Dates.datetimezone(d.iso8601(local), ivory) must beSome((iDate: DateTime) => {
-      val jdt = iDate.joda(ivory).withZone(local)
-      DateTime.unsafe(jdt.getYear.toShort, jdt.getMonthOfYear.toByte, jdt.getDayOfMonth.toByte, jdt.getSecondOfDay.toInt) must_== d
+      val ijd = d.joda(local).withZone(ivory)
+      val jdt = if(ijd.withEarlierOffsetAtOverlap == ijd)
+        iDate.joda(ivory).withEarlierOffsetAtOverlap.withZone(local)
+      else
+        iDate.joda(ivory).withLaterOffsetAtOverlap.withZone(local)
+      DateTime.fromJoda(jdt) must_== d
     }))
-  }).set(minTestsOk = 50000)
+  }).set(minTestsOk = 100000)
 
   /**
    * TODO: Fix when we handle DST
@@ -84,15 +88,19 @@ Generic Time Format Parsing
   def timesymmetric = prop((d: DateTime, local: DateTimeZone, ivory: DateTimeZone) => runExample(d, local, ivory) ==> {
     (Dates.datetime(d.localIso8601, local, local) must beSome(d)) and
     (Dates.datetime(d.localIso8601, local, ivory) must beSome((iDate: DateTime) => {
-      val jdt = iDate.joda(ivory).withZone(local)
-      DateTime.unsafe(jdt.getYear.toShort, jdt.getMonthOfYear.toByte, jdt.getDayOfMonth.toByte, jdt.getSecondOfDay.toInt) must_== d
+      val ijd = d.joda(local).withZone(ivory)
+      val jdt = if(ijd.withEarlierOffsetAtOverlap == ijd)
+        iDate.joda(ivory).withEarlierOffsetAtOverlap.withZone(local)
+      else
+        iDate.joda(ivory).withLaterOffsetAtOverlap.withZone(local)
+      DateTime.fromJoda(jdt) must_== d
     }))
-  }).set(minTestsOk = 50000)
+  }).set(minTestsOk = 100000)
 
   def runExample(d: DateTime, local: DateTimeZone, ivory: DateTimeZone): Boolean =
     try {
       d.joda(local)
-      !d.isDstOverlap(local) && !DateTime.fromJoda(d.joda(local).withZone(ivory)).isDstOverlap(ivory) && // TODO remove when we handle DST
+      //!d.isDstOverlap(local) && !DateTime.fromJoda(d.joda(local).withZone(ivory)).isDstOverlap(ivory) && // TODO remove when we handle DST
       (local.toString != "Africa/Monrovia" || d.date.year > 1980) // for some reason there are issues with this specific timezone before 1980
     } catch {
       case e: java.lang.IllegalArgumentException => false
