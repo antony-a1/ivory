@@ -46,9 +46,9 @@ object EavtTextImporter {
 
   // FIX horrible duplication, this all needs to be reformulated into a composable pipeline
   def onHdfsBulk(repository: HdfsRepository, dictionary: Dictionary, factset: Factset, namespace: List[String],
-             path: Path, errorPath: Path, timezone: DateTimeZone, partitions: Map[String, Int], codec: Option[CompressionCodec], preprocess: String => String = identity): ScoobiAction[Unit] = for {
+             path: Path, errorPath: Path, timezone: DateTimeZone, partitions: List[(String, Long)], optimal: Long, codec: Option[CompressionCodec], preprocess: String => String = identity): ScoobiAction[Unit] = for {
     sc <- ScoobiAction.scoobiConfiguration
-    _  <- ScoobiAction.safe(compoundScoobiJob(repository, dictionary, factset, namespace, path, errorPath, timezone, partitions, preprocess, codec)(sc))
+    _  <- ScoobiAction.safe(compoundScoobiJob(repository, dictionary, factset, namespace, path, errorPath, timezone, partitions, optimal, preprocess, codec)(sc))
     _  <- ScoobiAction.fromHdfs(writeFactsetVersion(repository, List(factset)))
   } yield ()
 
@@ -76,16 +76,34 @@ object EavtTextImporter {
     path: Path,
     errorPath: Path,
     timezone: DateTimeZone,
-    partitions: Map[String, Int],
+    partitions: List[(String, Long)],
+    optimal: Long,
     preprocess: String => String,
     codec: Option[CompressionCodec]
   )(implicit
     sc: ScoobiConfiguration
   ) {
-    sc.setMinReducers(partitions.size)
+
+    val (reducers, allocation) = Skew.calculate(dictionary, partitions, optimal)
+    val indexed = allocation.map({ case (n, f, idx) => FeatureId(n, f) -> idx }).toMap
+
+    sc.setMinReducers(reducers)
     val parsedFacts = namespaces.map(namespace => {
       fromEavtTextFile(path.toString + "/" + namespace + "/*", dictionary, namespace, timezone, preprocess)
     }).reduceLeft(_ ++ _)
+
+    val grouping = new Grouping[FeatureId] {
+      val grp = implicitly[Grouping[String]]
+
+      override def partition(f: FeatureId, total: Int): Int =
+        indexed.get(f).map(i => i % total).getOrElse(grp.partition(f.toString, total))
+
+      override def groupCompare(x: FeatureId, y: FeatureId) =
+        grp.groupCompare(x.toString, y.toString)
+    }
+
+    val keyedByFeature: KeyedBy[FeatureId] =
+      f => f.featureId
 
     scoobiJobOnFacts(
       parsedFacts,
@@ -93,8 +111,8 @@ object EavtTextImporter {
       factset,
       path,
       errorPath,
-      keyedByPartition,
-      Groupings.partitionGrouping(partitions),
+      keyedByFeature,
+      grouping,
       codec
     )
   }

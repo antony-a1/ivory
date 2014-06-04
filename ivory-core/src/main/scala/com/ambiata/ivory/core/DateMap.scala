@@ -2,6 +2,7 @@ package com.ambiata.ivory.core
 
 import scala.collection.JavaConverters._
 
+// FIX deprecate in favour of Date/DateTime operations.
 object DateMap {
   import org.joda.time.LocalDate
   import java.util.HashMap
@@ -46,31 +47,4 @@ object DateMap {
 
   @inline def toInt(y: Short, m: Byte, d: Byte)  =
     (y.toInt << 16) | (m.toInt << 8) | d.toInt
-}
-
-
-object BuildDanger extends App {
-  import java.io._
-  val block = 4 * 1024 * 1024
-  val in = new BufferedInputStream(new FileInputStream("target/chord.in"), block)
-  val s = new String(com.ambiata.mundane.io.Streams.readFromStream(in, block), "UTF-8")
-  val c = DateMap.chords(s)
-  println(c.size)
-  println("keep: " + DateMap.keep(c, "E000001", 2013.toShort, 1.toByte, 1.toByte))
-  println("reject: " + DateMap.keep(c, "E000001", 2015.toShort, 1.toByte, 1.toByte))
-}
-
-object BuildChordFile extends App {
-  import java.io._
-  val out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream("target/chord.in")))
-  val rand = new java.util.Random
-  def month = String.format("%02d", java.lang.Integer.valueOf((math.abs(rand.nextInt) % 12) + 1))
-  def day = String.format("%02d", java.lang.Integer.valueOf((math.abs(rand.nextInt) % 28) + 1))
-
-  (1 to 1000).foreach(n => {
-    out.write(s"E00000$n|2014-${month}-${day}")
-    out.newLine
-  })
-  out.flush
-  out.close
 }

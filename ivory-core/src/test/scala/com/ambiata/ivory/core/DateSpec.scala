@@ -8,7 +8,7 @@ import scalaz._, Scalaz._
 class DateSpec extends Specification with ScalaCheck { def is = s2"""
 
 Date Tests
------------------------------
+----------
 
   Int dates are reversable                    $int
   Can add seconds to int date and reverse     $sec

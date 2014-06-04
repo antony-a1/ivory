@@ -15,6 +15,12 @@ trait WireFormats {
   /**
    * TODO Remove this when scoobi has the wire format
    */
+  def featureIdWireFormat =
+    implicitly[WireFormat[(String, String)]].xmap((FeatureId.apply _).tupled, (x: FeatureId) => (x.namespace, x.name))
+
+  /**
+   * TODO Remove this when scoobi has the wire format
+   */
   implicit val ShortWireFormat = new WireFormat[Short] {
     def toWire(x: Short, out: DataOutput) { out.writeShort(x) }
     def fromWire(in: DataInput): Short = in.readShort()
