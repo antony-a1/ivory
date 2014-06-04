@@ -19,7 +19,7 @@ import scalaz.{DList => _, _}, Scalaz._
 
 object chord extends ScoobiApp {
 
-  case class CliArguments(repo: String, output: String, tmp: String, errors: String, entities: String, pivot: Boolean, delim: Char, tombstone: String)
+  case class CliArguments(repo: String, output: String, tmp: String, errors: String, entities: String, takeSnapshot: Boolean, pivot: Boolean, delim: Char, tombstone: String)
 
   implicit val charRead: scopt.Read[Char] =
     scopt.Read.reads(str => {
@@ -44,14 +44,15 @@ object chord extends ScoobiApp {
     opt[String]('t', "tmp")      action { (x, c) => c.copy(tmp = x) }       required() text "Path to store tmp data."
     opt[String]('e', "errors")   action { (x, c) => c.copy(errors = x) }    required() text "Path to store any errors."
     opt[String]('c', "entities") action { (x, c) => c.copy(entities = x) }  required() text "Path to file containing entity/date pairs (eid|yyyy-MM-dd)."
+    opt[Unit]("no-snapshot")     action { (x, c) => c.copy(pivot = false) }            text "Do not take a new snapshot, just any existing."
     opt[Unit]("pivot")           action { (x, c) => c.copy(pivot = true) }             text "Pivot the output data."
     opt[Char]("delim")           action { (x, c) => c.copy(delim = x) }                text "Delimiter for pivot file, default '|'."
     opt[String]("tombstone")     action { (x, c) => c.copy(tombstone = x) }            text "Tombstone for pivot file, default 'NA'."
   }
 
   def run {
-    parser.parse(args, CliArguments("", "", "", "", "", false, '|', "NA")).map(c => {
-      val res = onHdfs(new Path(c.repo), new Path(c.output), new Path(c.tmp), new Path(c.errors), new Path(c.entities), c.pivot, c.delim, c.tombstone)
+    parser.parse(args, CliArguments("", "", "", "", "", true, false, '|', "NA")).map(c => {
+      val res = onHdfs(new Path(c.repo), new Path(c.output), new Path(c.tmp), new Path(c.errors), new Path(c.entities), c.takeSnapshot, c.pivot, c.delim, c.tombstone)
       res.run(configuration).run.unsafePerformIO() match {
         case Ok(_)    => println(s"Successfully extracted chord from '${c.repo}' and stored in '${c.output}'")
         case Error(e) => println(s"Failed! - ${e}")
@@ -59,10 +60,10 @@ object chord extends ScoobiApp {
     })
   }
 
-  def onHdfs(repoPath: Path, outputPath: Path, tmpPath: Path, errorPath: Path, entitiesPath: Path, pivot: Boolean, delim: Char, tombstone: String): ScoobiAction[Unit] = for {
+  def onHdfs(repoPath: Path, outputPath: Path, tmpPath: Path, errorPath: Path, entitiesPath: Path, takeSnapshot: Boolean, pivot: Boolean, delim: Char, tombstone: String): ScoobiAction[Unit] = for {
     tout <- ScoobiAction.value(new Path(outputPath, "thrift"))
     dout <- ScoobiAction.value(new Path(outputPath, "dense"))
-    _    <- Chord.onHdfs(repoPath, entitiesPath, tout, new Path(tmpPath, "chord"), new Path(errorPath, "chord"), Some(new SnappyCodec))
+    _    <- Chord.onHdfs(repoPath, entitiesPath, tout, new Path(tmpPath, "chord"), new Path(errorPath, "chord"), takeSnapshot, Some(new SnappyCodec))
     _    <- if(pivot) {
               println("Pivoting extracted chord in '${tout}' to '${dout}'")
               Pivot.onHdfs(tout, dout, new Path(errorPath, "dense"), new Path(tout, ".dictionary"), delim, tombstone)
