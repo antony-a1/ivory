@@ -4,6 +4,7 @@ import scalaz.{DList => _, Value => _, _}, Scalaz._
 import com.nicta.scoobi.Scoobi._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi._, WireFormats._, FactFormats._
+import com.ambiata.ivory.storage.parse._
 import com.nicta.scoobi.Scoobi._
 import com.ambiata.mundane.parse.ListParser
 import com.ambiata.mundane.parse.ListParser._
@@ -41,33 +42,8 @@ object EavtTextStorageV1 {
     EavtTextLoader(path, dict, namespace, timezone, preprocess).loadScoobi
 
   def splitLine(line: String): List[String] =
-    line.split('|').toList match {
-      case e :: a :: v :: t :: Nil => List(e, a, v, t.trim)
-      case other                   => other
-    }
+    EavtParsers.splitLine(line)
 
-  def parseFact(dict: Dictionary, namespace: String, timezone: DateTimeZone, preprocessor: String => String): ListParser[Fact] = {
-    import ListParser._
-    for {
-      entity <- string.nonempty
-      name   <- string.nonempty
-      rawv   <- string
-      v      <- value(dict.meta.get(FeatureId(namespace, name)).map(fm => DelimitedFactTextStorage.valueFromString(fm, rawv)).getOrElse(s"Could not find dictionary entry for '$namespace.$name'".failure))
-      time   <- either(localDatetime("yyyy-MM-dd HH:mm:ss"), localDate("yyyy-MM-dd")) // TODO replace with something that doesn't use joda
-    } yield time match {
-      case -\/(t) =>
-        // FIX this looks wrong, it is getting the date with timezone, but millisOfDay without
-        Fact.newFact(entity, namespace, name, Date.fromLocalDate(t.toDateTime(timezone).toLocalDate), Time.unsafe(t.getMillisOfDay / 1000), v)
-      case \/-(t) =>
-        Fact.newFact(entity, namespace, name, Date.fromLocalDate(t), Time(0), v)
-    }
-  }.preprocess(preprocessor)
-
-  // FIX this probably belongs back in mundane.
-  def either[A, B](x: ListParser[A], y: ListParser[B]): ListParser[A \/ B] =
-    ListParser((n, ls) =>
-      x.parse(n, ls) match {
-        case Success((m, rest, a)) => Success((m, rest, a.left[B]))
-        case Failure(_) => y.parse(n, ls).map(_.map(_.right[A]))
-      })
+  def parseFact(dict: Dictionary, namespace: String, timezone: DateTimeZone, preprocessor: String => String): ListParser[Fact] =
+    EavtParsers.fact(dict, namespace, timezone).preprocess(preprocessor)
 }
