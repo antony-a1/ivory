@@ -48,7 +48,15 @@ object ingestBulk extends ScoobiApp {
   def run {
     parser.parse(args, CliArguments("", None, "", "", DateTimeZone.getDefault, Some(new SnappyCodec))).map(c => {
       val res = onHdfs(new Path(c.repo), c.dictionary, new Path(c.input), tombstone, new Path(c.tmp), c.timezone, c.codec)
-      res.run(configuration.modeIs(com.nicta.scoobi.core.Mode.Cluster)).run.unsafePerformIO() match {
+      res.run(configuration.modeIs(com.nicta.scoobi.core.Mode.Cluster) <| { c =>
+        // MR1
+        c.set("mapred.compress.map.output", "true")
+        c.set("mapred.map.output.compression.codec", "org.apache.hadoop.io.compress.SnappyCodec")
+
+        // YARN
+        c.set("mapreduce.map.output.compress", "true")
+        c.set("mapred.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec")
+      }) .run.unsafePerformIO() match {
         case Ok(_)    => println(s"Successfully imported '${c.input}' into '${c.repo}'")
         case Error(e) => println(s"Failed! - ${Result.asString(e)}")
       }
