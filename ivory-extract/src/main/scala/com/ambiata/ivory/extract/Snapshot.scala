@@ -99,7 +99,8 @@ object HdfsSnapshot {
   def readFacts(repo: HdfsRepository, store: FeatureStore, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] = {
     import IvoryStorage._
     incremental match {
-      case None             => factsFromIvoryStore(repo, store)
+      case None =>
+        factsFromIvoryStoreTo(repo, store, latestDate)
       case Some((p, s, sm)) => for {
         o <- factsFromIvoryStoreBetween(repo, s, sm.date, latestDate) // read facts from already processed store from the last snapshot date to the latest date
         sd = store --- s
