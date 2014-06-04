@@ -32,7 +32,7 @@ object ingestBulk extends ScoobiApp {
          |""".stripMargin)
 
     help("help") text "shows this usage text"
-    opt[String]('n', "no-compression") action { (x, c) => c.copy(codec = None) }       required() text "Don't use compression."
+    opt[Unit]('n', "no-compression") action { (_, c) => c.copy(codec = None) }    text "Don't use compression."
     opt[String]('r', "repo") action { (x, c) => c.copy(repo = x) }       required() text "Path to an ivory repository."
     opt[String]('t', "tmp")        action { (x, c) => c.copy(tmp = x) }        required() text "Path to store tmp data."
     opt[String]('i', "input")      action { (x, c) => c.copy(input = x) }      required() text "Path to data to import."
