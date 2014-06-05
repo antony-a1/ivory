@@ -67,12 +67,11 @@ Generic Time Format Parsing
     (Dates.date("2001-02-29") must beNone)
   }
 
-  /**
-   * TODO: Fix when we handle DST
-   */
-  def zonesymmetric = prop((d: DateTime, local: DateTimeZone, ivory: DateTimeZone) => runExample(d, local, ivory) ==> {
+  def zonesymmetric = prop((dz: (DateTime, DateTimeZone), ivory: DateTimeZone) => runExample(dz._1, dz._2, ivory) ==> {
+    val (d, local) = dz
     (Dates.datetimezone(d.iso8601(local), local) must beSome(d)) and
     (Dates.datetimezone(d.iso8601(local), ivory) must beSome((iDate: DateTime) => {
+      // TODO: Fix when we handle DST
       val ijd = d.joda(local).withZone(ivory)
       val jdt = if(ijd.withEarlierOffsetAtOverlap == ijd)
         iDate.joda(ivory).withEarlierOffsetAtOverlap.withZone(local)
@@ -80,14 +79,13 @@ Generic Time Format Parsing
         iDate.joda(ivory).withLaterOffsetAtOverlap.withZone(local)
       DateTime.fromJoda(jdt) must_== d
     }))
-  }).set(minTestsOk = 100000)
+  }).set(minTestsOk = 10000)
 
-  /**
-   * TODO: Fix when we handle DST
-   */
-  def timesymmetric = prop((d: DateTime, local: DateTimeZone, ivory: DateTimeZone) => runExample(d, local, ivory) ==> {
+  def timesymmetric = prop((dz: (DateTime, DateTimeZone), ivory: DateTimeZone) => runExample(dz._1, dz._2, ivory) ==> {
+    val (d, local) = dz
     (Dates.datetime(d.localIso8601, local, local) must beSome(d)) and
     (Dates.datetime(d.localIso8601, local, ivory) must beSome((iDate: DateTime) => {
+      // TODO: Fix when we handle DST
       val ijd = d.joda(local).withZone(ivory)
       val jdt = if(ijd.withEarlierOffsetAtOverlap == ijd)
         iDate.joda(ivory).withEarlierOffsetAtOverlap.withZone(local)
@@ -95,29 +93,30 @@ Generic Time Format Parsing
         iDate.joda(ivory).withLaterOffsetAtOverlap.withZone(local)
       DateTime.fromJoda(jdt) must_== d
     }))
-  }).set(minTestsOk = 100000)
+  }).set(minTestsOk = 10000)
 
   def runExample(d: DateTime, local: DateTimeZone, ivory: DateTimeZone): Boolean =
-    try {
-      d.joda(local)
-      //!d.isDstOverlap(local) && !DateTime.fromJoda(d.joda(local).withZone(ivory)).isDstOverlap(ivory) && // TODO remove when we handle DST
-      (local.toString != "Africa/Monrovia" || d.date.year > 1980) // for some reason there are issues with this specific timezone before 1980
-    } catch {
-      case e: java.lang.IllegalArgumentException => false
-    }
+    (local.toString != "Africa/Monrovia" || d.date.year > 1980) // for some reason there are issues with this specific timezone before 1980
 
-  def parsedate = prop((d: DateTime, ivory: DateTimeZone) =>
-    Dates.parse(d.date.hyphenated, ivory, ivory) must beSome((nd: Date \/ DateTime) => nd.toEither must beLeft(d.date)))
+  def parsedate = prop((dz: (DateTime, DateTimeZone)) => {
+    val (d, ivory) = dz
+    Dates.parse(d.date.hyphenated, ivory, ivory) must beSome((nd: Date \/ DateTime) => nd.toEither must beLeft(d.date))
+  })
 
-  def parsetime = prop((d: DateTime, ivory: DateTimeZone) =>
-    Dates.parse(d.localIso8601, ivory, ivory) must beSome((nd: Date \/ DateTime) => nd.toEither must beRight(d)))
+  def parsetime = prop((dz: (DateTime, DateTimeZone)) => {
+    val (d, ivory) = dz
+    Dates.parse(d.localIso8601, ivory, ivory) must beSome((nd: Date \/ DateTime) => nd.toEither must beRight(d))
+  })
 
-  def parsezone = prop((d: DateTime, ivory: DateTimeZone) =>
-    Dates.parse(d.iso8601(ivory), ivory, ivory) must beSome((nd: Date \/ DateTime) => nd.toEither must beRight(d)))
+  def parsezone = prop((dz: (DateTime, DateTimeZone)) => {
+    val (d, ivory) = dz
+    Dates.parse(d.iso8601(ivory), ivory, ivory) must beSome((nd: Date \/ DateTime) => nd.toEither must beRight(d))
+  })
 
   def parsefail =
     (Dates.parse("2001-02-29", DateTimeZone.UTC, DateTimeZone.UTC) must beNone) and
     (Dates.parse("2001-02-20T25:10:01", DateTimeZone.UTC, DateTimeZone.UTC) must beNone) and
-    (Dates.parse("2001-02-20T20:10:01-24:00", DateTimeZone.UTC, DateTimeZone.UTC) must beNone)
+    (Dates.parse("2001-02-20T20:10:01-24:00", DateTimeZone.UTC, DateTimeZone.UTC) must beNone) and
+    prop((bad: BadDateTime) => Dates.parse(bad.datetime.localIso8601, bad.zone, DateTimeZone.UTC) must beNone)
 
 }

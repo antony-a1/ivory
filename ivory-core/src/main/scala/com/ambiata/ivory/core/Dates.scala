@@ -1,7 +1,7 @@
 package com.ambiata.ivory.core
 
 import scalaz._, Scalaz._
-import org.joda.time.{LocalDate, DateTimeZone}
+import org.joda.time.{LocalDate, DateTimeZone, DateTime => JodaDateTime}
 import org.joda.time.format.{DateTimeFormat, DateTimeFormatter}
 import com.ambiata.mundane.parse.ListParser
 
@@ -46,5 +46,15 @@ object Dates {
       p <- getPosition
       r <- value(parse(s, local, ivory).map(_.success).getOrElse(s"Could not parse '${s}' at position '${p}'".failure))
     } yield r
+  }
+
+  def dst(year: Short, zone: DateTimeZone): Option[(DateTime, DateTime)] = {
+    val endOfYear = new LocalDate(year + 1, 1, 1).toDateTimeAtStartOfDay(zone)
+    val secondDst = new JodaDateTime(zone.previousTransition(endOfYear.getMillis), zone)
+    val firstDst = new JodaDateTime(zone.previousTransition(secondDst.getMillis), zone)
+    if(firstDst != endOfYear && secondDst != firstDst)
+      Some((DateTime.fromJoda(firstDst), DateTime.fromJoda(secondDst)))
+    else
+      None
   }
 }

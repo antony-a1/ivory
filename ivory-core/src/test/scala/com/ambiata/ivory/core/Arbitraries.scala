@@ -32,10 +32,45 @@ object Arbitraries {
       t <- arbitrary[Time]
     } yield d.addTime(t))
 
+  implicit def DateTimeWithZoneArbitrary: Arbitrary[(DateTime, DateTimeZone)] =
+    Arbitrary(for {
+      dt <- arbitrary[DateTime]
+      z  <- arbitrary[DateTimeZone].retryUntil(z => try { dt.joda(z); true } catch { case e: java.lang.IllegalArgumentException => false })
+    } yield (dt, z))
+
+  case class BadDateTime(datetime: DateTime, zone: DateTimeZone)
+  implicit def BadDateTimeArbitrary: Arbitrary[BadDateTime] =
+    Arbitrary(for {
+      dt  <- arbitrary[DateTime]
+      opt <- arbitrary[DateTimeZone].map(z => Dates.dst(dt.date.year, z).flatMap({ case (firstDst, secondDst) =>
+               val unsafeFirst = unsafeAddSecond(firstDst)
+               val unsafeSecond = unsafeAddSecond(secondDst)
+               try {
+                 unsafeFirst.joda(z)
+                 try { unsafeSecond.joda(z); None } catch { case e: java.lang.IllegalArgumentException => Some((unsafeSecond, z)) }
+               } catch {
+                 case e: java.lang.IllegalArgumentException => Some((unsafeFirst, z))
+               }
+             })).retryUntil(_.isDefined)
+      (bad, z) = opt.get
+    } yield BadDateTime(bad, z))
+
+  def unsafeAddSecond(dt: DateTime): DateTime = {
+    val (d, h, m, s) = (dt.date.day.toInt, dt.time.hours, dt.time.minuteOfHour, dt.time.secondOfMinute) match {
+      case (d, 23, 59, 59) => (d + 1, 0, 0, 0)
+      case (d, h, 59, 59)  => (d, h + 1, 0, 0)
+      case (d, h, m, 59)   => (d, h, m + 1, 0)
+      case (d, h, m, s)    => (d, h, m, s + 1)
+    }
+    DateTime.unsafe(dt.date.year, dt.date.month, d.toByte, (h * 60 * 60) + (m * 60) + s)
+  }
+
   lazy val TestDictionary: Dictionary = Dictionary("EavtParsersSpec", Map(
     FeatureId("fruit", "apple") -> FeatureMeta(LongEncoding, ContinuousType, "Reds and Greens", "?" :: Nil)
   , FeatureId("fruit", "orange") -> FeatureMeta(StringEncoding, CategoricalType, "Oranges", "?" :: Nil)
   , FeatureId("vegetables", "potatoe") -> FeatureMeta(DoubleEncoding, ContinuousType, "Browns", "?" :: Nil)
+  , FeatureId("vegetables", "yams") -> FeatureMeta(BooleanEncoding, CategoricalType, "Sweets", "?" :: Nil)
+  , FeatureId("vegetables", "peas") -> FeatureMeta(IntEncoding, ContinuousType, "Greens", "?" :: Nil)
   ))
 
   lazy val TestEntities: List[String] =
@@ -54,13 +89,19 @@ object Arbitraries {
       arbitrary[String].map(StringValue)
    }
 
+  /**
+   * Create an arbitrary fact and timezone such that the time in the fact is valid given the timezone
+   */
+  implicit def FactWithZoneArbitrary: Arbitrary[(Fact, DateTimeZone)] = Arbitrary(for {
+    e       <- Gen.oneOf(TestEntities)
+    (f, m)  <- Gen.oneOf(TestDictionary.meta.toList)
+    (dt, z) <- arbitrary[(DateTime, DateTimeZone)]
+    v       <- Gen.frequency(1 -> Gen.const(TombstoneValue()), 99 -> valueOf(m.encoding))
+  } yield (Fact.newFact(e, f.namespace, f.name, dt.date, dt.time, v), z))
+
   implicit def FactArbitrary: Arbitrary[Fact] = Arbitrary(for {
-    e <- Gen.oneOf(TestEntities)
-    (f, m) <- Gen.oneOf(TestDictionary.meta.toList)
-    d <- arbitrary[Date]
-    t <- arbitrary[Time]
-    v <- Gen.frequency(1 -> Gen.const(TombstoneValue()), 99 -> valueOf(m.encoding))
-  } yield Fact.newFact(e, f.namespace, f.name, d, t, v))
+    (f, _) <- arbitrary[(Fact, DateTimeZone)]
+  } yield f)
 
   implicit def DateTimeZoneArbitrary: Arbitrary[DateTimeZone] = Arbitrary(for {
     zid <- Gen.oneOf(DateTimeZone.getAvailableIDs().asScala.toSeq)
