@@ -44,7 +44,7 @@ object chord extends ScoobiApp {
     opt[String]('t', "tmp")      action { (x, c) => c.copy(tmp = x) }       required() text "Path to store tmp data."
     opt[String]('e', "errors")   action { (x, c) => c.copy(errors = x) }    required() text "Path to store any errors."
     opt[String]('c', "entities") action { (x, c) => c.copy(entities = x) }  required() text "Path to file containing entity/date pairs (eid|yyyy-MM-dd)."
-    opt[Unit]("no-snapshot")     action { (x, c) => c.copy(pivot = false) }            text "Do not take a new snapshot, just any existing."
+    opt[Unit]("no-snapshot")     action { (x, c) => c.copy(takeSnapshot = false) }     text "Do not take a new snapshot, just any existing."
     opt[Unit]("pivot")           action { (x, c) => c.copy(pivot = true) }             text "Pivot the output data."
     opt[Char]("delim")           action { (x, c) => c.copy(delim = x) }                text "Delimiter for pivot file, default '|'."
     opt[String]("tombstone")     action { (x, c) => c.copy(tombstone = x) }            text "Tombstone for pivot file, default 'NA'."
