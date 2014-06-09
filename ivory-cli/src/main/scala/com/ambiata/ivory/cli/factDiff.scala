@@ -1,11 +1,10 @@
 package com.ambiata.ivory.cli
 
-import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, Scalaz._
 import com.ambiata.mundane.control._
 import com.ambiata.ivory.validate._
 
-object factDiff extends ScoobiApp {
+object factDiff extends IvoryApp {
 
   case class CliArguments(input1: String, input2: String, output: String, errors: String)
 
@@ -21,13 +20,10 @@ object factDiff extends ScoobiApp {
     opt[String]('e', "errors") action { (x, c) => c.copy(errors = x) } required() text s"Hdfs location to store any errors."
   }
 
-  def run() {
-    parser.parse(args, CliArguments("", "", "", "")).map(c => {
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", ""), ScoobiCmd { configuration => c =>
       val res = FactDiff.scoobiJob(c.input1, c.input2, c.output, c.errors)
-      res.run(configuration).run.unsafePerformIO() match {
-        case Ok(_)    => println(s"Any differences can be found in '${c.output}', errors in '${c.errors}'")
-        case Error(e) => println(s"Failed with '${e}'")
+      res.run(configuration).map {
+        case _ => s"Any differences can be found in '${c.output}', errors in '${c.errors}'"
       }
     })
-  }
 }

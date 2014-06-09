@@ -5,8 +5,6 @@ import com.ambiata.mundane.control._
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.extract._
 
-import com.nicta.scoobi.Scoobi._
-
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
 import org.apache.commons.logging.LogFactory
@@ -16,7 +14,7 @@ import java.util.Calendar
 
 import scalaz.{DList => _, _}, Scalaz._
 
-object pivotSnapshot extends ScoobiApp {
+object pivotSnapshot extends IvoryApp {
 
   case class CliArguments(repo: String, output: String, errors: String, delim: Char, tombstone: String, date: LocalDate)
 
@@ -50,8 +48,7 @@ object pivotSnapshot extends ScoobiApp {
 
   }
 
-  def run {
-    parser.parse(args, CliArguments("", "", "", '|', "NA", new LocalDate)).map(c => {
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", '|', "NA", new LocalDate), ScoobiCmd(configuration => c => {
       val banner = s"""======================= pivot =======================
                       |
                       |Arguments --
@@ -66,13 +63,8 @@ object pivotSnapshot extends ScoobiApp {
                       |""".stripMargin
       println(banner)
       val res = Pivot.onHdfsFromSnapshot(new Path(c.repo), new Path(c.output), new Path(c.errors), c.delim, c.tombstone, Date.fromLocalDate(c.date), Some(new SnappyCodec))
-      res.run(configuration).run.unsafePerformIO() match {
-        case Ok(_) =>
-          println(banner)
-          println("Status -- SUCCESS")
-        case Error(e) =>
-          println(s"Failed! - ${e}")
+      res.run(configuration).map {
+        case _ => List(banner, "Status -- SUCCESS").mkString("\n")
       }
-    })
-  }
+    }))
 }

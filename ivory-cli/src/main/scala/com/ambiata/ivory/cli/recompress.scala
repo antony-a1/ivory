@@ -1,10 +1,9 @@
 package com.ambiata.ivory.cli
 
 import com.ambiata.ivory.storage.legacy._
-import com.nicta.scoobi.Scoobi._
 import com.ambiata.mundane.io._
 
-object recompress extends ScoobiApp {
+object recompress extends IvoryApp {
   case class CliArguments(input: String, output: String, distribution: Int, dry: Boolean)
 
   val parser = new scopt.OptionParser[CliArguments]("recompress") {
@@ -21,12 +20,7 @@ object recompress extends ScoobiApp {
     opt[Int]('n', "distribution")       action { (x, c) => c.copy(distribution = x) } optional() text "Number of mappers."
   }
 
-  def run {
-    parser.parse(args, CliArguments("", "", 20, false)).map { c =>
-      Recompress.go(c.input, c.output, c.distribution, c.dry).run(configuration).run.unsafePerformIO.fold(
-        ok => ok,
-        err => { println(err); sys.exit(1) }
-      )
-    }
-  }
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", 20, false), ScoobiCmd { configuration => c =>
+    Recompress.go(c.input, c.output, c.distribution, c.dry).run(configuration).map(_ => "")
+  })
 }

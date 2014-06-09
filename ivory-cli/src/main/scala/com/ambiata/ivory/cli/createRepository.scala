@@ -15,9 +15,7 @@ import com.ambiata.saws.core.S3Action
 
 import com.nicta.scoobi.Scoobi._
 
-object createRepository {
-
-  lazy val configuration = new Configuration
+object createRepository extends IvoryApp {
 
   case class CliArguments(path: String = "", tmpDirectory: FilePath = Repository.defaultS3TmpDirectory)
 
@@ -36,24 +34,20 @@ object createRepository {
       s"Temporary directory path used to transfer data when interacting with S3. {user.home}/.s3repository by default"
   }
 
-  def main(args: Array[String]) {
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments(), HadoopCmd { configuration => c =>
+      println("Created configuration: " + configuration)
 
-    println("Created configuration: " + configuration)
-
-    parser.parse(args, CliArguments()).map { c =>
       val actions =
       if (c.path.startsWith("s3://")) {
         val p = c.path.replace("s3://", "").toFilePath
         val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, configuration)
-        CreateRepository.onS3(repository).eval
+        CreateRepository.onS3(repository).evalT
       }
       else
-          CreateRepository.onHdfs(new Path(c.path)).run(configuration).run
+          CreateRepository.onHdfs(new Path(c.path)).run(configuration)
 
-      actions.unsafePerformIO() match {
-        case Ok(_)    => println(s"Repository successfully created under ${c.path}.")
-        case Error(e) => println(s"Failed to create repository: ${Result.asString(e)}")
+      actions.map {
+        case _ => s"Repository successfully created under ${c.path}."
       }
-    }
-  }
+  })
 }
