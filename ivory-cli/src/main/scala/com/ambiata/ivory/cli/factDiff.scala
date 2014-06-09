@@ -1,8 +1,9 @@
-package com.ambiata.ivory.validate
+package com.ambiata.ivory.cli
 
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, Scalaz._
 import com.ambiata.mundane.control._
+import com.ambiata.ivory.validate._
 
 object factDiff extends ScoobiApp {
 

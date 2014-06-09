@@ -1,10 +1,11 @@
-package com.ambiata.ivory.validate
+package com.ambiata.ivory.cli
 
 import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.validate._
 
 object validateStore extends ScoobiApp {
   case class CliArguments(repo: String, store: String, dictionary: String, output: String, includeOverridden: Boolean)
