@@ -7,7 +7,7 @@ import com.ambiata.mundane.io._
 object recompress extends ScoobiApp {
   case class CliArguments(input: String, output: String, distribution: Int, dry: Boolean)
 
-  val parser = new scopt.OptionParser[CliArguments]("ivory-recompress") {
+  val parser = new scopt.OptionParser[CliArguments]("recompress") {
     head("""Clone an ivory repository, recompressing each part file.""")
 
     help("help") text "shows this usage text"

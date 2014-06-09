@@ -22,7 +22,7 @@ object snapshot extends ScoobiApp {
 
   case class CliArguments(repo: String, date: LocalDate, incremental: Boolean)
 
-  val parser = new scopt.OptionParser[CliArguments]("snapshot") {
+  val parser = new scopt.OptionParser[CliArguments]("extract-snapshot") {
     head("""
          |Take a snapshot of facts from an ivory repo
          |

@@ -9,7 +9,7 @@ import com.ambiata.ivory.core._
 object validateStore extends ScoobiApp {
   case class CliArguments(repo: String, store: String, dictionary: String, output: String, includeOverridden: Boolean)
 
-  val parser = new scopt.OptionParser[CliArguments]("ValidateStore") {
+  val parser = new scopt.OptionParser[CliArguments]("validate-store") {
     head("""
          |Validate a feature store.
          |

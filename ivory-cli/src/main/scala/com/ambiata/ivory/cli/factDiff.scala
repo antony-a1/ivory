@@ -8,7 +8,7 @@ object factDiff extends ScoobiApp {
 
   case class CliArguments(input1: String, input2: String, output: String, errors: String)
 
-  val parser = new scopt.OptionParser[CliArguments]("FactDiff") {
+  val parser = new scopt.OptionParser[CliArguments]("fact-diff") {
     head("""
          |Compute diff between two files containing facts
          |""".stripMargin)

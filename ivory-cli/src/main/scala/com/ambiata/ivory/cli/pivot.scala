@@ -26,7 +26,7 @@ object pivot extends ScoobiApp {
       }
     })
 
-  val parser = new scopt.OptionParser[CliArguments]("pivot") {
+  val parser = new scopt.OptionParser[CliArguments]("extract-pivot") {
     head("""
          |Pivot ivory data using DenseRowTextStorageV1.DenseRowTextStorer
          |

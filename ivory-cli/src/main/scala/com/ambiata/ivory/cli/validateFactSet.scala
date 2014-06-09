@@ -11,7 +11,7 @@ object validateFactSet extends ScoobiApp {
 
   case class CliArguments(repo: String, dictionary: String, factset: Factset, output: String)
 
-  val parser = new scopt.OptionParser[CliArguments]("ValidateFactSet") {
+  val parser = new scopt.OptionParser[CliArguments]("validate-fact-set") {
     head("""
          |Validate a fact set.
          |

@@ -7,9 +7,8 @@ import com.ambiata.ivory.extract.print.PrintErrors
 object catErrors extends App {
   case class CliArguments(delimiter: String = "|", path: String = "")
 
-  val parser = new scopt.OptionParser[CliArguments]("ivory-cat-errors") {
+  val parser = new scopt.OptionParser[CliArguments]("cat-errors") {
     head("""
-           |ivory-cat-errors [-d|--delimiter] GLOB_PATH_TO_ERROR_SEQUENCE_FILE
            |Print errors as text (LINE-MESSAGE) to standard out, delimited by '|' or explicitly set delimiter.
            |""".stripMargin)
 

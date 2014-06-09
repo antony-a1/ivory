@@ -7,9 +7,8 @@ import com.ambiata.ivory.extract.print.PrintFacts
 object catFacts extends App {
   case class CliArguments(delimiter: String = "|", tombstone: String = "NA", path: String = "")
 
-  val parser = new scopt.OptionParser[CliArguments]("ivory-cat-facts") {
+  val parser = new scopt.OptionParser[CliArguments]("cat-facts") {
     head("""
-           |ivory-cat-facts [-d|--delimiter] [-t|--tombstone] GLOB_PATH_TO_FACT_SEQUENCE_FILE
            |Print facts as text (ENTITY-NAMESPACE-ATTRIBUTE-VALUE-DATETIME) to standard out, delimited by '|' or explicitly set delimiter.
            |The tombstone value is 'NA' by default.
            |""".stripMargin)

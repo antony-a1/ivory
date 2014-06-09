@@ -23,7 +23,7 @@ object ingestBulk extends ScoobiApp {
 
   case class CliArguments(repo: String, dictionary: Option[String], input: String, tmp: String, timezone: DateTimeZone, optimal: Long, codec: Option[CompressionCodec])
 
-  val parser = new scopt.OptionParser[CliArguments]("ingest") {
+  val parser = new scopt.OptionParser[CliArguments]("ingest-bulk") {
     head("""
          |Fact ingestion pipeline.
          |

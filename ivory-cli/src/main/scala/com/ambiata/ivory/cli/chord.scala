@@ -31,7 +31,7 @@ object chord extends ScoobiApp {
       }
     })
 
-  val parser = new scopt.OptionParser[CliArguments]("chord") {
+  val parser = new scopt.OptionParser[CliArguments]("extract-chord") {
     head("""
          |Extract the latest features from a given ivory repo using a list of entity id and date pairs
          |
