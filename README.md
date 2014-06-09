@@ -183,7 +183,7 @@ Ivory supports two types of queries: *snapshots* and *chords*.
 
 A `snaphot` query is used to extract the feature values for entities at a certain point in time. Snapshoting can filter
 the set of features and/or entities considered. By default the output is in *EAVT* format, but can be output in
-row-oriented form (i.e. column per feature) using the `--pivot` option. When a  snapshot` query is performed, the most
+row-oriented form (i.e. column per feature) using the `--pivot` option. When a  `snapshot` query is performed, the most
 recent feature value for a given entity-attribute, with respect to the snapshot time, will be returned in the output:
 
 ```
