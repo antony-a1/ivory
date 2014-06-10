@@ -113,9 +113,9 @@ object PartitionExpantion {
     }
 
   def filterGlobWith(paths: List[String], f: List[Partition] => List[Partition])(implicit sc: ScoobiConfiguration): List[String] = (for {
-    expanded   <- paths.traverse(p => Hdfs.globPaths(new Path(p))).map(_.flatten)
-    partitions <- expanded.map(p => Partition.parseWith(p.toString)).collect({ case Success(p) => Hdfs.value(p)}).sequence
-  } yield f(partitions.distinct)).run(sc).run.unsafePerformIO() match {
+    expanded   <- paths.traverse(sp => { val p = new Path(sp); Hdfs.globPaths(p.getParent, p.getName) }).map(_.flatten)
+    partitions <- expanded.map(p => Partition.parseDir(p.toString)).collect({ case Success(p) => Hdfs.value(p)}).sequence
+  } yield f(partitions)).run(sc).run.unsafePerformIO() match {
     case Error(e) => sys.error(s"Could not access hdfs - ${e}")
     case Ok(glob) => glob.map(_.path)
   }

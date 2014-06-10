@@ -18,13 +18,16 @@ object Partition {
   def parseFilename(file: File): Validation[String, Partition] =
     parseWith(file.toURI.getPath)
 
-  def parseWith(f: => String): Validation[String, Partition] =
-    pathParser.run(f.split("/").toList.reverse)
+  def parseDir(path: String): Validation[String, Partition] =
+    pathParser(false).run(pathPieces(path))
 
-  def pathParser: ListParser[Partition] = {
+  def parseWith(f: => String): Validation[String, Partition] =
+    pathParser(true).run(pathPieces(f))
+
+  def pathParser(withFile: Boolean): ListParser[Partition] = {
     import ListParser._
     for {
-      _       <- consume(1)
+      _        <- if(withFile) consume(1) else consume(0)
       d        <- short
       m        <- short
       y        <- short
@@ -37,6 +40,9 @@ object Partition {
       rest    <- ListParser((pos, str) => (str.length, Nil, str.reverse.mkString("/")).success)
     } yield Partition(Factset(factset), ns, date, Some(rest))
   }
+
+  def pathPieces(path: String): List[String] =
+    path.split("/").toList.reverse
 
   def path(ns: Namespace, date: Date): String = {
     ns + "/" + "%4d/%02d/%02d".format(date.year, date.month, date.day)
