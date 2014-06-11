@@ -79,6 +79,14 @@ case class InternalDictionaryLoader(repo: HdfsRepository, name: String) extends 
     DictionaryTextLoader(repo.dictionaryByName(name).toHdfs).load
 }
 
+case class InternalDictionaryPartsLoader(repo: HdfsRepository, name: String) extends IvoryLoader[Hdfs[List[Dictionary]]] {
+  import DictionaryTextStorage._
+  def load: Hdfs[List[Dictionary]] = for {
+    dfiles <- Hdfs.globPaths(repo.dictionaryByName(name).toHdfs)
+    dicts  <- dfiles.traverse(df => DictionaryTextLoader(df).load)
+  } yield dicts
+}
+
 case class InternalDictionaryStorer(repo: HdfsRepository, name: String) extends IvoryStorer[Dictionary, Hdfs[Unit]] {
   import DictionaryTextStorage._
   def store(dict: Dictionary): Hdfs[Unit] =
@@ -225,6 +233,9 @@ object IvoryStorage {
   /* Dictionary */
   def dictionaryFromIvory(repo: HdfsRepository, name: String): Hdfs[Dictionary] =
     InternalDictionaryLoader(repo, name).load
+
+  def dictionaryPartsFromIvory(repo: HdfsRepository, name: String): Hdfs[List[Dictionary]] =
+    InternalDictionaryPartsLoader(repo, name).load
 
   def dictionariesToIvory(repo: HdfsRepository, dicts: List[Dictionary], name: String): Hdfs[Unit] =
     InternalDictionariesStorer(repo, name).store(dicts)

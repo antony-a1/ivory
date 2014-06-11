@@ -78,9 +78,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
           case \/-(v) => v
         })
 
-        val toPersist = validated.valueToSequenceFile(outputPath.toString, overwrite = true)
-        persist(codec.map(toPersist.compressWith(_)).getOrElse(toPersist))
-
+        persist(FlatFactThriftStorageV1.FlatFactThriftStorer(outputPath.toString, codec).storeScoobi(validated))
         ()
       })
     }).flatten
@@ -102,11 +100,12 @@ object HdfsSnapshot {
       case None =>
         factsFromIvoryStoreTo(repo, store, latestDate)
       case Some((p, s, sm)) => for {
-        o <- factsFromIvoryStoreBetween(repo, s, sm.date, latestDate) // read facts from already processed store from the last snapshot date to the latest date
-        sd = store --- s
-        _  = println(s"Reading factsets '${sd.factsets}' up to '${latestDate}'")
-        n <- factsFromIvoryStoreTo(repo, sd, latestDate) // read factsets which haven't been seen up until the 'latest' date
-      } yield o ++ n ++ valueFromSequenceFile[Fact](p.toString).map(fact => (Priority.Max, Factset(SnapshotName), fact).right[ParseError])
+        sc <- ScoobiAction.scoobiConfiguration
+        o  <- factsFromIvoryStoreBetween(repo, s, sm.date, latestDate) // read facts from already processed store from the last snapshot date to the latest date
+        sd  = store --- s
+        _   = println(s"Reading factsets '${sd.factsets}' up to '${latestDate}'")
+        n  <- factsFromIvoryStoreTo(repo, sd, latestDate) // read factsets which haven't been seen up until the 'latest' date
+      } yield o ++ n ++ FlatFactThriftStorageV1.FlatFactThriftLoader(p.toString).loadScoobi(sc).map(_.map((Priority.Max, Factset(SnapshotName), _)))
     }
   }
 }
