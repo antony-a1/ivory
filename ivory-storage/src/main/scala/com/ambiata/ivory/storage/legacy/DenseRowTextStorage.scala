@@ -19,9 +19,7 @@ object DenseRowTextStorageV1 {
   type StringValue = String
 
   case class DenseRowTextStorer(path: String, dict: Dictionary, delim: Char = '|', tombstone: String = "NA") extends IvoryScoobiStorer[Fact, DList[String]] {
-    lazy val features: List[(Int, FeatureId, FeatureMeta)] =
-      dict.meta.toList.sortBy(_._1.toString(".")).zipWithIndex.map({ case ((f, m), i) => (i, f, m) })
-
+    lazy val features = indexDictionary(dict)
     def storeScoobi(dlist: DList[Fact])(implicit sc: ScoobiConfiguration): DList[String] = {
       val byKey: DList[((Entity, Attribute), Iterable[Fact])] =
         dlist.by(f => (f.entity, f.featureId.toString("."))).groupByKeyWith(Groupings.sortGrouping)
@@ -35,6 +33,9 @@ object DenseRowTextStorageV1 {
     override def storeMeta: ScoobiAction[Unit] =
       ScoobiAction.fromHdfs(Hdfs.writeWith(new Path(path, ".dictionary"), os => Streams.write(os, featuresToString(features, delim).mkString("\n"))))
   }
+
+  def indexDictionary(dict: Dictionary): List[(Int, FeatureId, FeatureMeta)] =
+    dict.meta.toList.sortBy(_._1.toString(".")).zipWithIndex.map({ case ((f, m), i) => (i, f, m) })
 
   /**
    * Make an Iterable of Facts dense according to a dictionary. 'tombstone' is used as a value for missing facts.
