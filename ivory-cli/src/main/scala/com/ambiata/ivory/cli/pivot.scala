@@ -58,7 +58,7 @@ object pivot extends IvoryApp {
       println(banner)
       val res = Pivot.onHdfs(new Path(c.input), new Path(c.output), new Path(c.errors), new Path(c.dictionary), c.delim, c.tombstone)
       res.run(configuration).map {
-        case _ => List(banner, "Status -- SUCCESS").mkString("\n")
+        case _ => List(banner, "Status -- SUCCESS")
       }
     }))
 }

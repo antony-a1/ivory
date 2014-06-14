@@ -51,7 +51,7 @@ object chord extends IvoryApp {
   val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", "", "", true, false, '|', "NA"), ScoobiCmd { configuration => c =>
       val res = onHdfs(new Path(c.repo), new Path(c.output), new Path(c.tmp), new Path(c.errors), new Path(c.entities), c.takeSnapshot, c.pivot, c.delim, c.tombstone)
       res.run(configuration).map {
-        case _ => s"Successfully extracted chord from '${c.repo}' and stored in '${c.output}'"
+        case _ => List(s"Successfully extracted chord from '${c.repo}' and stored in '${c.output}'")
       }
     })
 

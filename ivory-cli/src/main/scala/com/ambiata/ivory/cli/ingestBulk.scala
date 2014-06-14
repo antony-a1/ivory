@@ -59,7 +59,7 @@ object ingestBulk extends IvoryApp {
         c.set("mapreduce.map.output.compress", "true")
         c.set("mapred.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec")
       }).map {
-        case _ => s"Successfully imported '${c.input}' into '${c.repo}'"
+        case _ => List(s"Successfully imported '${c.input}' into '${c.repo}'")
       }
     }))
 

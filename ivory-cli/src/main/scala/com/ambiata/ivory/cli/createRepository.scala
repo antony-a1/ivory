@@ -47,7 +47,7 @@ object createRepository extends IvoryApp {
           CreateRepository.onHdfs(new Path(c.path)).run(configuration)
 
       actions.map {
-        case _ => s"Repository successfully created under ${c.path}."
+        case _ => List(s"Repository successfully created under ${c.path}.")
       }
   })
 }

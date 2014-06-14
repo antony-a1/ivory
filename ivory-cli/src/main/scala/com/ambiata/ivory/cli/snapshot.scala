@@ -61,7 +61,7 @@ object snapshot extends IvoryApp {
         c.set("mapreduce.map.output.compress", "true")
         c.set("mapred.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec")
       }).map {
-        case (_, _, out) => List(banner, s"Output path: $out", "Status -- SUCCESS").mkString("\n")
+        case (_, _, out) => List(banner, s"Output path: $out", "Status -- SUCCESS")
       }
   })
 

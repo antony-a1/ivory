@@ -31,7 +31,7 @@ object generateDictionary extends IvoryApp {
 
   val cmd = IvoryCmd[CliArguments](parser, CliArguments(0, 0, ""), HadoopCmd { configuration => c =>
       generate(c.namespaces, c.features, new Path(c.output, "dictionary"), new Path(c.output, "flags")).run(configuration).map {
-        case _ => s"Dictionary successfully written to ${c.output}."
+        case _ => List(s"Dictionary successfully written to ${c.output}.")
       }
     })
 

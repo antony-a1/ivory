@@ -47,7 +47,7 @@ object importDictionary extends IvoryApp {
           DictionaryImporter.onHdfs(new Path(c.repo), new Path(c.path), c.name).run(configuration)
 
       actions.map {
-        case _ => s"Successfully imported dictionary ${c.path} into ${c.repo} under the name ${c.name}."
+        case _ => List(s"Successfully imported dictionary ${c.path} into ${c.repo} under the name ${c.name}.")
       }
   })
 }

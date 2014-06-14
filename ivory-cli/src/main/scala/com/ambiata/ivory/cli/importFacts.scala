@@ -69,7 +69,7 @@ object importFacts extends IvoryApp {
       }
 
       actions.runScoobiAwsT(configuration).map {
-        case _ => s"successfully imported into ${c.repositoryPath}"
+        case _ => List(s"successfully imported into ${c.repositoryPath}")
       }
     })
 }

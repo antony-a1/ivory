@@ -64,7 +64,7 @@ object pivotSnapshot extends IvoryApp {
       println(banner)
       val res = Pivot.onHdfsFromSnapshot(new Path(c.repo), new Path(c.output), new Path(c.errors), c.delim, c.tombstone, Date.fromLocalDate(c.date), Some(new SnappyCodec))
       res.run(configuration).map {
-        case _ => List(banner, "Status -- SUCCESS").mkString("\n")
+        case _ => List(banner, "Status -- SUCCESS")
       }
     }))
 }

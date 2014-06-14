@@ -50,7 +50,7 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
 
   def run(args: Array[String]): IO[Option[Unit]] = {
     runner match {
-      case ActionCmd(f) => parseAndRun(args, f andThen (_.executeT(consoleLogging).map(_ => "")))
+      case ActionCmd(f) => parseAndRun(args, f andThen (_.executeT(consoleLogging).map(_ => Nil)))
       case HadoopCmd(f) => parseAndRun(args, f(new Configuration()))
       // TODO Simply usage of ScoobiApp where possible
       // https://github.com/ambiata/ivory/issues/27
@@ -68,10 +68,10 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
     }
   }
 
-  private def parseAndRun(args: Seq[String], result: A => ResultTIO[String]): IO[Option[Unit]] = {
+  private def parseAndRun(args: Seq[String], result: A => ResultTIO[List[String]]): IO[Option[Unit]] = {
     parser.parse(args, initial)
       .map(result andThen {
-        _.run.map(_.fold(println, e => { println(s"Failed! - ${Result.asString(e)}"); sys.exit(1) }))
+        _.run.map(_.fold(_.foreach(println), e => { println(s"Failed! - ${Result.asString(e)}"); sys.exit(1) }))
       }).sequence
   }
 }
@@ -82,8 +82,8 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
  */
 sealed trait IvoryRunner[A] 
 case class ActionCmd[A](f: A => IOAction[Unit]) extends IvoryRunner[A]
-case class HadoopCmd[A](f: Configuration => A => ResultTIO[String]) extends IvoryRunner[A]
-case class ScoobiCmd[A](f: ScoobiConfiguration => A => ResultTIO[String]) extends IvoryRunner[A]
+case class HadoopCmd[A](f: Configuration => A => ResultTIO[List[String]]) extends IvoryRunner[A]
+case class ScoobiCmd[A](f: ScoobiConfiguration => A => ResultTIO[List[String]]) extends IvoryRunner[A]
 
 trait IvoryApp {
   def cmd: IvoryCmd[_]

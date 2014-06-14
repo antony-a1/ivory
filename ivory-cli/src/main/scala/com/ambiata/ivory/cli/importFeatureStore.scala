@@ -47,7 +47,7 @@ object importFeatureStore extends IvoryApp {
           FeatureStoreImporter.onHdfs(HdfsRepository(c.path.toFilePath, configuration, ScoobiRun(configuration)), c.name, new Path(c.path)).run(configuration)
 
       actions.map {
-        case _ => s"Successfully imported feature store into ${c.repo} under the name ${c.name}."
+        case _ => List(s"Successfully imported feature store into ${c.repo} under the name ${c.name}.")
       }
     })
 }

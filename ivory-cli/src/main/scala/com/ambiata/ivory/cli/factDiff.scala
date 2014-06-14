@@ -23,7 +23,7 @@ object factDiff extends IvoryApp {
   val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", ""), ScoobiCmd { configuration => c =>
       val res = FactDiff.scoobiJob(c.input1, c.input2, c.output, c.errors)
       res.run(configuration).map {
-        case _ => s"Any differences can be found in '${c.output}', errors in '${c.errors}'"
+        case _ => List(s"Any differences can be found in '${c.output}', errors in '${c.errors}'")
       }
     })
 }

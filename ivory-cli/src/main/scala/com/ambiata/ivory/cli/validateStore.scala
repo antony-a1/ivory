@@ -25,7 +25,7 @@ object validateStore extends IvoryApp {
 
   val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", "", false), ScoobiCmd { configuration => c =>
       Validate.validateHdfsStore(new Path(c.repo), c.store, c.dictionary, new Path(c.output), c.includeOverridden)(configuration).run(configuration).map {
-        case _ => s"validated feature store ${c.store} with dictionary ${c.dictionary} in the ${c.repo} repository."
+        case _ => List(s"validated feature store ${c.store} with dictionary ${c.dictionary} in the ${c.repo} repository.")
       }
     })
 }

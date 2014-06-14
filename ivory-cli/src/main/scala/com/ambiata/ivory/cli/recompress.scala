@@ -21,6 +21,6 @@ object recompress extends IvoryApp {
   }
 
   val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", 20, false), ScoobiCmd { configuration => c =>
-    Recompress.go(c.input, c.output, c.distribution, c.dry).run(configuration).map(_ => "")
+    Recompress.go(c.input, c.output, c.distribution, c.dry).run(configuration).map(_ => Nil)
   })
 }

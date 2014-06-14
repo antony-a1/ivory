@@ -49,7 +49,7 @@ object createFeatureStore extends IvoryApp {
         CreateFeatureStore.onHdfs(new Path(c.repo), c.name, sets, c.existing).run(configuration)
 
     actions.map {
-      case _ => s"Successfully created feature store in ${c.repo} under the name ${c.name}."
+      case _ => List(s"Successfully created feature store in ${c.repo} under the name ${c.name}.")
     }
   })
 }

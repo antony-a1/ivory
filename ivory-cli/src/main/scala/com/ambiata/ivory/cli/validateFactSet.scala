@@ -25,7 +25,7 @@ object validateFactSet extends IvoryApp {
 
   val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", Factset(""), ""), ScoobiCmd { configuration => c =>
     Validate.validateHdfsFactSet(new Path(c.repo), c.factset, c.dictionary, new Path(c.output))(configuration).run(configuration).map {
-      case _ => s"validated fact set ${c.factset} with dictionary ${c.dictionary} in the ${c.repo} repository."
+      case _ => List(s"validated fact set ${c.factset} with dictionary ${c.dictionary} in the ${c.repo} repository.")
     }
   })
 }
