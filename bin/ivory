@@ -2,6 +2,6 @@
 
 IVORY_JAR="ivory-assembly-*.jar"
 
-hadoop jar $IVORY_JAR "$@"
+hadoop jar $IVORY_JAR "com.ambiata.ivory.cli.main" "$@"
 
 echo "Done"
