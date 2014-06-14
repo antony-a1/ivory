@@ -35,10 +35,9 @@ object main {
     val program = for {
       (progName, argsRest) <- args.headOption.map(_ -> args.tail)
       command <- commands.find(_.cmd.parser.programName == progName)
-      result <- command.cmd.run(argsRest)
-    } yield result
+    } yield command.cmd.run(argsRest)
     // End of the universe
-    program.getOrElse(usage()).unsafePerformIO
+    program.sequence.map(_.flatten.getOrElse(usage())).unsafePerformIO
   }
 
   def usage() = IO {
@@ -49,18 +48,31 @@ object main {
 
 case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryRunner[A]) {
 
-  def run(args: Array[String]): Option[IO[Unit]] = {
-    val result = runner match {
-      case ActionCmd(f) => f andThen (_.executeT(consoleLogging).map(_ => ""))
-      case HadoopCmd(f) => f(new Configuration())
-      // TODO Do we need to use ScoobiApp? Is there a nice(r) way of doing that?
+  def run(args: Array[String]): IO[Option[Unit]] = {
+    runner match {
+      case ActionCmd(f) => parseAndRun(args, f andThen (_.executeT(consoleLogging).map(_ => "")))
+      case HadoopCmd(f) => parseAndRun(args, f(new Configuration()))
+      // TODO Simply usage of ScoobiApp where possible
       // https://github.com/ambiata/ivory/issues/27
-      case ScoobiCmd(f) => f(ScoobiConfiguration())
+      case ScoobiCmd(f) => IO {
+        // Hack to avoid having to copy logic from ScoobiApp
+        // To make this harder we need ScoobiApp to remove its own args before we begin
+        // May Tony have mercy on my soul
+        var scoobieResult: Option[Unit] = None
+        new ScoobiApp {
+          // Need to evaluate immediately to avoid the main() method of ScoobiApp cleaning up too soon
+          def run = scoobieResult = parseAndRun(args, f(configuration)).unsafePerformIO
+        }.main(args)
+        scoobieResult
+      }
     }
+  }
+
+  private def parseAndRun(args: Seq[String], result: A => ResultTIO[String]): IO[Option[Unit]] = {
     parser.parse(args, initial)
       .map(result andThen {
         _.run.map(_.fold(println, e => { println(s"Failed! - ${Result.asString(e)}"); sys.exit(1) }))
-      })
+      }).sequence
   }
 }
 
@@ -78,6 +90,6 @@ trait IvoryApp {
 
   // Only here for direct execution of apps for backwards compatibility
   def main(args: Array[String]): Unit = {
-    cmd.run(args).foreach(_.unsafePerformIO)
+    cmd.run(args).unsafePerformIO
   }
 }
