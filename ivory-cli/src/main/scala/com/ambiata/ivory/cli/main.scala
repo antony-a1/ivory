@@ -75,4 +75,9 @@ case class ScoobiCmd[A](f: ScoobiConfiguration => A => ResultTIO[String]) extend
 
 trait IvoryApp {
   def cmd: IvoryCmd[_]
+
+  // Only here for direct execution of apps for backwards compatibility
+  def main(args: Array[String]): Unit = {
+    cmd.run(args).foreach(_.unsafePerformIO)
+  }
 }
