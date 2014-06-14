@@ -37,7 +37,7 @@ object main {
       command <- commands.find(_.cmd.parser.programName == progName)
     } yield command.cmd.run(argsRest)
     // End of the universe
-    program.sequence.map(_.flatten.getOrElse(usage())).unsafePerformIO
+    program.sequence.flatMap(_.flatten.fold(usage())(_ => IO.ioUnit)).unsafePerformIO
   }
 
   def usage() = IO {
