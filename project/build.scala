@@ -19,7 +19,6 @@ object build extends Build {
     , cli
     , core
     , data
-    , example
     , extract
     , generate
     , ingest
@@ -109,15 +108,6 @@ object build extends Build {
     ))
   )
 
-  lazy val example = Project(
-    id = "example"
-  , base = file("ivory-example")
-  , settings = standardSettings ++ lib("example") ++ Seq[Settings](
-      name := "ivory-example"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.joda ++ depend.saws ++ depend.scoobi(version.value))
-  )
-  .dependsOn(api, cli)
-
   lazy val extract = Project(
     id = "extract"
   , base = file("ivory-extract")
@@ -205,4 +195,5 @@ object build extends Build {
       art.copy(`classifier` = Some("assembly"))
     }
   ) ++ addArtifact(artifact in (Compile, assembly), assembly)
+
 }

@@ -1,0 +1,14 @@
+#!/bin/sh -eu
+
+IVORY=$(dirname $0)/../..
+EXAMPLE=$IVORY/ivory-example
+TARGET=${1:-$OJ_ARTEFACT_ROOT}
+
+mkdir -p ${TARGET}/bin
+cp ${EXAMPLE}/bin/run ${EXAMPLE}/bin/ivory ${TARGET}/bin
+
+(
+    cd $IVORY
+    ./sbt ";project cli; clean; assembly"
+    cp $IVORY/ivory-cli/target/scala-2.10/ivory-cli-assembly-*.jar ${TARGET}/bin/ivory.jar
+) || exit $?

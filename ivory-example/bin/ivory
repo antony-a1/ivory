@@ -1,0 +1,5 @@
+#!/bin/sh -eu
+
+JAR="$(dirname $0)/ivory.jar"
+
+hadoop jar $JAR com.ambiata.ivory.cli.main "$@"

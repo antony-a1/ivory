@@ -19,6 +19,7 @@ object main {
     createRepository,
     factDiff,
     generateDictionary,
+    generateFacts,
     importFacts,
     importFeatureStore,
     ingest,
@@ -80,7 +81,7 @@ case class IvoryCmd[A](parser: scopt.OptionParser[A], initial: A, runner: IvoryR
  * Represents the different types of runners in an Ivory program,
  * so that any required setup can be handled in a single place
  */
-sealed trait IvoryRunner[A] 
+sealed trait IvoryRunner[A]
 case class ActionCmd[A](f: A => IOAction[Unit]) extends IvoryRunner[A]
 case class HadoopCmd[A](f: Configuration => A => ResultTIO[List[String]]) extends IvoryRunner[A]
 case class ScoobiCmd[A](f: ScoobiConfiguration => A => ResultTIO[List[String]]) extends IvoryRunner[A]

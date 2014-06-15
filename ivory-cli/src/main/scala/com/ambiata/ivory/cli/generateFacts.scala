@@ -1,4 +1,4 @@
-package com.ambiata.ivory.generate
+package com.ambiata.ivory.cli
 
 import com.nicta.scoobi.Scoobi._
 import scalaz.{DList => _, _}, Scalaz._, effect._
@@ -10,13 +10,14 @@ import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.generate._
 import com.ambiata.ivory.alien.hdfs._
 
-object GenerateFactsCli extends ScoobiApp {
+object generateFacts extends IvoryApp {
 
   case class CliArguments(dictionary: String, flags: String, entities: Int, start: LocalDate, end: LocalDate, output: String)
 
-  val parser = new scopt.OptionParser[CliArguments]("GenerateDictionaryCli"){
+  val parser = new scopt.OptionParser[CliArguments]("generate-facts"){
     head("""
 |Random Fact Generator.
 |
@@ -32,12 +33,9 @@ object GenerateFactsCli extends ScoobiApp {
     opt[String]('o', "output")     action { (x, c) => c.copy(output = x) }      required() text s"Hdfs path to write facts to."
   }
 
-  def run() {
-    parser.parse(args, CliArguments("", "", 0, LocalDate.now(), LocalDate.now(), "")).map(c =>
-      GenerateFacts.onHdfs(c.entities, new Path(c.dictionary), new Path(c.flags), c.start, c.end, new Path(c.output))(configuration).run(configuration).run.unsafePerformIO() match {
-        case Ok(v)    => println(s"Dictionary successfully written to ${c.output}.")
-        case Error(e) => println(s"Failed to generate dictionary: ${Result.asString(e)}")
-      }
-    )
-  }
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", 0, LocalDate.now(), LocalDate.now(), ""), ScoobiCmd { configuration => c =>
+      GenerateFacts.onHdfs(c.entities, new Path(c.dictionary), new Path(c.flags), c.start, c.end, new Path(c.output))(configuration).run(configuration).
+        mapError(e => { println(s"Failed to generate dictionary: ${Result.asString(e)}"); e }).
+                                                                                     map(v => List(s"Dictionary successfully written to ${c.output}."))
+  })
 }
