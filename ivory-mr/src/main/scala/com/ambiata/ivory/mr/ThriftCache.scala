@@ -13,6 +13,7 @@ import org.apache.thrift.protocol.TCompactProtocol
 import org.apache.thrift.{TSerializer, TDeserializer}
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.mapreduce.Job
+
 /**
  * This is module for managing passing thrift data-types via tha distributed case. This is
  * _unsafe_ at best, and should be used with extreme caution. The only valid reason to
