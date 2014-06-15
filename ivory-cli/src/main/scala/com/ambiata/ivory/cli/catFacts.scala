@@ -1,15 +1,12 @@
 package com.ambiata.ivory.cli
 
-import com.nicta.scoobi.Scoobi._
-import com.ambiata.mundane.io._
 import com.ambiata.ivory.extract.print.PrintFacts
 
-object catFacts extends App {
+object catFacts extends IvoryApp {
   case class CliArguments(delimiter: String = "|", tombstone: String = "NA", path: String = "")
 
-  val parser = new scopt.OptionParser[CliArguments]("ivory-cat-facts") {
+  val parser = new scopt.OptionParser[CliArguments]("cat-facts") {
     head("""
-           |ivory-cat-facts [-d|--delimiter] [-t|--tombstone] GLOB_PATH_TO_FACT_SEQUENCE_FILE
            |Print facts as text (ENTITY-NAMESPACE-ATTRIBUTE-VALUE-DATETIME) to standard out, delimited by '|' or explicitly set delimiter.
            |The tombstone value is 'NA' by default.
            |""".stripMargin)
@@ -20,10 +17,7 @@ object catFacts extends App {
     opt[String]('t', "tombstone")   action { (x, c) => c.copy(tombstone = x) } optional() text "Tombstone (NA by default)"
   }
 
-  parser.parse(args, CliArguments()).map { c =>
-    PrintFacts.printGlob(c.path, "*out*", c.delimiter, c.tombstone).execute(consoleLogging).unsafePerformIO.fold(
-      ok  => ok,
-      err => println(err)
-    )
-  }
+  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), ActionCmd { c =>
+    PrintFacts.printGlob(c.path, "*out*", c.delimiter, c.tombstone)
+  })
 }

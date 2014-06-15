@@ -1,15 +1,12 @@
 package com.ambiata.ivory.cli
 
-import com.nicta.scoobi.Scoobi._
-import com.ambiata.mundane.io._
 import com.ambiata.ivory.extract.print.PrintErrors
 
-object catErrors extends App {
+object catErrors extends IvoryApp {
   case class CliArguments(delimiter: String = "|", path: String = "")
 
-  val parser = new scopt.OptionParser[CliArguments]("ivory-cat-errors") {
+  val parser = new scopt.OptionParser[CliArguments]("cat-errors") {
     head("""
-           |ivory-cat-errors [-d|--delimiter] GLOB_PATH_TO_ERROR_SEQUENCE_FILE
            |Print errors as text (LINE-MESSAGE) to standard out, delimited by '|' or explicitly set delimiter.
            |""".stripMargin)
 
@@ -18,10 +15,7 @@ object catErrors extends App {
     opt[String]('d', "delimiter")   action { (x, c) => c.copy(delimiter = x) } optional() text "Delimiter (`|` by default)"
   }
 
-  parser.parse(args, CliArguments()).map { c =>
-    PrintErrors.printGlob(c.path, "*out*", c.delimiter).execute(consoleLogging).unsafePerformIO.fold(
-      ok  => ok,
-      err => println(err)
-    )
-  }
+  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), ActionCmd { c =>
+    PrintErrors.printGlob(c.path, "*out*", c.delimiter)
+  })
 }

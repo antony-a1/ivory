@@ -9,7 +9,6 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
 
-import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.io.compress._
 import org.apache.hadoop.fs.Path
 import org.apache.commons.logging.LogFactory
@@ -17,13 +16,13 @@ import org.joda.time.DateTimeZone
 
 import scalaz.{DList => _, _}, Scalaz._
 
-object ingestBulk extends ScoobiApp {
+object ingestBulk extends IvoryApp {
 
   val tombstone = List("☠")
 
   case class CliArguments(repo: String, dictionary: Option[String], input: String, tmp: String, timezone: DateTimeZone, optimal: Long, codec: Option[CompressionCodec])
 
-  val parser = new scopt.OptionParser[CliArguments]("ingest") {
+  val parser = new scopt.OptionParser[CliArguments]("ingest-bulk") {
     head("""
          |Fact ingestion pipeline.
          |
@@ -47,8 +46,9 @@ object ingestBulk extends ScoobiApp {
   type Namespace = String
   type Parts = String
 
-  def run {
-    parser.parse(args, CliArguments("", None, "", "", DateTimeZone.getDefault, 1024 * 1024 * 256 /* 256MB */, Some(new SnappyCodec))).map(c => {
+  def cmd = IvoryCmd[CliArguments](parser,
+      CliArguments("", None, "", "", DateTimeZone.getDefault, 1024 * 1024 * 256 /* 256MB */, Some(new SnappyCodec)),
+      ScoobiCmd(configuration => c => {
       val res = onHdfs(new Path(c.repo), c.dictionary, new Path(c.input), tombstone, new Path(c.tmp), c.timezone, c.optimal, c.codec)
       res.run(configuration.modeIs(com.nicta.scoobi.core.Mode.Cluster) <| { c =>
         // MR1
@@ -58,12 +58,10 @@ object ingestBulk extends ScoobiApp {
         // YARN
         c.set("mapreduce.map.output.compress", "true")
         c.set("mapred.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec")
-      }) .run.unsafePerformIO() match {
-        case Ok(_)    => println(s"Successfully imported '${c.input}' into '${c.repo}'")
-        case Error(e) => println(s"Failed! - ${Result.asString(e)}")
+      }).map {
+        case _ => List(s"Successfully imported '${c.input}' into '${c.repo}'")
       }
-    })
-  }
+    }))
 
   def onHdfs(repo: Path, dictionary: Option[String], input: Path, tombstone: List[String], tmp: Path, timezone: DateTimeZone, optimal: Long, codec: Option[CompressionCodec]): ScoobiAction[String] =
     fatrepo.ImportWorkflow.onHdfs(repo, dictionary.map(defaultDictionaryImport(_)), importFeed(input, optimal, codec), tombstone, tmp, timezone)

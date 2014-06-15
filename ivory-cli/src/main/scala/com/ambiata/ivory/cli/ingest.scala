@@ -17,7 +17,7 @@ import org.joda.time.DateTimeZone
 
 import scalaz.{DList => _, _}, Scalaz._
 
-object ingest {
+object ingest extends IvoryApp {
 
   val tombstone = List("☠")
 
@@ -43,15 +43,12 @@ object ingest {
 
   }
 
-  def main(args: Array[String]) {
-    parser.parse(args, CliArguments("", None, "", "", "", DateTimeZone.getDefault, false)).map(c => {
+  def cmd = IvoryCmd[CliArguments](parser, CliArguments("", None, "", "", "", DateTimeZone.getDefault, false), HadoopCmd { configuration => c =>
       val res = onHdfs(new Path(c.repo), c.dictionary, c.namespace, new Path(c.input), tombstone, new Path(c.tmp), c.timezone, c.runOnSingleMachine)
-      res.run(ScoobiConfiguration().modeIs(com.nicta.scoobi.core.Mode.Cluster)).run.unsafePerformIO() match {
-        case Ok(_)    => println(s"Successfully imported '${c.input}' into '${c.repo}'")
-        case Error(e) => println(s"Failed! - ${e}")
+      res.run(configuration.modeIs(com.nicta.scoobi.core.Mode.Cluster)).map {
+        case _ => List(s"Successfully imported '${c.input}' into '${c.repo}'")
       }
     })
-  }
 
   def onHdfs(repo: Path, dictionary: Option[String], namespace: String, input: Path, tombstone: List[String], tmp: Path, timezone: DateTimeZone, runOnSingleMachine: Boolean): ScoobiAction[String] =
     fatrepo.ImportWorkflow.onHdfs(repo, dictionary.map(defaultDictionaryImport(_)), importFeed(input, namespace, runOnSingleMachine), tombstone, tmp, timezone)

@@ -1,7 +1,6 @@
 package com.ambiata.ivory.cli
 
 import scalaz._, Scalaz._
-import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.parse._
 import com.ambiata.mundane.control._
@@ -14,9 +13,7 @@ import com.ambiata.ivory.alien.hdfs._
 
 import com.nicta.scoobi.Scoobi._
 
-object createFeatureStore {
-
-  lazy val configuration = ScoobiConfiguration()
+object createFeatureStore extends IvoryApp {
 
   case class CliArguments(repo: String, name: String, sets: String, existing: Option[String], tmpDirectory: FilePath = Repository.defaultS3TmpDirectory)
 
@@ -39,23 +36,20 @@ object createFeatureStore {
     opt[String]('e', "append-existing") action { (x, c) => c.copy(existing = Some(x)) }  text s"Name of an existing feature store to append to the end of this one."
   }
 
-  def main(args: Array[String]) {
-    parser.parse(args, CliArguments("", "", "", None)).map(c => {
-      val sets = c.sets.split(",").toList.map(_.trim).map(Factset)
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", None), HadoopCmd { configuration => c =>
+    val sets = c.sets.split(",").toList.map(_.trim).map(Factset)
 
-      val actions =
-        if (c.repo.startsWith("s3://")) {
-          val p = c.repo.replace("s3://", "").toFilePath
-          val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, configuration)
-          CreateFeatureStore.onS3(repository, c.name, sets, c.existing).runHdfs(configuration).eval
-        }
-        else
-          CreateFeatureStore.onHdfs(new Path(c.repo), c.name, sets, c.existing).run(configuration).run
-
-        actions.unsafePerformIO() match {
-        case Ok(v)    => println(s"Successfully created feature store in ${c.repo} under the name ${c.name}.")
-        case Error(e) => println(s"Failed to create dictionary: ${Result.asString(e)}")
+    val actions =
+      if (c.repo.startsWith("s3://")) {
+        val p = c.repo.replace("s3://", "").toFilePath
+        val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, configuration)
+        CreateFeatureStore.onS3(repository, c.name, sets, c.existing).runHdfs(configuration).evalT
       }
-    })
-  }
+      else
+        CreateFeatureStore.onHdfs(new Path(c.repo), c.name, sets, c.existing).run(configuration)
+
+    actions.map {
+      case _ => List(s"Successfully created feature store in ${c.repo} under the name ${c.name}.")
+    }
+  })
 }

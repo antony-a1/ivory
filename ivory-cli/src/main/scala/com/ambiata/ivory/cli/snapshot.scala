@@ -7,8 +7,6 @@ import com.ambiata.ivory.extract._
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
 
-import com.nicta.scoobi.Scoobi._
-
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
 import org.apache.commons.logging.LogFactory
@@ -18,11 +16,11 @@ import java.util.UUID
 
 import scalaz.{DList => _, _}, Scalaz._
 
-object snapshot extends ScoobiApp {
+object snapshot extends IvoryApp {
 
   case class CliArguments(repo: String, date: LocalDate, incremental: Boolean)
 
-  val parser = new scopt.OptionParser[CliArguments]("snapshot") {
+  val parser = new scopt.OptionParser[CliArguments]("extract-snapshot") {
     head("""
          |Take a snapshot of facts from an ivory repo
          |
@@ -37,9 +35,9 @@ object snapshot extends ScoobiApp {
       s"Optional date to take snapshot from, default is now."
   }
 
-  def run {
-    val runId = UUID.randomUUID
-    parser.parse(args, CliArguments("", LocalDate.now(), true)).map(c => {
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", LocalDate.now(), true), ScoobiCmd {
+    configuration => c =>
+      val runId = UUID.randomUUID
       val errors = s"${c.repo}/errors/snapshot/${runId}"
       val banner = s"""======================= snapshot =======================
                       |
@@ -62,15 +60,9 @@ object snapshot extends ScoobiApp {
         // YARN
         c.set("mapreduce.map.output.compress", "true")
         c.set("mapred.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec")
-      }).run.unsafePerformIO() match {
-        case Ok((_, _, out)) =>
-          println(banner)
-          println(s"Output path: $out")
-          println("Status -- SUCCESS")
-        case Error(e) =>
-          println(s"Failed! - ${e}")
+      }).map {
+        case (_, _, out) => List(banner, s"Output path: $out", "Status -- SUCCESS")
       }
-    })
-  }
+  })
 
 }

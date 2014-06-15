@@ -76,6 +76,6 @@ It may be worth borrowing ideas from Git on how this is designed. For example:
 * Version identifers are hashes of their content. For fact sets we could use CRCs associated with the data.
 * Have human-readable references to identifiers, i.e. *branches* and *tags*.
 * The concept of branches is interesting in that it suggests a lineage between different versions. Given the
-changes to dicitionaries and feature store are typcially incremental in nature, the idea of a version being
+changes to dictionaries and feature store are typcially incremental in nature, the idea of a version being
 a delta applied to a *parent* version may be worth while.
 * This all, of course, plays in to the *remote* concept. That is, remote fact sets can be referenced by version.
