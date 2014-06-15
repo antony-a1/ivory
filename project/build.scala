@@ -22,6 +22,7 @@ object build extends Build {
     , extract
     , generate
     , ingest
+    , mr
     , scoobi
     , storage
     , validate
@@ -133,7 +134,16 @@ object build extends Build {
       name := "ivory-ingest"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.specs2 ++ depend.scoobi(version.value) ++ depend.saws)
   )
-  .dependsOn(core, storage, alien_hdfs, scoobi)
+  .dependsOn(core, storage, alien_hdfs, scoobi, mr)
+
+  lazy val mr = Project(
+    id = "mr"
+  , base = file("ivory-mr")
+  , settings = standardSettings ++ lib("mr") ++ Seq[Settings](
+      name := "ivory-mr"
+    ) ++ Seq[Settings](libraryDependencies ++= depend.thrift ++ depend.mundane ++ depend.scalaz ++ depend.specs2 ++ depend.hadoop(version.value))
+  )
+  .dependsOn(core, alien_hdfs)
 
   lazy val scoobi = Project(
     id = "scoobi"
