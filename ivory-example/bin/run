@@ -6,7 +6,6 @@ DICT=$TARGET/dictionary
 FACTS=$TARGET/facts
 FLAGS=$TARGET/flags
 
-PATH=$(dirname $0):$PATH; export PATH
-
-ivory generate-dictionary -n 5 -f 100 -o $TARGET
-ivory generate-facts -d $DICT -f $FLAGS -n 1000 -s 2012-01-01 -e 2012-02-01 -o $FACTS
+IVORY=$(dirname $0)/ivory
+$IVORY generate-dictionary -n 5 -f 100 -o $TARGET
+$IVORY generate-facts -d $DICT -f $FLAGS -n 1000 -s 2012-01-01 -e 2012-02-01 -o $FACTS

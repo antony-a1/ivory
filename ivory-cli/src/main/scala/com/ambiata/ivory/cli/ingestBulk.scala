@@ -50,20 +50,12 @@ object ingestBulk extends IvoryApp {
       CliArguments("", None, "", "", DateTimeZone.getDefault, 1024 * 1024 * 256 /* 256MB */, Some(new SnappyCodec)),
       ScoobiCmd(configuration => c => {
       val res = onHdfs(new Path(c.repo), c.dictionary, new Path(c.input), tombstone, new Path(c.tmp), c.timezone, c.optimal, c.codec)
-      res.run(configuration.modeIs(com.nicta.scoobi.core.Mode.Cluster) <| { c =>
-        // MR1
-        c.set("mapred.compress.map.output", "true")
-        c.set("mapred.map.output.compression.codec", "org.apache.hadoop.io.compress.SnappyCodec")
-
-        // YARN
-        c.set("mapreduce.map.output.compress", "true")
-        c.set("mapred.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec")
-      }).map {
-        case _ => List(s"Successfully imported '${c.input}' into '${c.repo}'")
+      res.run(configuration).map {
+        case f => List(s"Successfully imported '${c.input}' as ${f} into '${c.repo}'")
       }
     }))
 
-  def onHdfs(repo: Path, dictionary: Option[String], input: Path, tombstone: List[String], tmp: Path, timezone: DateTimeZone, optimal: Long, codec: Option[CompressionCodec]): ScoobiAction[String] =
+  def onHdfs(repo: Path, dictionary: Option[String], input: Path, tombstone: List[String], tmp: Path, timezone: DateTimeZone, optimal: Long, codec: Option[CompressionCodec]): ScoobiAction[Factset] =
     fatrepo.ImportWorkflow.onHdfs(repo, dictionary.map(defaultDictionaryImport(_)), importFeed(input, optimal, codec), tombstone, tmp, timezone)
 
   def defaultDictionaryImport(dictionary: String)(repo: HdfsRepository, name: String, tombstone: List[String], tmpPath: Path): Hdfs[Unit] =
@@ -83,5 +75,4 @@ object ingestBulk extends IvoryApp {
       sizes <- all.traverse(Hdfs.size)
     } yield (namespace -> sizes.sum))
   } yield parts)
-
 }

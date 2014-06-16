@@ -41,6 +41,9 @@ object DictionaryTextStorage {
     r <- ResultT.fromDisjunction[IO, Dictionary](fromLines(name, content.lines.toList).leftMap(This(_)))
   } yield r
 
+  def fromString(name: String, s: String): String \/ Dictionary =
+    fromLines(name, s.lines.toList)
+
   def fromLines(name: String, lines: List[String]): String \/ Dictionary = {
     val numbered = lines.zipWithIndex.map({ case (l, n) => (l, n + 1) })
     numbered.map({ case (l, n) => parseDictionaryEntry(l).leftMap(e => s"Line $n: $e")}).sequenceU.map(entries => Dictionary(name, entries.toMap))
