@@ -20,6 +20,7 @@ object main {
     factDiff,
     generateDictionary,
     generateFacts,
+    importDictionary,
     importFacts,
     importFeatureStore,
     ingest,

@@ -1,4 +1,4 @@
-#!/bin/sh -eu
+#!/bin/sh -eux
 
 TARGET=${1:-/tmp/test-$RANDOM}
 IVORY=$TARGET/ivory
@@ -9,3 +9,5 @@ FLAGS=$TARGET/flags
 IVORY=$(dirname $0)/ivory
 $IVORY generate-dictionary -n 5 -f 100 -o $TARGET
 $IVORY generate-facts -d $DICT -f $FLAGS -n 1000 -s 2012-01-01 -e 2012-02-01 -o $FACTS
+$IVORY create-repository -p $IVORY
+$IVORY import-dictionary -r $IVORY -p $DICT -n "example"
