@@ -136,7 +136,7 @@ class IngestPartitioner extends Partitioner[LongWritable, BytesWritable] with Co
 
   def setConf(conf: Configuration): Unit = {
     _conf = conf
-    ThriftCache.pop(IngestJob.Keys.ReducerLookup, lookup)
+    ThriftCache.pop(conf, IngestJob.Keys.ReducerLookup, lookup)
   }
 
   def getConf: Configuration =
@@ -192,8 +192,8 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
 
   override def setup(context: Mapper[LongWritable, Text, LongWritable, BytesWritable]#Context): Unit = {
     out = new MultipleOutputs(context.asInstanceOf[Mapper[LongWritable, Text, NullWritable, BytesWritable]#Context])
-    ThriftCache.pop(IngestJob.Keys.FeatureIdLookup, lookup)
-    dict = TextCache.pop(IngestJob.Keys.Dictionary, DictionaryTextStorage.fromString("ingest", _))
+    ThriftCache.pop(context.getConfiguration, IngestJob.Keys.FeatureIdLookup, lookup)
+    dict = TextCache.pop(context.getConfiguration, IngestJob.Keys.Dictionary, DictionaryTextStorage.fromString("ingest", _))
     ivoryZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IvoryZone))
     ingestZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IngestZone))
     base = context.getConfiguration.get(IngestJob.Keys.IngestBase)
@@ -258,7 +258,7 @@ class IngestReducer extends Reducer[LongWritable, BytesWritable, NullWritable, B
   var lookup: NamespaceLookup = new NamespaceLookup
 
   override def setup(context: Reducer[LongWritable, BytesWritable, NullWritable, BytesWritable]#Context): Unit = {
-    ThriftCache.pop(IngestJob.Keys.NamespaceLookup, lookup)
+    ThriftCache.pop(context.getConfiguration, IngestJob.Keys.NamespaceLookup, lookup)
     out = new MultipleOutputs(context)
   }
 

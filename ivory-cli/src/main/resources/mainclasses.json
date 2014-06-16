@@ -1,5 +1,8 @@
 [
 {
+  "class-name"   : "com.ambiata.ivory.cli.main"
+},
+{
   "service-name" : "create-repository",
   "class-name"   : "com.ambiata.ivory.cli.createRepository"
 },
