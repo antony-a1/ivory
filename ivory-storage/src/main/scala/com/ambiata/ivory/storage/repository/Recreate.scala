@@ -15,17 +15,11 @@ import com.ambiata.ivory.alien.hdfs._
 import scalaz.{DList => _, _}, Scalaz._, \&/._
 import scalaz.effect.IO
 
-case class RecreateConfig(from: Repository, to: Repository, sc: ScoobiConfiguration, codec: Option[CompressionCodec] = None, reduce: Boolean = false, dry: Boolean = false) {
+case class RecreateConfig(from: Repository, to: Repository, sc: ScoobiConfiguration, codec: Option[CompressionCodec], reduce: Boolean, clean: Boolean, dry: Boolean) {
   val (hdfsFrom, hdfsTo) = (from, to) match {
     case (f: HdfsRepository, t: HdfsRepository) => (f, t)
     case _ => sys.error(s"Repository combination '${from}' and '${to}' not supported!")
   }
-
-  def withReduce(r: Boolean): RecreateConfig =
-    copy(reduce = r)
-
-  def withCodec(c: CompressionCodec): RecreateConfig =
-    copy(codec = Some(c))
 }
 
 case class RecreateAction[+A](action: ActionT[IO, Unit, RecreateConfig, A]) {
@@ -36,7 +30,7 @@ case class RecreateAction[+A](action: ActionT[IO, Unit, RecreateConfig, A]) {
     c <- RecreateAction.configuration
     _ <- if(c.hdfsFrom.root == c.hdfsTo.root) RecreateAction.fail(s"Repository '${c.hdfsFrom}' is the same as '${c.hdfsTo}'") else RecreateAction.ok(())
     e <- RecreateAction.fromHdfs(Hdfs.exists(c.hdfsTo.root.toHdfs))
-    _ <- if(e) RecreateAction.fail(s"Repository '${c.hdfsTo}' already exists") else RecreateAction.ok(())
+    _ <- if(e) RecreateAction.fail(s"Repository '${c.hdfsTo.root}' already exists") else RecreateAction.ok(())
   } yield ()
 
   def map[B](f: A => B): RecreateAction[B] =
@@ -111,14 +105,14 @@ object RecreateAction extends ActionTSupport[IO, Unit, RecreateConfig] {
     conf   <- configuration
     fcount <- fromStat(conf.from, StatAction.dictionaryVersions)
     fsize  <- fromStat(conf.from, StatAction.dictionariesSize)
-    _       = println(s"Number of dictionary versions in '${conf.from}' is '${fcount}'")
-    _       = println(s"Size of all dictionaries in '${conf.from}' is '${fsize}'")
+    _       = println(s"Number of dictionary versions in '${conf.from.root}' is '${fcount}'")
+    _       = println(s"Size of all dictionaries in '${conf.from.root}' is '${fsize}'")
     _      <- fromHdfs(hdfsCopyDictionaries(conf.hdfsFrom, conf.hdfsTo, conf.dry))
     _      <- if(conf.dry) RecreateAction.ok(()) else for {
       tcount <- fromStat(conf.to, StatAction.dictionaryVersions)
       tsize  <- fromStat(conf.to, StatAction.dictionariesSize)
-      _       = println(s"Number of dictionary versions in '${conf.to}' is '${tcount}'")
-      _       = println(s"Size of all dictionaries in '${conf.to}' is '${tsize}'")
+      _       = println(s"Number of dictionary versions in '${conf.to.root}' is '${tcount}'")
+      _       = println(s"Size of all dictionaries in '${conf.to.root}' is '${tsize}'")
     } yield ()
   } yield ()
 
@@ -139,74 +133,85 @@ object RecreateAction extends ActionTSupport[IO, Unit, RecreateConfig] {
     conf   <- configuration
     fcount <- fromStat(conf.from, StatAction.storeCount)
     fsize  <- fromStat(conf.from, StatAction.storesSize)
-    _       = println(s"Number of stores in '${conf.from}' is '${fcount}'")
-    _       = println(s"Size of stores in '${conf.from}' is '${fsize}'")
-    _      <- fromHdfs(hdfsCopyStores(conf.hdfsFrom, conf.hdfsTo, conf.dry))
+    _       = println(s"Number of stores in '${conf.from.root}' is '${fcount}'")
+    _       = println(s"Size of stores in '${conf.from.root}' is '${fsize}'")
+    _      <- fromHdfs(hdfsCopyStores(conf.hdfsFrom, conf.hdfsTo, conf.clean, conf.dry))
     _      <- if(conf.dry) RecreateAction.ok(()) else for {
       tsize  <- fromStat(conf.to, StatAction.storesSize)
       tcount <- fromStat(conf.to, StatAction.storeCount)
-      _       = println(s"Number of stores in '${conf.to}' is '${tcount}'")
-      _       = println(s"Size of stores in '${conf.to}' is '${tsize}'")
+      _       = println(s"Number of stores in '${conf.to.root}' is '${tcount}'")
+      _       = println(s"Size of stores in '${conf.to.root}' is '${tsize}'")
     } yield ()
   } yield ()
 
-  private def hdfsCopyStores(from: HdfsRepository, to: HdfsRepository, dry: Boolean): Hdfs[Unit] = for {
+  private def hdfsCopyStores(from: HdfsRepository, to: HdfsRepository, clean: Boolean, dry: Boolean): Hdfs[Unit] = for {
     storePaths <- Hdfs.globFiles(from.stores.toHdfs)
     _          <- if(dry) Hdfs.ok(()) else Hdfs.mkdir(to.stores.toHdfs)
-    stores     <- storePaths.traverse(sp => {
-      println(s"${from.storeByName(sp.getName)} -> ${to.storeByName(sp.getName)}")
-      if(dry) Hdfs.ok(()) else for {
-        ret <- IvoryStorage.storeFromIvory(from, sp.getName).map(s => (sp.getName, s))
-        (n, s) = ret
-        _   <- IvoryStorage.storeToIvory(to, s, n)
-      } yield ()
-    })
+    factsets   <- Hdfs.globPaths(from.factsets.toHdfs)
+    filtered   <- hdfsFilterEmptyFactsets(factsets).map(_.map(_.getName).toSet)
+    stores     <- storePaths.traverse(sp => for {
+      _      <- Hdfs.value(println(s"${from.storeByName(sp.getName)} -> ${to.storeByName(sp.getName)}"))
+      ret    <- IvoryStorage.storeFromIvory(from, sp.getName).map(s => (sp.getName, s))
+      (n, s)  = ret
+      store   = if(clean)
+                  FeatureStore(PrioritizedFactset.fromFactsets(s.factsets.collect({
+                    case PrioritizedFactset(set, _) if filtered.contains(set.name) => set
+                  })))
+                else s
+      removed = PrioritizedFactset.diff(s.factsets, store.factsets).map(_.set.name)
+      _       = if(!removed.isEmpty) println(s"Removed factsets '${removed.mkString(",")}' from feature store '${n}' as they are empty.")
+      _      <- if(dry) Hdfs.ok(()) else IvoryStorage.storeToIvory(to, store, n)
+    } yield ())
   } yield ()
 
   def factsets: RecreateAction[Unit] = for {
     conf   <- configuration
     fcount <- fromStat(conf.from, StatAction.factsetCount)
     fsize  <- fromStat(conf.from, StatAction.factsetsSize)
-    _       = println(s"Number of factsets in '${conf.from}' is '${fcount}'")
-    _       = println(s"Size of factsets in '${conf.from}' is '${fsize}'")
+    _       = println(s"Number of factsets in '${conf.from.root}' is '${fcount}'")
+    _       = println(s"Size of factsets in '${conf.from.root}' is '${fsize}'")
     _      <- fromScoobi(hdfsCopyFactsets(conf.hdfsFrom, conf.hdfsTo, conf.codec, conf.dry))
     _      <- if(conf.dry) RecreateAction.ok(()) else for {
       tcount <- fromStat(conf.to, StatAction.factsetCount)
       tsize  <- fromStat(conf.to, StatAction.factsetsSize)
-      _       = println(s"Number of factsets in '${conf.to}' is '${tcount}'")
-      _       = println(s"Size of factsets in '${conf.to}' is '${tsize}'")
+      _       = println(s"Number of factsets in '${conf.to.root}' is '${tcount}'")
+      _       = println(s"Size of factsets in '${conf.to.root}' is '${tsize}'")
     } yield ()
   } yield ()
 
   private def hdfsCopyFactsets(from: HdfsRepository, to: HdfsRepository, codec: Option[CompressionCodec], dry: Boolean): ScoobiAction[Unit] = for {
-    factsetPaths <- ScoobiAction.fromHdfs(Hdfs.globPaths(from.factsets.toHdfs))
-    dlists       <- factsetPaths.traverse(fp => for {
+    fpaths   <- ScoobiAction.fromHdfs(Hdfs.globPaths(from.factsets.toHdfs))
+    filtered <- ScoobiAction.fromHdfs(hdfsFilterEmptyFactsets(fpaths))
+    _        <- filtered.traverse(fp => for {
       factset <- ScoobiAction.value(Factset(fp.getName))
       raw     <- IvoryStorage.factsFromIvoryFactset(from, factset)
-      dlist   <- ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
+      _       <- ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
         import IvoryStorage._
         val facts = raw.map({
           case -\/(e) => sys.error("Could not load facts '${e}'")
           case \/-(f) => f
         })
-        facts.toIvoryFactset(to, factset, codec)
+        if(!dry) persist(facts.toIvoryFactset(to, factset, codec))
       })
-    } yield dlist)
-    _ <- if(dry) ScoobiAction.ok(()) else ScoobiAction.scoobiJob(sc => persist(dlists.reduce(_++_))(sc))
+    } yield ())
   } yield ()
+
+  private def hdfsFilterEmptyFactsets(paths: List[Path]): Hdfs[List[Path]] = for {
+    children <- paths.traverse(p => Hdfs.globFiles(p, "*/*/*/*/*").map(ps => (p, ps.isEmpty)) ||| Hdfs.value((p, true)))
+  } yield children.collect({ case (p, false) => p })
 
   def snapshots: RecreateAction[Unit] = for {
     conf      <- configuration
     fcount    <- fromStat(conf.from, StatAction.snapshotCount)
     fsize     <- fromStat(conf.from, StatAction.snapshotsSize)
-    _ = println(s"Number of snapshots in '${conf.from}' is '${fcount}'")
-    _ = println(s"Size of snapshots in '${conf.from}' is '${fsize}'")
+    _ = println(s"Number of snapshots in '${conf.from.root}' is '${fcount}'")
+    _ = println(s"Size of snapshots in '${conf.from.root}' is '${fsize}'")
     snapPaths <- fromScoobi(hdfsCopySnapshots(conf.hdfsFrom, conf.hdfsTo, conf.codec, conf.dry))
     _         <- if(conf.dry) RecreateAction.ok(()) else for {
       tcount <- fromStat(conf.to, StatAction.snapshotCount)
       tsize  <- fromStat(conf.to, StatAction.snapshotsSize)
-      _       = println(s"Number of snapshots in '${conf.to}' is '${tcount}'")
-      _       = println(s"Size of snapshots in '${conf.to}' is '${tsize}'")
+      _       = println(s"Number of snapshots in '${conf.to.root}' is '${tcount}'")
+      _       = println(s"Size of snapshots in '${conf.to.root}' is '${tsize}'")
     } yield ()
   } yield ()
 
