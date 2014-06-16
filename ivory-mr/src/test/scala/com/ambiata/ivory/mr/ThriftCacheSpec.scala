@@ -47,7 +47,7 @@ class ThriftCacheSpecMapper extends Mapper[LongWritable, Text, LongWritable, Tex
   val value = new ThriftFact
 
   override def setup(context: Mapper[LongWritable, Text, LongWritable, Text]#Context): Unit = {
-    ThriftCache.pop(ThriftCache.Key("test"), value)
+    ThriftCache.pop(context.getConfiguration, ThriftCache.Key("test"), value)
     if (value.attribute != "test")
       sys.error("Did not deserialize ThriftFact from cache")
   }

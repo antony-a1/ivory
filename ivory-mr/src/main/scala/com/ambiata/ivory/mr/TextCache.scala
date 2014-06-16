@@ -10,6 +10,7 @@ import java.util.UUID
 import scalaz._, Scalaz._, effect.IO
 
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapreduce.Job
 
 /**
@@ -30,6 +31,6 @@ object TextCache {
      only run by map or reduce tasks where to the cache for this job where a call
      to TextCache#push has prepared everything. This fails _hard_ if anything
      goes wrong. */
-  def pop[A](key: Key, f: String => String \/ A): A =
-    DistCache.pop(DistCache.Key(key.value), bytes => f(new String(bytes, "UTF-8")))
+  def pop[A](conf: Configuration, key: Key, f: String => String \/ A): A =
+    DistCache.pop(conf, DistCache.Key(key.value), bytes => f(new String(bytes, "UTF-8")))
 }

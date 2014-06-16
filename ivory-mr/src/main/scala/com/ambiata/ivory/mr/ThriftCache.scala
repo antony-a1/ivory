@@ -12,6 +12,7 @@ import scalaz._, Scalaz._, effect.IO
 import org.apache.thrift.protocol.TCompactProtocol
 import org.apache.thrift.{TSerializer, TDeserializer}
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapreduce.Job
 
 /**
@@ -36,6 +37,6 @@ object ThriftCache {
      only run by map or reduce tasks where to the cache for this job where a call
      to ThriftCache#push has prepared everything. This fails _hard_ if anything
      goes wrong. NOTE: argument is updated, rather than a new value returned. */
-  def pop[A](key: Key, a: A)(implicit ev: A <:< ThriftLike): Unit =
-    DistCache.pop(DistCache.Key(key.value), bytes => \/.fromTryCatch(deserializer.deserialize(a, bytes)).leftMap(_.toString))
+  def pop[A](conf: Configuration, key: Key, a: A)(implicit ev: A <:< ThriftLike): Unit =
+    DistCache.pop(conf, DistCache.Key(key.value), bytes => \/.fromTryCatch(deserializer.deserialize(a, bytes)).leftMap(_.toString))
 }

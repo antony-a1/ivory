@@ -207,7 +207,7 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
     val line = value.toString
     val split = context.getInputSplit.asInstanceOf[FileSplit].getPath
 
-    EavtParsers.parse(line, dict, namespaces.getOrElseUpdate(split.toString, findIt(split)), ingestZone) match {
+    EavtParsers.parse(line, dict, namespaces.getOrElseUpdate(split.getParent.toString, findIt(split)), ingestZone) match {
       case Success(f) =>
 
         context.getCounter("ivory", "ingest.ok").increment(1)
@@ -227,7 +227,7 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
         val v = serializer.serialize(new ThriftParseError(line, e))
         vout.set(v, 0, v.length)
 
-        out.write(IngestJob.Keys.Err, NullWritable.get, vout, "errors/part-")
+        out.write(IngestJob.Keys.Err, NullWritable.get, vout, "errors/part")
     }
   }
 

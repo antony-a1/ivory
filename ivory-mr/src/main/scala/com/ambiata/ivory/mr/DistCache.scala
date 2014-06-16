@@ -10,6 +10,7 @@ import java.util.UUID
 import scalaz._, Scalaz._, effect.IO
 
 import org.apache.hadoop.fs.Path
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapreduce.Job
 
 /**
@@ -24,7 +25,7 @@ object DistCache {
      specified key. This fails _hard_ if anything goes wrong. Use DistCache#pop in the
      setup method of Mapper or Reducer to recover data. */
   def push(job: Job, key: Key, bytes: Array[Byte]): Unit = {
-    val tmp = s"/tmp/${job.getJobName}-${UUID.randomUUID.toString}.dist-cache"
+    val tmp = s"/tmp/${job.getJobName}-${UUID.randomUUID.toString}.dist-cache/${key.value}"
     val uri = new URI(tmp + "#" + key.value)
     (Hdfs.writeWith(new Path(tmp), Streams.writeBytes(_, bytes)) >> Hdfs.safe {
       addCacheFile(new URI(tmp + "#" + key.value), job)
@@ -40,8 +41,8 @@ object DistCache {
      assumed that this is only run by map or reduce tasks where to the cache for
      this job where a call to DistCache#push has prepared everything. This fails
      _hard_ if anything goes wrong. */
-  def pop[A](key: Key, f: Array[Byte] => String \/ A): A =
-    Files.readBytes(key.value.toFilePath).flatMap(bytes => ResultT.safe { f(bytes) }).run.unsafePerformIO match {
+  def pop[A](conf: Configuration, key: Key, f: Array[Byte] => String \/ A): A = {
+    Files.readBytes(findCacheFile(conf, key).toFilePath).flatMap(bytes => ResultT.safe { f(bytes) }).run.unsafePerformIO match {
       case Ok(\/-(a)) =>
         a
       case Ok(-\/(s)) =>
@@ -49,9 +50,15 @@ object DistCache {
       case Error(e) =>
         sys.error(s"Could not pop $key from local path: ${Result.asString(e)}")
     }
-
-  def addCacheFile(uri: URI, job: Job) = {
+  }
+  def addCacheFile(uri: URI, job: Job): Unit = {
     import com.nicta.scoobi.impl.util.Compatibility.cache
     cache.addCacheFile(uri, job.getConfiguration)
   }
+
+  def findCacheFile(conf: Configuration, key: Key): String =
+    if (org.apache.hadoop.util.VersionInfo.getVersion.contains("cdh4"))
+      com.nicta.scoobi.impl.util.Compatibility.cache.getLocalCacheFiles(conf).toList.find(_.getName == key.value).getOrElse(sys.error("Could not find $key to pop from local path.")).toString
+    else
+      key.value
 }
