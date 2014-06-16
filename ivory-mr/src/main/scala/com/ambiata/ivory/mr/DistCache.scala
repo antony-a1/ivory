@@ -27,7 +27,9 @@ object DistCache {
     val tmp = s"/tmp/${job.getJobName}-${UUID.randomUUID.toString}.dist-cache"
     val uri = new URI(tmp + "#" + key.value)
     (Hdfs.writeWith(new Path(tmp), Streams.writeBytes(_, bytes)) >> Hdfs.safe {
-      job.addCacheFile(new URI(tmp + "#" + key.value))
+      // NOTE: compatability with cdh4.x should be code below.
+      org.apache.hadoop.filecache.DistributedCache.addCacheFile(new URI(tmp + "#" + key.value), job.getConfiguration)
+//      job.addCacheFile(new URI(tmp + "#" + key.value))
     }).run(job.getConfiguration).run.unsafePerformIO match {
       case Ok(_) =>
         ()
