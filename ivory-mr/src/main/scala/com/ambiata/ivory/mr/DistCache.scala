@@ -27,9 +27,7 @@ object DistCache {
     val tmp = s"/tmp/${job.getJobName}-${UUID.randomUUID.toString}.dist-cache"
     val uri = new URI(tmp + "#" + key.value)
     (Hdfs.writeWith(new Path(tmp), Streams.writeBytes(_, bytes)) >> Hdfs.safe {
-      // NOTE: compatability with cdh4.x should be code below.
-      org.apache.hadoop.filecache.DistributedCache.addCacheFile(new URI(tmp + "#" + key.value), job.getConfiguration)
-//      job.addCacheFile(new URI(tmp + "#" + key.value))
+      addCacheFile(new URI(tmp + "#" + key.value), job)
     }).run(job.getConfiguration).run.unsafePerformIO match {
       case Ok(_) =>
         ()
@@ -51,4 +49,9 @@ object DistCache {
       case Error(e) =>
         sys.error(s"Could not pop $key from local path: ${Result.asString(e)}")
     }
+
+  def addCacheFile(uri: URI, job: Job) = {
+    import com.nicta.scoobi.impl.util.Compatibility.cache
+    cache.addCacheFile(uri, job.getConfiguration)
+  }
 }
