@@ -59,7 +59,7 @@ object build extends Build {
   , base = file("ivory-api")
   , settings = standardSettings ++ lib("api") ++ Seq[Settings](
       name := "ivory-api"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value))
   )
   .dependsOn(generate, ingest, validate, extract)
 

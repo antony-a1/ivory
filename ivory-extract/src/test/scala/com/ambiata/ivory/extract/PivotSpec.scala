@@ -39,7 +39,7 @@ class PivotSpec extends HadoopSpecification with SampleFacts { def is = s2"""
     val action =
       takeSnapshot >>
       fromHdfs(dictionaryFromIvory(repo, DICTIONARY_NAME)).flatMap { dictionary =>
-        Pivot.onHdfs(new Path(repo.snapshots.toHdfs, "00000000"), pivot, errors, dictionary, '|', "NA")
+        Pivot.onHdfsWithDictionary(new Path(repo.snapshots.toHdfs, "00000000"), pivot, errors, dictionary, '|', "NA")
       } >> fromHdfs(Hdfs.globLines(pivot, "out*"))
 
     action.run(sc) must beOkLike { lines =>

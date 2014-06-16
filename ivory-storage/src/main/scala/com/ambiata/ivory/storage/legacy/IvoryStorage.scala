@@ -210,16 +210,16 @@ object IvoryStorage {
   def factsFromIvoryFactsetBetween(repo: HdfsRepository, factset: Factset, from: Date, to: Date): ScoobiAction[DList[ParseError \/ Fact]] =
     InternalFactsetFactLoader(repo, factset, Some(from), Some(to)).load
 
-  def factsFromIvoryFactset(repository: S3Repository, factset: Factset): ScoobiS3Action[DList[ParseError \/ Fact]] =
+  def factsFromIvoryS3Factset(repository: S3Repository, factset: Factset): ScoobiS3Action[DList[ParseError \/ Fact]] =
     InternalFactsetFactS3Loader(repository, factset, None, None).load
 
-  def factsFromIvoryFactsetFrom(repository: S3Repository, factset: Factset, from: Date): ScoobiS3Action[DList[ParseError \/ Fact]] =
+  def factsFromIvoryS3FactsetFrom(repository: S3Repository, factset: Factset, from: Date): ScoobiS3Action[DList[ParseError \/ Fact]] =
     InternalFactsetFactS3Loader(repository, factset, Some(from), None).load
 
-  def factsFromIvoryFactsetTo(repository: S3Repository, factset: Factset, to: Date): ScoobiS3Action[DList[ParseError \/ Fact]] =
+  def factsFromIvoryS3FactsetTo(repository: S3Repository, factset: Factset, to: Date): ScoobiS3Action[DList[ParseError \/ Fact]] =
     InternalFactsetFactS3Loader(repository, factset, None, Some(to)).load
 
-  def factsFromIvoryFactsetBetween(repository: S3Repository, factset: Factset, from: Date, to: Date): ScoobiS3Action[DList[ParseError \/ Fact]] =
+  def factsFromIvoryS3FactsetBetween(repository: S3Repository, factset: Factset, from: Date, to: Date): ScoobiS3Action[DList[ParseError \/ Fact]] =
     InternalFactsetFactS3Loader(repository, factset, Some(from), Some(to)).load
 
   /* Dictionary */
@@ -232,10 +232,10 @@ object IvoryStorage {
   def dictionaryToIvory(repo: HdfsRepository, dict: Dictionary, name: String): Hdfs[Unit] =
     InternalDictionaryStorer(repo, name).store(dict)
 
-  def dictionaryToIvory(repo: S3Repository, dict: Dictionary, name: String): HdfsS3Action[Unit] =
+  def dictionaryToIvoryS3(repo: S3Repository, dict: Dictionary, name: String): HdfsS3Action[Unit] =
     DictionariesS3Storer(repo).store(dict, name)
 
-  def dictionariesToIvory(repo: S3Repository, dictionaries: List[Dictionary], name: String): HdfsS3Action[Unit] =
+  def dictionariesToIvoryS3(repo: S3Repository, dictionaries: List[Dictionary], name: String): HdfsS3Action[Unit] =
     DictionariesS3Storer(repo).store(dictionaries, name)
 
 
@@ -243,12 +243,12 @@ object IvoryStorage {
   def storeFromIvory(repo: HdfsRepository, name: String): Hdfs[FeatureStore] =
     InternalFeatureStoreLoader(repo, name).load
 
-  def storeFromIvory(repository: S3Repository, name: String): HdfsS3Action[FeatureStore] =
+  def storeFromIvoryS3(repository: S3Repository, name: String): HdfsS3Action[FeatureStore] =
     InternalFeatureStoreLoaderS3(repository, name).load
 
   def storeToIvory(repo: HdfsRepository, store: FeatureStore, name: String): Hdfs[Unit] =
     InternalFeatureStoreStorer(repo, name).store(store)
 
-  def storeToIvory(repository: S3Repository, store: FeatureStore, name: String): HdfsS3Action[Unit] =
+  def storeToIvoryS3(repository: S3Repository, store: FeatureStore, name: String): HdfsS3Action[Unit] =
     InternalFeatureStoreStorerS3(repository, name).store(store)
 }

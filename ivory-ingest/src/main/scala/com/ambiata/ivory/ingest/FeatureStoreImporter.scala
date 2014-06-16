@@ -23,7 +23,7 @@ object FeatureStoreImporter {
   def onS3(repository: S3Repository, name: String, storePath: FilePath): HdfsS3Action[Unit] = {
     for {
       store <- HdfsS3Action.fromHdfs(FeatureStoreTextStorage.storeFromHdfs(new Path(storePath.path)))
-      _     <- IvoryStorage.storeToIvory(repository, store, name)
+      _     <- IvoryStorage.storeToIvoryS3(repository, store, name)
     } yield ()
   }
 

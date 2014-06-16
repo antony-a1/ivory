@@ -26,9 +26,9 @@ object CreateFeatureStore {
   def onS3(repository: S3Repository, name: String, sets: List[Factset], existing: Option[String] = None): HdfsS3Action[Unit] = {
     for {
       tmp      <- HdfsS3Action.fromHdfs(Hdfs.value(FeatureStoreTextStorage.fromFactsets(sets)))
-      store    <- existing.traverse(e => IvoryStorage.storeFromIvory(repository, e))
+      store    <- existing.traverse(e => IvoryStorage.storeFromIvoryS3(repository, e))
       newStore  = store.map(fs => tmp +++ fs).getOrElse(tmp)
-      _        <- IvoryStorage.storeToIvory(repository, newStore, name)
+      _        <- IvoryStorage.storeToIvoryS3(repository, newStore, name)
     } yield ()
   }
 

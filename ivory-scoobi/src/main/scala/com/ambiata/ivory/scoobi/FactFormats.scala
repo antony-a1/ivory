@@ -5,7 +5,7 @@ import com.ambiata.ivory.core.thrift._
 import com.ambiata.ivory.scoobi.WireFormats.ShortWireFormat
 import com.nicta.scoobi._, Scoobi._
 
-object FactFormats {
+trait FactFormats {
   /* WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
   implicit def FactWireFormat: WireFormat[Fact] = WireFormats.factWireFormat
   /* WARNING THIS MUST BE A DEF OR OR IT CAN TRIGGER CONCURRENCY ISSUES WITH SHARED THRIFT SERIALIZERS */
@@ -26,3 +26,5 @@ object FactFormats {
   implicit def ParseErrorWireFormat: WireFormat[ParseError] = WireFormats.parseErrorWireFormat
   implicit def ParseErrorSeqSchema: SeqSchema[ParseError] = SeqSchemas.parseErrorSeqSchema
 }
+
+object FactFormats extends FactFormats
