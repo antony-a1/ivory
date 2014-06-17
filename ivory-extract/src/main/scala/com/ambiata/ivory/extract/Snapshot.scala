@@ -18,10 +18,11 @@ import com.ambiata.ivory.scoobi.SeqSchemas._
 import com.ambiata.ivory.scoobi._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
 
-case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: Date, outputPath: Path, errorPath: Path, incremental: Option[(Path, SnapshotMeta)], codec: Option[CompressionCodec]) {
+case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: Date, outputPath: Path, errorPath: Path, incremental: Option[(Path, SnapshotMeta)], codec: Option[CompressionCodec], fast: Boolean) {
   import IvoryStorage._
 
   def run: ScoobiAction[Unit] = for {
@@ -30,16 +31,24 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
     s    <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
     es   <- ScoobiAction.fromHdfs(entities.traverseU(e => Hdfs.readLines(e)))
     in   <- incremental.traverseU({ case (path, sm) => for {
-      _ <- ScoobiAction.value({
-        println(s"Previous store was '${sm.store}'")
-        println(s"Previous date was '${sm.date.string("-")}'")
-      })
-      s <- ScoobiAction.fromHdfs(storeFromIvory(r, sm.store))
-    } yield (path, s, sm) })
-    _    <- scoobiJob(r, d, s, es.map(_.toSet), in, codec)
+              _ <- ScoobiAction.value({
+                     println(s"Previous store was '${sm.store}'")
+                     println(s"Previous date was '${sm.date.string("-")}'")
+                   })
+              s <- ScoobiAction.fromHdfs(storeFromIvory(r, sm.store))
+            } yield (path, s, sm) })
+    _    <- if(fast) scoobiLight(r, s, in) else scoobiJob(r, d, s, es.map(_.toSet), in, codec)
     _    <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextStorer(new Path(outputPath, ".dictionary")).store(d))
     _    <- ScoobiAction.fromHdfs(SnapshotMeta(snapshot, store).toHdfs(new Path(outputPath, SnapshotMeta.fname)))
   } yield ()
+
+  def scoobiLight(repo: HdfsRepository, store: FeatureStore, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ScoobiAction[Unit] =
+    ScoobiAction.fromHdfs(for {
+      conf  <- Hdfs.configuration
+      globs <- HdfsSnapshot.storePaths(repo, store, snapshot, incremental)
+      _ = println(s"input paths: ${globs}")
+      _     <- Hdfs.safe(SnapshotJob.run(conf, 20, snapshot, globs, outputPath, incremental.map(_._1)))
+    } yield ())
 
   def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Option[Set[String]], incremental: Option[(Path, FeatureStore, SnapshotMeta)], codec: Option[CompressionCodec]): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
@@ -91,10 +100,13 @@ object HdfsSnapshot {
   val SnapshotName: String = "ivory-incremental-snapshot"
 
   def takeSnapshot(repoPath: Path, errors: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[(String, String, Path)] =
-    fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(errors, codec), date, incremental)
+    fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(errors, codec, false), date, incremental)
 
-  def extractLatest(errorPath: Path, codec: Option[CompressionCodec])(repo: HdfsRepository, store: String, dictName: String, date: Date, outputPath: Path, incremental: Option[(Path, SnapshotMeta)]): ScoobiAction[Unit] =
-    HdfsSnapshot(repo.root.toHdfs, store, dictName, None, date, outputPath, errorPath, incremental, codec).run
+  def takeQuickSnapshot(repoPath: Path, errors: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[(String, String, Path)] =
+    fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(errors, codec, true), date, incremental)
+
+  def extractLatest(errorPath: Path, codec: Option[CompressionCodec], fast: Boolean)(repo: HdfsRepository, store: String, dictName: String, date: Date, outputPath: Path, incremental: Option[(Path, SnapshotMeta)]): ScoobiAction[Unit] =
+    HdfsSnapshot(repo.root.toHdfs, store, dictName, None, date, outputPath, errorPath, incremental, codec, fast).run
 
   def readFacts(repo: HdfsRepository, store: FeatureStore, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] = {
     import IvoryStorage._
@@ -109,4 +121,17 @@ object HdfsSnapshot {
       } yield o ++ n ++ valueFromSequenceFile[Fact](p.toString).map(fact => (Priority.Max, Factset(SnapshotName), fact).right[ParseError])
     }
   }
+
+  def storePaths(repo: HdfsRepository, store: FeatureStore, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): Hdfs[List[FactsetGlob]] = Hdfs.fromResultTIO({
+    incremental match {
+      case None =>
+        StoreGlob.before(repo, store, latestDate)
+      case Some((p, s, sm)) => for {
+        o <- StoreGlob.between(repo, s, sm.date, latestDate) // read facts from already processed store from the last snapshot date to the latest date
+        sd = store --- s
+        _  = println(s"Reading factsets '${sd.factsets}' up to '${latestDate}'")
+        n <- StoreGlob.before(repo, sd, latestDate) // read factsets which haven't been seen up until the 'latest' date
+      } yield FactsetGlob.groupByVersion(o ++ n)
+    }
+  })
 }
