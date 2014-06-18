@@ -36,17 +36,14 @@ class FactDiffSpec extends HadoopSpecification with SimpleJobs with FileMatchers
     val input1 = directory + "/1"
     val input2 = directory + "/2"
     val output = directory + "/out"
-    val errors = directory + "/errors"
 
     persist(PartitionFactThriftStorageV1.PartitionedFactThriftStorer(input1, None).storeScoobi(facts1),
             PartitionFactThriftStorageV1.PartitionedFactThriftStorer(input2, None).storeScoobi(facts2))
 
-    FactDiff.scoobiJob(input1, input2, output, errors).run(sc) must beOk
+    FactDiff.partitionFacts(input1, input2, output).run(sc) must beOk
 
     val out = fromTextFile(output).run.toList
     out must have size(6)
-
-    Hdfs.readWith(new Path(errors), is => Streams.read(is)).run(sc) must beOkValue("")
   }
 
   "FactDiff finds no difference" >> { implicit sc: ScoobiConfiguration =>
@@ -59,15 +56,13 @@ class FactDiffSpec extends HadoopSpecification with SimpleJobs with FileMatchers
     val input1 = directory + "/1"
     val input2 = directory + "/2"
     val output = directory + "/out"
-    val errors = directory + "/errors"
 
     persist(PartitionFactThriftStorageV1.PartitionedFactThriftStorer(input1, None).storeScoobi(facts1),
             PartitionFactThriftStorageV1.PartitionedFactThriftStorer(input2, None).storeScoobi(facts1))
 
-    FactDiff.scoobiJob(input1, input2, output, errors).run(sc) must beOk
+    FactDiff.partitionFacts(input1, input2, output).run(sc) must beOk
 
     Hdfs.readWith(new Path(output), is => Streams.read(is)).run(sc) must beOkValue("")
-    Hdfs.readWith(new Path(errors), is => Streams.read(is)).run(sc) must beOkValue("")
   }
 
 }

@@ -297,20 +297,32 @@ class SnapshotReducer extends Reducer[Text, BytesWritable, NullWritable, BytesWr
   val vout = new BytesWritable
 
   override def reduce(key: Text, iter: JIterable[BytesWritable], context: Reducer[Text, BytesWritable, NullWritable, BytesWritable]#Context): Unit = {
+
+    /****************** !!!!!! WARNING !!!!!! ******************
+     *
+     * This is some nasty nasty mutation that can coorrupt data
+     * without knowing, so double/triple check with others when
+     * changing.
+     *
+     ***********************************************************/
     val iterator = iter.iterator
     var latestContainer: PrioritizedFactBytes = null
-    var latestDate: Int = 0
+    var latestDate = 0l
+    var isTombstone = true
     while (iterator.hasNext) {
       val next = iterator.next
       deserializer.deserialize(container, next.getBytes)
       deserializer.deserialize(fact, container.getFactbytes)
-      val nextDate = fact.getYyyyMMdd
+      val nextDate = fact.datetime.long
       if(latestContainer == null || nextDate > latestDate || (nextDate == latestDate && container.getPriority < latestContainer.getPriority)) {
-        latestContainer = container
+        latestContainer = container.deepCopy
         latestDate = nextDate
+        isTombstone = fact.isTombstone
       }
     }
-    vout.set(latestContainer.getFactbytes, 0, latestContainer.getFactbytes.length)
-    context.write(NullWritable.get, vout)
+    if(!isTombstone) {
+      vout.set(latestContainer.getFactbytes, 0, latestContainer.getFactbytes.length)
+      context.write(NullWritable.get, vout)
+    }
   }
 }

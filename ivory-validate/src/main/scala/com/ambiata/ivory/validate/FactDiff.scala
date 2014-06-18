@@ -12,13 +12,36 @@ import FactFormats._
 
 object FactDiff {
 
-  def scoobiJob(input1: String, input2: String, outputPath: String, errorPath: String): ScoobiAction[Unit] = {
-    ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-      val (first_errs, first_facts) = byflag(PartitionFactThriftStorageV1.PartitionedFactThriftLoader(List(input1)).loadScoobi, true)
-      val (second_errs, second_facts) = byflag(PartitionFactThriftStorageV1.PartitionedFactThriftLoader(List(input2)).loadScoobi, false)
+  def partitionFacts(input1: String, input2: String, outputPath: String): ScoobiAction[Unit] = for {
+    res <- ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
+             val dlist1 = PartitionFactThriftStorageV1.PartitionedFactThriftLoader(List(input1)).loadScoobi.map({
+               case -\/(e) => sys.error(s"Can not parse fact - ${e}")
+               case \/-(f) => f
+             })
+             val dlist2 = PartitionFactThriftStorageV1.PartitionedFactThriftLoader(List(input2)).loadScoobi.map({
+               case -\/(e) => sys.error(s"Can not parse fact - ${e}")
+               case \/-(f) => f
+             })
+             (dlist1, dlist2)
+           })
+    (dlist1, dlist2) = res
+    _   <- scoobiJob(dlist1, dlist2, outputPath)
+  } yield ()
 
-      val errors = first_errs ++ second_errs
-      val facts = first_facts ++ second_facts
+  def flatFacts(input1: String, input2: String, outputPath: String): ScoobiAction[Unit] = for {
+    res <- ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
+             val dlist1 = valueFromSequenceFile[Fact](input1)
+             val dlist2 = valueFromSequenceFile[Fact](input2)
+             (dlist1, dlist2)
+           })
+    (dlist1, dlist2) = res
+    _   <- scoobiJob(dlist1, dlist2, outputPath)
+  } yield ()
+
+  def scoobiJob(first_facts: DList[Fact], second_facts: DList[Fact], outputPath: String): ScoobiAction[Unit] = {
+    ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
+
+      val facts = first_facts.map((true, _)) ++ second_facts.map((false, _))
 
       val grp = facts.groupBy({ case (flag, fact) => (fact.entity, fact.featureId.toString, fact.date.int, fact.time.seconds, fact.value.stringValue) })
 
@@ -31,28 +54,12 @@ object FactDiff {
       })
 
       val out: DList[String] = diff.map({
-        case (true, fact) :: Nil  => s"Fact '${fact}' does not exist in ${input2}"
-        case (false, fact) :: Nil => s"Fact '${fact}' does not exist in ${input1}"
+        case (true, fact) :: Nil  => s"Fact '${fact}' does not exist in input2"
+        case (false, fact) :: Nil => s"Fact '${fact}' does not exist in input1"
         case g                    => s"Found duplicates - '${g}'"
       })
 
-      val error_out: DList[String] = errors.map({
-        case (true, e)  => s"${e.message} - ${input1}"
-        case (false, e) => s"${e.message} - ${input2}"
-      })
-
-      persist(error_out.toTextFile(errorPath, overwrite = true), out.toTextFile(outputPath, overwrite = true))
+      persist(out.toTextFile(outputPath, overwrite = true))
     })
-  }
-
-  def byflag(dlist: DList[ParseError \/ Fact], flag: Boolean): (DList[(Boolean, ParseError)], DList[(Boolean, Fact)]) = {
-    val errs = dlist.collect {
-      case -\/(e) => (flag, e)
-    }
-
-    val facts = dlist.collect {
-      case \/-(f) => (flag, f)
-    }
-    (errs, facts)
   }
 }
