@@ -20,17 +20,13 @@ import org.apache.hadoop.io.compress._
 import org.apache.hadoop.mapreduce._
 import org.apache.hadoop.util._
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat
-import org.apache.hadoop.mapreduce.lib.input.FileInputFormat
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
-import org.apache.hadoop.mapreduce.lib.input.TaggedInputSplit
 import org.apache.hadoop.mapreduce.lib.input.MultipleInputs
 import org.apache.hadoop.mapreduce.lib.input.ProxyTaggedInputSplit
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
 import org.apache.thrift.protocol.TCompactProtocol
 import org.apache.thrift.{TSerializer, TDeserializer}
-
-import scala.collection.JavaConverters._
 
 /*
  * This is a hand-coded MR job to squeeze the most out of snapshot performance.
@@ -40,10 +36,13 @@ object SnapshotJob {
     // MR1
     conf.set("mapred.compress.map.output", "true")
     conf.set("mapred.map.output.compression.codec", "org.apache.hadoop.io.compress.SnappyCodec")
+    conf.set("mapred.output.compression.type", "BLOCK")
 
     // YARN
     conf.set("mapreduce.map.output.compress", "true")
     conf.set("mapred.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec")
+    conf.set("mapreduce.output.fileoutputformat.compress.type", "BLOCK")
+
 
     val job = Job.getInstance(conf)
     job.setJarByClass(classOf[SnapshotReducer])
@@ -66,16 +65,21 @@ object SnapshotJob {
     /* input */
     val mappers = inputs.map({
       case FactsetGlob(FactsetVersionOne, factsets) => (classOf[SnapshotFactsetVersionOneMapper], factsets)
-      case FactsetGlob(FactsetVersionTwo, factsets) => (classOf[SnapshotFactsetVersionOneMapper], factsets)
+      case FactsetGlob(FactsetVersionTwo, factsets) => (classOf[SnapshotFactsetVersionTwoMapper], factsets)
     })
     mappers.foreach({ case (clazz, factsets) =>
       factsets.foreach({ case (_, ps) =>
-        ps.foreach(p => MultipleInputs.addInputPath(job, new Path(p.path), classOf[SequenceFileInputFormat[_, _]], clazz))
+        ps.foreach(p => {
+          println(s"Input path: ${p.path}")
+          MultipleInputs.addInputPath(job, new Path(p.path), classOf[SequenceFileInputFormat[_, _]], clazz)
+        })
       })
     })
 
-    incremental.foreach(p =>
-      MultipleInputs.addInputPath(job, p, classOf[SequenceFileInputFormat[_, _]], classOf[SnapshotIncrementalMapper]))
+    incremental.foreach(p => {
+      println(s"Incremental path: ${p}")
+      MultipleInputs.addInputPath(job, p, classOf[SequenceFileInputFormat[_, _]], classOf[SnapshotIncrementalMapper])
+    })
 
     /* output */
     val tmpout = new Path("/tmp/ivory-snapshot-" + java.util.UUID.randomUUID)
@@ -95,7 +99,8 @@ object SnapshotJob {
 
     /* commit files to factset */
     (for {
-      _  <- Hdfs.mv(new Path(tmpout, "*"), output)
+      files <- Hdfs.globFiles(tmpout, "part-*")
+      _     <- files.traverse(f => Hdfs.mv(f, new Path(output, f.getName.replace("part", "out"))))
     } yield ()).run(conf).run.unsafePerformIO
   }
 
@@ -107,6 +112,9 @@ object SnapshotJob {
     lookup
   }
 
+  def outputKey(f: Fact): String =
+    s"${f.entity}|${f.namespace}|${f.feature}"
+
   object Keys {
     val SnapshotDate = "ivory.snapdate"
     val FactsetLookup = ThriftCache.Key("factset-lookup")
@@ -114,17 +122,21 @@ object SnapshotJob {
 }
 
 /*
- * Mappers for ivory-snapshot.
+ * Base mapper for ivory-snapshot.
  *
- * The input is a standard SequenceFileInputFormat.
+ * The input is a standard SequenceFileInputFormat. The path is used to determin the
+ * factset/namespace/year/month/day, and a factset priority is pull out of a lookup
+ * table in the distributes cache.
  *
  * The output key is a sting of entity|namespace|attribute
  *
- * The output value is the already serialized bytes of the NamespacedFact ready to write.
+ * The output value is expected (can not be typed checked because its all bytes) to be
+ * a thrift serialized PrioritizedFactBytes object. This is a container that holds a
+ * factset priority and thrift serialized NamespacedFact object.
  */
-class SnapshotFactsetVersionOneMapper extends Mapper[NullWritable, BytesWritable, Text, BytesWritable] {
+abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritable, Text, BytesWritable] {
 
-  /* Value serializer/deserializer. */
+  /* Thrift serializer/deserializer. */
   val serializer = new TSerializer(new TCompactProtocol.Factory)
   val deserializer = new TDeserializer(new TCompactProtocol.Factory)
 
@@ -135,6 +147,7 @@ class SnapshotFactsetVersionOneMapper extends Mapper[NullWritable, BytesWritable
   var strDate: String = null
   lazy val date: Date = Date.fromInt(strDate.toInt).getOrElse(sys.error(s"Invalid snapshot date '${strDate}'"))
 
+  /* Lookup table for facset priority */
   val lookup = new FactsetLookup
 
   /* The output key, only create once per mapper. */
@@ -143,16 +156,18 @@ class SnapshotFactsetVersionOneMapper extends Mapper[NullWritable, BytesWritable
   /* The output value, only create once per mapper. */
   val vout = new BytesWritable
 
+  /* Partition created from input split path, only created once per mapper */
   var partition: Partition = null
 
+  /* Input split path, only created once per mapper */
   var stringPath: String = null
 
+  /* Priority of the factset, only created once per mapper */
   var priority: Short = 0
 
   override def setup(context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
     ThriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetLookup, lookup)
-    vout.setCapacity(4096)
     stringPath = ProxyTaggedInputSplit.fromInputSplit(context.getInputSplit).getUnderlying.asInstanceOf[FileSplit].getPath.toString
     partition = Partition.parseWith(stringPath) match {
       case Success(p) => p
@@ -160,7 +175,12 @@ class SnapshotFactsetVersionOneMapper extends Mapper[NullWritable, BytesWritable
     }
     priority = lookup.priorities.get(partition.factset.name)
   }
+}
 
+/**
+ * FactsetVersionOne mapper
+ */
+class SnapshotFactsetVersionOneMapper extends SnapshotFactseBaseMapper {
   override def map(key: NullWritable, value: BytesWritable, context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
     deserializer.deserialize(tfact, value.getBytes)
 
@@ -171,8 +191,7 @@ class SnapshotFactsetVersionOneMapper extends Mapper[NullWritable, BytesWritable
         if(f.date > date)
           context.getCounter("ivory", "snapshot.v1.skip").increment(1)
         else {
-          val k = s"${f.entity}|${f.namespace}|${f.feature}"
-          kout.set(k)
+          kout.set(SnapshotJob.outputKey(f))
 
           val factbytes = serializer.serialize(f.toNamespacedThrift)
           val v = serializer.serialize(new PrioritizedFactBytes(priority, ByteBuffer.wrap(factbytes)))
@@ -186,9 +205,40 @@ class SnapshotFactsetVersionOneMapper extends Mapper[NullWritable, BytesWritable
   }
 }
 
+/**
+ * FactsetVersionTwo mapper
+ */
+class SnapshotFactsetVersionTwoMapper extends SnapshotFactseBaseMapper {
+  override def map(key: NullWritable, value: BytesWritable, context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
+    deserializer.deserialize(tfact, value.getBytes)
+
+    PartitionFactThriftStorageV2.parseFact(stringPath, tfact) match {
+      case \/-(f) =>
+        context.getCounter("ivory", "snapshot.v2.ok").increment(1)
+
+        if(f.date > date)
+          context.getCounter("ivory", "snapshot.v2.skip").increment(1)
+        else {
+          kout.set(SnapshotJob.outputKey(f))
+
+          val factbytes = serializer.serialize(f.toNamespacedThrift)
+          val v = serializer.serialize(new PrioritizedFactBytes(priority, ByteBuffer.wrap(factbytes)))
+          vout.set(v, 0, v.length)
+
+          context.write(kout, vout)
+        }
+      case -\/(e) =>
+        sys.error(s"Can not read fact - ${e}")
+    }
+  }
+}
+
+/**
+ * Incremental snapshot mapper.
+ */
 class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Text, BytesWritable] {
 
-  /* Value serializer/deserializer. */
+  /* Thrift serializer/deserializer. */
   val serializer = new TSerializer(new TCompactProtocol.Factory)
   val deserializer = new TDeserializer(new TCompactProtocol.Factory)
 
@@ -201,20 +251,21 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Text
   /* The output value, only create once per mapper. */
   val vout = new BytesWritable
 
+  /* Priority of the incremental is always Priority.Max */
   val priority = Priority.Max.toShort
-
-  override def setup(context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
-    vout.setCapacity(4096)
-  }
 
   override def map(key: NullWritable, value: BytesWritable, context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
 
     context.getCounter("ivory", "snapshot.incr.ok").increment(1)
     
-    deserializer.deserialize(fact, value.getBytes)
-    kout.set(s"${fact.entity}|${fact.namespace}|${fact.feature}")
+    val size = value.getLength
+    val bytes = new Array[Byte](size)
+    System.arraycopy(value.getBytes, 0, bytes, 0, size)
 
-    val v = serializer.serialize(new PrioritizedFactBytes(priority, ByteBuffer.wrap(value.getBytes)))
+    deserializer.deserialize(fact, bytes)
+    kout.set(SnapshotJob.outputKey(fact))
+
+    val v = serializer.serialize(new PrioritizedFactBytes(priority, ByteBuffer.wrap(bytes)))
     vout.set(v, 0, v.length)
 
     context.write(kout, vout)
@@ -225,25 +276,25 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Text
 /*
  * Reducer for ivory-snapshot.
  *
- * This reducer takes the latest fact from entity|namespace|attribute
+ * This reducer takes the latest fact with the same entity|namespace|attribute key
  *
- * The input value is the bytes representation of the fact ready to write out.
+ * The input values are serialized conainers of factset priority and bytes of serialized NamespacedFact.
  *
  * The output is a sequence file, with no key, and the bytes of the serialized NamespacedFact.
  */
 class SnapshotReducer extends Reducer[Text, BytesWritable, NullWritable, BytesWritable] {
 
+  /* Thrift deserializer. */
   val deserializer = new TDeserializer(new TCompactProtocol.Factory)
   
+  /* empty conainter class used to populate deserialized values. This is mutated per record */
   val container = new PrioritizedFactBytes
 
+  /* empty fact class used to populate deserialized facts. This is mutated per record */
   val fact = new NamespacedThriftFact with NamespacedThriftFactDerived
 
-  val vout = {
-    val bw = new BytesWritable
-    bw.setCapacity(4096)
-    bw
-  }
+  /* The output value, only create once per mapper. */
+  val vout = new BytesWritable
 
   override def reduce(key: Text, iter: JIterable[BytesWritable], context: Reducer[Text, BytesWritable, NullWritable, BytesWritable]#Context): Unit = {
     val iterator = iter.iterator

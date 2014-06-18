@@ -10,6 +10,9 @@ import scalaz._, Scalaz._, effect.IO, \&/._
 case class FactsetGlob(version: FactsetVersion, factsets: List[(PrioritizedFactset, List[Partition])]) {
   def filterByPartition(f: Partition => Boolean): FactsetGlob =
     copy(factsets = factsets.map({ case (pf, ps) => (pf, ps.filter(f)) }).filter(!_._2.isEmpty))
+
+  def partitions: List[Partition] =
+    factsets.flatMap(_._2)
 }
 
 object FactsetGlob {

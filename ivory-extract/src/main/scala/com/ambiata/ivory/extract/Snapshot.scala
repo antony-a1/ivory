@@ -46,8 +46,12 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
     ScoobiAction.fromHdfs(for {
       conf  <- Hdfs.configuration
       globs <- HdfsSnapshot.storePaths(repo, store, snapshot, incremental)
-      _ = println(s"input paths: ${globs}")
-      _     <- Hdfs.safe(SnapshotJob.run(conf, 20, snapshot, globs, outputPath, incremental.map(_._1)))
+      paths  = globs.flatMap(_.partitions.map(p => new Path(p.path))) ++ incremental.map(_._1).toList
+      size  <- paths.traverse(Hdfs.size).map(_.sum)
+      _        = println(s"Total input size: ${size}")
+      reducers = size / 1024 / 1024 / 768 + 1 // one reducer per 768MB of input
+      _        = println(s"Number of reducers: ${reducers}")
+      _     <- Hdfs.safe(SnapshotJob.run(conf, reducers.toInt, snapshot, globs, outputPath, incremental.map(_._1)))
     } yield ())
 
   def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Option[Set[String]], incremental: Option[(Path, FeatureStore, SnapshotMeta)], codec: Option[CompressionCodec]): ScoobiAction[Unit] =
