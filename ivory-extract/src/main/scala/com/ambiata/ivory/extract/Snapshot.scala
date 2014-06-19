@@ -37,12 +37,12 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
                    })
               s <- ScoobiAction.fromHdfs(storeFromIvory(r, sm.store))
             } yield (path, s, sm) })
-    _    <- if(fast) scoobiLight(r, s, in) else scoobiJob(r, d, s, es.map(_.toSet), in, codec)
+    _    <- if(fast) scoobiLight(r, s, in, codec) else scoobiJob(r, d, s, es.map(_.toSet), in, codec)
     _    <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextStorer(new Path(outputPath, ".dictionary")).store(d))
     _    <- ScoobiAction.fromHdfs(SnapshotMeta(snapshot, store).toHdfs(new Path(outputPath, SnapshotMeta.fname)))
   } yield ()
 
-  def scoobiLight(repo: HdfsRepository, store: FeatureStore, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ScoobiAction[Unit] =
+  def scoobiLight(repo: HdfsRepository, store: FeatureStore, incremental: Option[(Path, FeatureStore, SnapshotMeta)], codec: Option[CompressionCodec]): ScoobiAction[Unit] =
     ScoobiAction.fromHdfs(for {
       conf  <- Hdfs.configuration
       globs <- HdfsSnapshot.storePaths(repo, store, snapshot, incremental)
@@ -51,7 +51,7 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
       _        = println(s"Total input size: ${size}")
       reducers = size / 1024 / 1024 / 768 + 1 // one reducer per 768MB of input
       _        = println(s"Number of reducers: ${reducers}")
-      _     <- Hdfs.safe(SnapshotJob.run(conf, reducers.toInt, snapshot, globs, outputPath, incremental.map(_._1)))
+      _     <- Hdfs.safe(SnapshotJob.run(conf, reducers.toInt, snapshot, globs, outputPath, incremental.map(_._1), codec))
     } yield ())
 
   def scoobiJob(repo: HdfsRepository, dict: Dictionary, store: FeatureStore, entities: Option[Set[String]], incremental: Option[(Path, FeatureStore, SnapshotMeta)], codec: Option[CompressionCodec]): ScoobiAction[Unit] =

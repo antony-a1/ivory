@@ -32,17 +32,15 @@ import org.apache.thrift.{TSerializer, TDeserializer}
  * This is a hand-coded MR job to squeeze the most out of snapshot performance.
  */
 object SnapshotJob {
-  def run(conf: Configuration, reducers: Int, date: Date, inputs: List[FactsetGlob], output: Path, incremental: Option[Path]): Unit = {
-    // MR1
+  def run(conf: Configuration, reducers: Int, date: Date, inputs: List[FactsetGlob], output: Path, incremental: Option[Path], codec: Option[CompressionCodec]): Unit = {
+    /*// MR1
     conf.set("mapred.compress.map.output", "true")
     conf.set("mapred.map.output.compression.codec", "org.apache.hadoop.io.compress.SnappyCodec")
-    conf.set("mapred.output.compression.type", "BLOCK")
 
     // YARN
     conf.set("mapreduce.map.output.compress", "true")
     conf.set("mapred.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec")
-    conf.set("mapreduce.output.fileoutputformat.compress.type", "BLOCK")
-
+    */
 
     val job = Job.getInstance(conf)
     job.setJarByClass(classOf[SnapshotReducer])
@@ -84,9 +82,11 @@ object SnapshotJob {
     /* output */
     val tmpout = new Path("/tmp/ivory-snapshot-" + java.util.UUID.randomUUID)
     job.setOutputFormatClass(classOf[SequenceFileOutputFormat[_, _]])
-    SequenceFileOutputFormat.setOutputCompressionType(job, SequenceFile.CompressionType.BLOCK)
-    FileOutputFormat.setCompressOutput(job, true)
-    FileOutputFormat.setOutputCompressorClass(job, classOf[SnappyCodec])
+    codec.foreach(cc => {
+      SequenceFileOutputFormat.setOutputCompressionType(job, SequenceFile.CompressionType.BLOCK)
+      FileOutputFormat.setCompressOutput(job, true)
+      FileOutputFormat.setOutputCompressorClass(job, cc.getClass)
+    })
     FileOutputFormat.setOutputPath(job, tmpout)
 
     /* cache / config initializtion */
@@ -162,11 +162,18 @@ abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritab
   /* Input split path, only created once per mapper */
   var stringPath: String = null
 
-  /* Priority of the factset, only created once per mapper */
+  /* Priority of the factset, only created once per record */
   var priority: Short = 0
 
   override def setup(context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
+
+    /****************** !!!!!! WARNING !!!!!! ******************
+     *
+     * This is an expensive call, so make sure you *never*
+     * call is once per record
+     *
+     ***********************************************************/
     ThriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetLookup, lookup)
     stringPath = ProxyTaggedInputSplit.fromInputSplit(context.getInputSplit).getUnderlying.asInstanceOf[FileSplit].getPath.toString
     partition = Partition.parseWith(stringPath) match {
@@ -306,20 +313,25 @@ class SnapshotReducer extends Reducer[Text, BytesWritable, NullWritable, BytesWr
      *
      ***********************************************************/
     val iterator = iter.iterator
+
+    // use one object to hold state instead of three
     var latestContainer: PrioritizedFactBytes = null
     var latestDate = 0l
     var isTombstone = true
     while (iterator.hasNext) {
       val next = iterator.next
       deserializer.deserialize(container, next.getBytes)
-      deserializer.deserialize(fact, container.getFactbytes)
+      deserializer.deserialize(fact, container.getFactbytes) // explain why deserialize twice
       val nextDate = fact.datetime.long
+      // move the if statement to a function
       if(latestContainer == null || nextDate > latestDate || (nextDate == latestDate && container.getPriority < latestContainer.getPriority)) {
+        // change to state.set (1 line)
         latestContainer = container.deepCopy
         latestDate = nextDate
         isTombstone = fact.isTombstone
       }
     }
+    // change to state.write
     if(!isTombstone) {
       vout.set(latestContainer.getFactbytes, 0, latestContainer.getFactbytes.length)
       context.write(NullWritable.get, vout)
