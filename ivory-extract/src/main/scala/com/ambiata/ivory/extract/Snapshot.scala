@@ -103,10 +103,10 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
 object HdfsSnapshot {
   val SnapshotName: String = "ivory-incremental-snapshot"
 
-  def takeSnapshot(repoPath: Path, errors: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[(String, String, Path)] =
+  def takeSlowSnapshot(repoPath: Path, errors: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[(String, String, Path)] =
     fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(errors, codec, false), date, incremental)
 
-  def takeQuickSnapshot(repoPath: Path, errors: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[(String, String, Path)] =
+  def takeSnapshot(repoPath: Path, errors: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[(String, String, Path)] =
     fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(errors, codec, true), date, incremental)
 
   def extractLatest(errorPath: Path, codec: Option[CompressionCodec], fast: Boolean)(repo: HdfsRepository, store: String, dictName: String, date: Date, outputPath: Path, incremental: Option[(Path, SnapshotMeta)]): ScoobiAction[Unit] =
