@@ -58,7 +58,11 @@ case class InternalFactsetFactS3Loader(repo: S3Repository, factset: Factset, fro
 case class InternalFeatureStoreFactLoader(repo: HdfsRepository, store: FeatureStore, from: Option[Date], to: Option[Date]) {
   def load: ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] = for {
     sc       <- ScoobiAction.scoobiConfiguration
-    versions <- ScoobiAction.fromResultTIO(store.factsets.traverseU(factset =>
+    factsets <- ScoobiAction.fromHdfs(store.factsets.traverse(factset => for {
+                  ve <- Hdfs.exists(repo.version(factset.set).toHdfs)
+                  s  <- Hdfs.size(repo.factset(factset.set).toHdfs)
+                } yield (factset, ve && s != 0))).map(_.collect({ case (factset, true) => factset }))
+    versions <- ScoobiAction.fromResultTIO(factsets.traverseU(factset =>
       Versions.read(repo, factset.set).map(factset -> _)))
     combined: List[(FactsetVersion, List[PrioritizedFactset])] = versions.groupBy(_._2).toList.map({ case (k, vs) => (k, vs.map(_._1)) })
     loaded = combined.map({ case (v, fss) => IvoryStorage.multiFactsetLoader(v, repo.factsets.toHdfs, fss, from, to).loadScoobi(sc) })
