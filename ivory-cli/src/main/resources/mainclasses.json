@@ -67,6 +67,10 @@
   "class-name"   : "com.ambiata.ivory.cli.catErrors"
 },
 {
+  "service-name" : "count-facts",
+  "class-name"   : "com.ambiata.ivory.cli.countFacts"
+},
+{
   "service-name" : "fact-diff",
   "class-name"   : "com.ambiata.ivory.cli.factDiff"
 },
