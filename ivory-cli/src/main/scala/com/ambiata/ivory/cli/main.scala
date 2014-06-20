@@ -15,6 +15,7 @@ object main {
     catFacts,
     catRepositoryFacts,
     chord,
+    countFacts,
     createFeatureStore,
     createRepository,
     factDiff,
