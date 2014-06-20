@@ -18,6 +18,16 @@ trait Fact {
 
   def toNamespacedThrift: NamespacedThriftFact with NamespacedThriftFactDerived
 
+  def safeCopy: Fact =
+    FatThriftFact.factWith(entity, namespace, feature, date, time, value match {
+      case BooleanValue(b)  => ThriftFactValue.b(b)
+      case IntValue(i)      => ThriftFactValue.i(i)
+      case LongValue(l)     => ThriftFactValue.l(l)
+      case DoubleValue(d)   => ThriftFactValue.d(d)
+      case StringValue(s)   => ThriftFactValue.s(s)
+      case TombstoneValue() => ThriftFactValue.t(new ThriftTombstone())
+    })
+
   lazy val stringValue: Option[String] =
     value.stringValue
 
@@ -60,19 +70,19 @@ object Fact {
 }
 
 trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
-    def namespace =
+    def namespace: String =
       nspace
 
-    def feature =
+    def feature: String =
       fact.attribute
 
-    def date =
+    def date: Date =
       Date.unsafeFromInt(yyyyMMdd)
 
-    def time =
+    def time: Time =
       Time.unsafe(seconds)
 
-    def datetime =
+    def datetime: DateTime =
       date.addTime(time)
 
     def entity: String =
@@ -94,7 +104,7 @@ trait NamespacedThriftFactDerived extends Fact { self: NamespacedThriftFact  =>
       case _                => sys.error(s"You have hit a code generation issue. This is a BUG. Do not continue, code needs to be updated to handle new thrift structure. [${fact.toString}].'")
     }
 
-    def toThrift = fact
+    def toThrift: ThriftFact = fact
 
     def toNamespacedThrift = this
 }
