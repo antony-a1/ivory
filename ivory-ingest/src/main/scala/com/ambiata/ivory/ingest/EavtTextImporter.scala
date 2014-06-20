@@ -97,7 +97,7 @@ object EavtTextImporter {
     val indexed = new ReducerLookup
     allocations.foreach({ case (n, f, r) =>
       indexed.putToReducers(features.ids.get(FeatureId(n, f).toString), r) })
-    IngestJob.run(sc, reducers, indexed, namespaces, features, dictionary, timezone, timezone, root, partitions.map(_._1).map(namespace => root.toString + "/" + namespace + "/*"), repository.factset(factset).toHdfs, errorPath)
+    IngestJob.run(sc, reducers, indexed, namespaces, features, dictionary, timezone, timezone, root, partitions.map(_._1).map(namespace => root.toString + "/" + namespace + "/*"), repository.factset(factset).toHdfs, errorPath, codec)
   }
 
 

@@ -74,22 +74,13 @@ object SnapshotJob {
     /* output */
     val tmpout = new Path("/tmp/ivory-snapshot-" + java.util.UUID.randomUUID)
     job.setOutputFormatClass(classOf[SequenceFileOutputFormat[_, _]])
-    codec.foreach(cc => {
-      // Intermediate compression
-      // MR1
-      conf.set("mapred.compress.map.output", "true")
-      conf.set("mapred.map.output.compression.codec", cc.getClass.getName)
-
-      // YARN
-      conf.set("mapreduce.map.output.compress", "true")
-      conf.set("mapred.map.output.compress.codec", cc.getClass.getName)
-
-      // Output compression
-      SequenceFileOutputFormat.setOutputCompressionType(job, SequenceFile.CompressionType.BLOCK)
-      FileOutputFormat.setCompressOutput(job, true)
-      FileOutputFormat.setOutputCompressorClass(job, cc.getClass)
-    })
     FileOutputFormat.setOutputPath(job, tmpout)
+
+    /* compression */
+    codec.foreach(cc => {
+      Compress.intermediate(conf, cc)
+      Compress.output(job, cc)
+    })
 
     /* cache / config initializtion */
     job.getConfiguration.set(Keys.SnapshotDate, date.int.toString)

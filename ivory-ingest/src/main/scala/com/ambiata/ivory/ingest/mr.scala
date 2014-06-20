@@ -35,14 +35,7 @@ import org.joda.time.DateTimeZone
  */
 object IngestJob {
   // FIX shouldn't need `root: Path` it is a workaround for poor namespace handling
-  def run(conf: Configuration, reducers: Int, allocations: ReducerLookup, namespaces: NamespaceLookup, features: FeatureIdLookup, dict: Dictionary, ivoryZone: DateTimeZone, ingestZone: DateTimeZone, root: Path, paths: List[String], target: Path, errors: Path): Unit = {
-    // MR1
-    conf.set("mapred.compress.map.output", "true")
-    conf.set("mapred.map.output.compression.codec", "org.apache.hadoop.io.compress.SnappyCodec")
-
-    // YARN
-    conf.set("mapreduce.map.output.compress", "true")
-    conf.set("mapred.map.output.compress.codec", "org.apache.hadoop.io.compress.SnappyCodec")
+  def run(conf: Configuration, reducers: Int, allocations: ReducerLookup, namespaces: NamespaceLookup, features: FeatureIdLookup, dict: Dictionary, ivoryZone: DateTimeZone, ingestZone: DateTimeZone, root: Path, paths: List[String], target: Path, errors: Path, codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
     job.setJarByClass(classOf[IngestMapper])
@@ -70,11 +63,14 @@ object IngestJob {
     LazyOutputFormat.setOutputFormatClass(job, classOf[SequenceFileOutputFormat[_, _]])
     MultipleOutputs.addNamedOutput(job, Keys.Out,  classOf[SequenceFileOutputFormat[_, _]],  classOf[NullWritable], classOf[BytesWritable]);
     MultipleOutputs.addNamedOutput(job, Keys.Err,  classOf[SequenceFileOutputFormat[_, _]],  classOf[NullWritable], classOf[BytesWritable]);
-    SequenceFileOutputFormat.setOutputCompressionType(job, SequenceFile.CompressionType.BLOCK)
-    FileOutputFormat.setCompressOutput(job, true)
-    FileOutputFormat.setOutputCompressorClass(job, classOf[SnappyCodec])
     val out = "/tmp/ivory-ingest-" + java.util.UUID.randomUUID
     FileOutputFormat.setOutputPath(job, new Path(out))
+
+    /* compression */
+    codec.foreach(cc => {
+      Compress.intermediate(conf, cc)
+      Compress.output(job, cc)
+    })
 
     /* cache / config initializtion */
     ThriftCache.push(job, Keys.NamespaceLookup, namespaces)
