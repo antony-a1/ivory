@@ -3,4 +3,4 @@
 
 JVM_OPTS="-Dfile.encoding=UTF8 -XX:MaxPermSize=512m -Xms512m -Xmx2g -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC"; export JVM_OPTS
 
-./sbt -Dsbt.log.noformat=true "; clean; update; test-only -- console junitxml html; publish; project cli; set credentials := Seq(Credentials(realm=\"Amazon S3\", host=\"ambiata-dist.s3.amazonaws.com\", userName=\"$AWS_ACCESS_KEY\", passwd=\"$AWS_SECRET_KEY\")); s3Upload; project ivory; echo-version"
+./sbt -Dsbt.log.noformat=true "; clean; update; test-only -- console junitxml html; publish; project cli; s3Upload; project ivory; echo-version"
