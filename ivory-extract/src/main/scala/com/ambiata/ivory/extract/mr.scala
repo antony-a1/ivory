@@ -35,6 +35,8 @@ object SnapshotJob {
   def run(conf: Configuration, reducers: Int, date: Date, inputs: List[FactsetGlob], output: Path, incremental: Option[Path], codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
+    val ctx = MrContext.newContext("ivory-snapshot", job)
+
     job.setJarByClass(classOf[SnapshotReducer])
     job.setJobName("ivory-snapshot")
 
@@ -72,28 +74,19 @@ object SnapshotJob {
     })
 
     /* output */
-    val tmpout = new Path("/tmp/ivory-snapshot-" + java.util.UUID.randomUUID)
+    val tmpout = ctx.output
     job.setOutputFormatClass(classOf[SequenceFileOutputFormat[_, _]])
-    codec.foreach(cc => {
-      // Intermediate compression
-      // MR1
-      conf.set("mapred.compress.map.output", "true")
-      conf.set("mapred.map.output.compression.codec", cc.getClass.getName)
-
-      // YARN
-      conf.set("mapreduce.map.output.compress", "true")
-      conf.set("mapred.map.output.compress.codec", cc.getClass.getName)
-
-      // Output compression
-      SequenceFileOutputFormat.setOutputCompressionType(job, SequenceFile.CompressionType.BLOCK)
-      FileOutputFormat.setCompressOutput(job, true)
-      FileOutputFormat.setOutputCompressorClass(job, cc.getClass)
-    })
     FileOutputFormat.setOutputPath(job, tmpout)
+
+    /* compression */
+    codec.foreach(cc => {
+      Compress.intermediate(job, cc)
+      Compress.output(job, cc)
+    })
 
     /* cache / config initializtion */
     job.getConfiguration.set(Keys.SnapshotDate, date.int.toString)
-    ThriftCache.push(job, Keys.FactsetLookup, priorityTable(inputs))
+    ctx.thriftCache.push(job, Keys.FactsetLookup, priorityTable(inputs))
 
     /* run job */
     if (!job.waitForCompletion(true))
@@ -103,6 +96,7 @@ object SnapshotJob {
     (for {
       files <- Hdfs.globFiles(tmpout, "part-*")
       _     <- files.traverse(f => Hdfs.mv(f, new Path(output, f.getName.replace("part", "out"))))
+      _     <- ctx.cleanup // remove tmp data and cache
     } yield ()).run(conf).run.unsafePerformIO
   }
 
@@ -138,6 +132,9 @@ object SnapshotJob {
  */
 abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritable, Text, BytesWritable] {
 
+  /* Context object holding dist cache paths */
+  var ctx: MrContext = null
+
   /* Thrift serializer/deserializer. */
   val serializer = new TSerializer(new TCompactProtocol.Factory)
   val deserializer = new TDeserializer(new TCompactProtocol.Factory)
@@ -168,6 +165,7 @@ abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritab
   var priority: Short = 0
 
   override def setup(context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
+    ctx = MrContext.fromConfiguration(context.getConfiguration)
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
 
     /****************** !!!!!! WARNING !!!!!! ******************
@@ -176,7 +174,7 @@ abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritab
      * call is once per record
      *
      ***********************************************************/
-    ThriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetLookup, lookup)
+    ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetLookup, lookup)
     stringPath = ProxyTaggedInputSplit.fromInputSplit(context.getInputSplit).getUnderlying.asInstanceOf[FileSplit].getPath.toString
     partition = Partition.parseWith(stringPath) match {
       case Success(p) => p
