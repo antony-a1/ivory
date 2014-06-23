@@ -23,8 +23,8 @@ object depend {
 
   def scoobi(version: String) = {
     val scoobiVersion =
-      if (version.contains("cdh3"))      "0.9.0-cdh3-20140528074037-3adbe0e"
-      else if (version.contains("cdh4")) "0.9.0-cdh4-20140528074037-3adbe0e"
+      if (version.contains("cdh3"))      "0.9.0-cdh3-20140610022751-7b2296d"
+      else if (version.contains("cdh4")) "0.9.0-cdh4-20140610022328-7b2296d"
       else if (version.contains("cdh5")) "0.9.0-cdh5-20140610021710-7b2296d"
       else                               "0.9.0-cdh5-20140610021710-7b2296d"
 
