@@ -2,6 +2,8 @@ package com.ambiata.ivory.mr
 
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.mapreduce.Job
+import org.apache.hadoop.mapreduce.lib.input.{FileSplit, ProxiedInputSplit}
+import org.apache.hadoop.mapreduce.InputSplit
 import org.apache.hadoop.conf.Configuration
 import java.util.UUID
 
@@ -44,6 +46,9 @@ object MrContext {
 
   def fromConfiguration(conf: Configuration): MrContext =
     MrContext(conf.get(MrContext.Keys.Id))
+
+  def getSplitPath(split: InputSplit): Path =
+    ProxiedInputSplit.fromInputSplit(split).getUnderlying.asInstanceOf[FileSplit].getPath
 
   object Keys {
     val Id = "ivory.ctx.id"

@@ -88,12 +88,10 @@ object IngestJob {
       sys.error("ivory ingest failed.")
 
     /* commit files to factset */
-    (for {
-      _  <- Hdfs.mv(new Path(out, "errors"), errors)
-      ps <- Hdfs.globPaths(new Path(out), "*")
-      _  <- ps.traverse(p => Hdfs.mv(p, target))
-      _  <- ctx.cleanup // remove tmp dir and cache
-    } yield ()).run(conf).run.unsafePerformIO
+    Committer.commitMulti(ctx, {
+      case p if p.getName == "errors" => errors
+      case p                          => target
+    }, true).run(conf).run.unsafePerformIO
   }
 
   def index(dict: Dictionary): (NamespaceLookup, FeatureIdLookup) = {
@@ -193,6 +191,8 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
   /* The output value, only create once per mapper. */
   val vout = new BytesWritable
 
+  /* Path this mapper is processing */
+  var splitPath: Path = null
 
   override def setup(context: Mapper[LongWritable, Text, LongWritable, BytesWritable]#Context): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
@@ -202,6 +202,7 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
     ivoryZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IvoryZone))
     ingestZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IngestZone))
     base = context.getConfiguration.get(IngestJob.Keys.IngestBase)
+    splitPath = MrContext.getSplitPath(context.getInputSplit)
     vout.setCapacity(4096)
   }
 
@@ -210,9 +211,8 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
 
   override def map(key: LongWritable, value: Text, context: Mapper[LongWritable, Text, LongWritable, BytesWritable]#Context): Unit = {
     val line = value.toString
-    val split = context.getInputSplit.asInstanceOf[FileSplit].getPath
 
-    EavtParsers.parse(line, dict, namespaces.getOrElseUpdate(split.getParent.toString, findIt(split)), ingestZone) match {
+    EavtParsers.parse(line, dict, namespaces.getOrElseUpdate(splitPath.getParent.toString, findIt(splitPath)), ingestZone) match {
       case Success(f) =>
 
         context.getCounter("ivory", "ingest.ok").increment(1)

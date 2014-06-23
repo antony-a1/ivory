@@ -15,19 +15,9 @@ import com.ambiata.ivory.alien.hdfs.Hdfs
  */
 object PrintErrors {
 
-  def printGlob(path: String, glob: String, delim: String): IOAction[Unit] = for {
-    l <- IOActions.ask
-    _ <- Print.printGlobWith(path, glob, SeqSchemas.parseErrorSeqSchema, printParseError(delim, l))
-  } yield ()
-
-  def printPaths(paths: List[Path], config: Configuration, delim: String): IOAction[Unit] = for {
+  def print(paths: List[Path], config: Configuration, delim: String): IOAction[Unit] = for {
     l <- IOActions.ask
     _ <- Print.printPathsWith(paths, config, SeqSchemas.parseErrorSeqSchema, printParseError(delim, l))
-  } yield ()
-
-  def print(path: Path, config: Configuration, delim: String): IOAction[Unit] = for {
-    l <- IOActions.ask
-    _ <- Print.printWith(path, config, SeqSchemas.parseErrorSeqSchema, printParseError(delim, l))
   } yield ()
 
   def printParseError(delim: String, logger: Logger)(path: Path, p: ParseError): Task[Unit] = Task.delay {

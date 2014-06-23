@@ -22,7 +22,6 @@ import org.apache.hadoop.util._
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.hadoop.mapreduce.lib.input.MultipleInputs
-import org.apache.hadoop.mapreduce.lib.input.ProxyTaggedInputSplit
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
 import org.apache.thrift.protocol.TCompactProtocol
@@ -93,11 +92,7 @@ object SnapshotJob {
       sys.error("ivory snapshot failed.")
 
     /* commit files to factset */
-    (for {
-      files <- Hdfs.globFiles(tmpout, "part-*")
-      _     <- files.traverse(f => Hdfs.mv(f, new Path(output, f.getName.replace("part", "out"))))
-      _     <- ctx.cleanup // remove tmp data and cache
-    } yield ()).run(conf).run.unsafePerformIO
+    Committer.commitSingle(ctx, output, true).run(conf).run.unsafePerformIO
   }
 
   def priorityTable(globs: List[FactsetGlob]): FactsetLookup = {
@@ -144,7 +139,7 @@ abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritab
 
   /* Snapshot date, see #setup. */
   var strDate: String = null
-  lazy val date: Date = Date.fromInt(strDate.toInt).getOrElse(sys.error(s"Invalid snapshot date '${strDate}'"))
+  var date: Date = Date.unsafeFromInt(0)
 
   /* Lookup table for facset priority */
   val lookup = new FactsetLookup
@@ -167,15 +162,9 @@ abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritab
   override def setup(context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
-
-    /****************** !!!!!! WARNING !!!!!! ******************
-     *
-     * This is an expensive call, so make sure you *never*
-     * call is once per record
-     *
-     ***********************************************************/
+    date = Date.fromInt(strDate.toInt).getOrElse(sys.error(s"Invalid snapshot date '${strDate}'"))
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetLookup, lookup)
-    stringPath = ProxyTaggedInputSplit.fromInputSplit(context.getInputSplit).getUnderlying.asInstanceOf[FileSplit].getPath.toString
+    stringPath = MrContext.getSplitPath(context.getInputSplit).toString
     partition = Partition.parseWith(stringPath) match {
       case Success(p) => p
       case Failure(e) => sys.error(s"Can not parse partition ${e}")

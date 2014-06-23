@@ -180,7 +180,7 @@ package object api {
   /**
    * Debug
    */
-  val printErrors = com.ambiata.ivory.extract.print.PrintErrors.printGlob _
-  val printFacts = com.ambiata.ivory.extract.print.PrintFacts.printGlob _
-  val printInternalFacts = com.ambiata.ivory.extract.print.PrintInternalFacts.printGlob _
+  val printErrors = com.ambiata.ivory.extract.print.PrintErrors.print _
+  val printFacts = com.ambiata.ivory.extract.print.PrintFacts.print _
+  val printInternalFacts = com.ambiata.ivory.extract.print.PrintInternalFacts.print _
 }

@@ -27,6 +27,9 @@ case class Hdfs[+A](action: ActionT[IO, Unit, Configuration, A]) {
 
   def |||[AA >: A](other: Hdfs[AA]): Hdfs[AA] =
     Hdfs(action ||| other.action)
+
+  def filterHidden(implicit ev: A <:< List[Path]): Hdfs[List[Path]] =
+    map(_.filter(p => !p.getName.startsWith("_") && !p.getName.startsWith(".")))
 }
 
 object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
