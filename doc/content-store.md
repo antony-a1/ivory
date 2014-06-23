@@ -93,6 +93,9 @@ Support for atomic operations should be a core tool within ivory.
 T.B.D. Discuss with Russell who has an implementation using atomic
 moves.
 
+T.B.D. A "staging" like area followed by a commit probably makes a
+sense.
+
 ### feature store specifics
 
 #### Dictionaries
@@ -119,7 +122,6 @@ The store key is `manifest`.
 
 The store value is a thrift structure defined in `ivory-core`.
 
-
 #### Repository
 
 Used as a reference node for versioning multiple values at a time.
@@ -130,8 +132,7 @@ The store key is `repository`.
 The store value is a text value defined in `ivory-core`.
 
 
-
-## Justification / Discusstion
+## Justification / Discussion
 
 justification
 -------------
