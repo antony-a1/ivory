@@ -93,11 +93,7 @@ object SnapshotJob {
       sys.error("ivory snapshot failed.")
 
     /* commit files to factset */
-    (for {
-      files <- Hdfs.globFiles(tmpout, "part-*")
-      _     <- files.traverse(f => Hdfs.mv(f, new Path(output, f.getName.replace("part", "out"))))
-      _     <- ctx.cleanup // remove tmp data and cache
-    } yield ()).run(conf).run.unsafePerformIO
+    Committer.commitSingle(ctx, output, true).run(conf).run.unsafePerformIO
   }
 
   def priorityTable(globs: List[FactsetGlob]): FactsetLookup = {

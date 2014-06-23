@@ -88,12 +88,10 @@ object IngestJob {
       sys.error("ivory ingest failed.")
 
     /* commit files to factset */
-    (for {
-      _  <- Hdfs.mv(new Path(out, "errors"), errors)
-      ps <- Hdfs.globPaths(new Path(out), "*")
-      _  <- ps.traverse(p => Hdfs.mv(p, target))
-      _  <- ctx.cleanup // remove tmp dir and cache
-    } yield ()).run(conf).run.unsafePerformIO
+    Committer.commitMulti(ctx, {
+      case p if p.getName == "errors" => errors
+      case p                          => target
+    }, true).run(conf).run.unsafePerformIO
   }
 
   def index(dict: Dictionary): (NamespaceLookup, FeatureIdLookup) = {
