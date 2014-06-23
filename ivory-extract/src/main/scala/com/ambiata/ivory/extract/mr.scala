@@ -140,7 +140,7 @@ abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritab
 
   /* Snapshot date, see #setup. */
   var strDate: String = null
-  lazy val date: Date = Date.fromInt(strDate.toInt).getOrElse(sys.error(s"Invalid snapshot date '${strDate}'"))
+  var date: Date = Date.unsafeFromInt(0)
 
   /* Lookup table for facset priority */
   val lookup = new FactsetLookup
@@ -163,13 +163,7 @@ abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritab
   override def setup(context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
-
-    /****************** !!!!!! WARNING !!!!!! ******************
-     *
-     * This is an expensive call, so make sure you *never*
-     * call is once per record
-     *
-     ***********************************************************/
+    date = Date.fromInt(strDate.toInt).getOrElse(sys.error(s"Invalid snapshot date '${strDate}'"))
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetLookup, lookup)
     stringPath = ProxyTaggedInputSplit.fromInputSplit(context.getInputSplit).getUnderlying.asInstanceOf[FileSplit].getPath.toString
     partition = Partition.parseWith(stringPath) match {
