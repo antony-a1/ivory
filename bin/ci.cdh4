@@ -1,0 +1,8 @@
+#!/bin/sh
+
+
+HADOOP_VERSION=cdh4; export HADOOP_VERSION
+
+JVM_OPTS="-Dfile.encoding=UTF8 -XX:MaxPermSize=512m -Xms512m -Xmx6g -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC"; export JVM_OPTS
+
+./sbt -Dsbt.log.noformat=true "; clean; update; test-only -- console junitxml html; publish; echo-version"
