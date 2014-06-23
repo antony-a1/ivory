@@ -124,16 +124,7 @@ Observations on the current process:
    representing the current fields we support.
 
    A new text-based import and export format, that has better
-   support for extensibility. For example, something like this
-   might work:
-
-```
-<namespace>:<feature>|[attribute=value]...
-```
-
-```
-demographics:age|encoding=int|type=continuous|tombstone=NA|description=the stone age
-```
+   support for extensibility.
 
    We might want to get the data-scientists involved in the format
    conversation just to make sure we don't do anything that will
@@ -145,22 +136,30 @@ demographics:age|encoding=int|type=continuous|tombstone=NA|description=the stone
    been removed (which is done as a side-effect of the file clobbering
    and only importing whole dictionaries at the moment).
 
+   For example, something like this might work for text format:
 
+```
+<namespace>:<feature>|[attribute=value]...
+```
+
+```
+demographics:age|encoding=int|type=continuous|tombstone=NA|description=the stone age
+```
 
 4. Update ingestion workflow.
 
-     - Ingestion should just always use the "latest" version of the dictionary.
+   Ingestion should just always use the "latest" version of the dictionary.
 
-     - Ingestion should _not_ take a copy the dictionary.
+   Ingestion should _not_ take a copy the dictionary.
 
 
 5. Update import dictionary.
 
-     - Add support for the new ingestion format (while keeping the old one as well).
+   Add support for the new ingestion format (while keeping the old one as well).
 
-     - Remove the named dictionary concept.
+   Remove the named dictionary concept.
 
-     - Always import into the internal thrift format.
+   Always import into the internal thrift format.
 
-     - Support update vs override. i.e. should the imported dictionary totally
-       supersede the current one, or should it be merged with the curent one.
+   Support update vs override. i.e. should the imported dictionary totally
+   supersede the current one, or should it be merged with the curent one.
