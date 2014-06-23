@@ -120,12 +120,12 @@ Observations on the current process:
 
 3. Create new formats for dictionaries.
 
-     - An internal representation the is a well-typed thrift struct
-       reprenting the current fields we support.
+   An internal representation the is a well-typed thrift struct
+   representing the current fields we support.
 
-     - A new text-based import and export format, that has better
-       support for extensibility. For example, something like this
-       might work:
+   A new text-based import and export format, that has better
+   support for extensibility. For example, something like this
+   might work:
 
 ```
 <namespace>:<feature>|[attribute=value]...
@@ -135,15 +135,17 @@ Observations on the current process:
 demographics:age|encoding=int|type=continuous|tombstone=NA|description=the stone age
 ```
 
-   - We might want to get the data-scientists involved in the format
-     conversation just to make sure we don't do anything that will
-     make it hard to read in any of their tooling, but we will need
-     to continue supporting the old format for a while, so this doesn't
-     need to be finalized straight away.
+   We might want to get the data-scientists involved in the format
+   conversation just to make sure we don't do anything that will
+   make it hard to read in any of their tooling, but we will need
+   to continue supporting the old format for a while, so this doesn't
+   need to be finalized straight away.
 
-   - The text format will also need a way to specify that an entry has
-     been removed (which is done as a side-effect of the file clobbering
-     - and only importing whole dictionaries - at the moment).
+   The text format will also need a way to specify that an entry has
+   been removed (which is done as a side-effect of the file clobbering
+   and only importing whole dictionaries at the moment).
+
+
 
 4. Update ingestion workflow.
 
