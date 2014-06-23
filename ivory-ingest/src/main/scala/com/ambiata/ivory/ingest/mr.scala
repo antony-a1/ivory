@@ -70,7 +70,7 @@ object IngestJob {
 
     /* compression */
     codec.foreach(cc => {
-      Compress.intermediate(conf, cc)
+      Compress.intermediate(job, cc)
       Compress.output(job, cc)
     })
 

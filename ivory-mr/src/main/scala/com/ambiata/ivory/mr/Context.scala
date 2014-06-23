@@ -10,22 +10,20 @@ import com.ambiata.ivory.alien.hdfs._
 /**
  * This is used to handle tmp paths for output and dist cache
  */
-sealed trait MrContext {
-  val id: String
-
-  lazy val tmpBase: Path =
+case class MrContext(id: String) {
+  val tmpBase: Path =
     new Path(s"/tmp/${id}")
 
-  lazy val output: Path =
+  val output: Path =
     new Path(tmpBase, "output")
 
-  lazy val distCache: DistCache =
+  val distCache: DistCache =
     DistCache(new Path(tmpBase, "dist-cache"))
 
-  lazy val thriftCache: ThriftCache =
+  val thriftCache: ThriftCache =
     ThriftCache(new Path(tmpBase, "dist-cache-thrift"))
 
-  lazy val textCache: TextCache =
+  val textCache: TextCache =
     TextCache(new Path(tmpBase, "dist-cache-text"))
 
   def cleanup: Hdfs[Unit] =
@@ -33,17 +31,19 @@ sealed trait MrContext {
 }
 
 object MrContext {
-  def newContext(namespace: String, job: Job): MrContext = new MrContext {
-    val id: String =
-      s"${namespace}-${job.getJobName}-${UUID.randomUUID.toString}"
-
+  /**
+   * Create a new MrContext from the namespace and job. This will mutate
+   * the job configuration to set the context id so it can be re-created
+   * again from the configuration object.
+   */
+  def newContext(namespace: String, job: Job): MrContext = {
+    val id = s"${namespace}-${job.getJobName}-${UUID.randomUUID.toString}"
     job.getConfiguration.set(MrContext.Keys.Id, id)
+    MrContext(id)
   }
 
-  def fromConfiguration(conf: Configuration): MrContext = new MrContext {
-    val id: String =
-      conf.get(MrContext.Keys.Id)
-  }
+  def fromConfiguration(conf: Configuration): MrContext =
+    MrContext(conf.get(MrContext.Keys.Id))
 
   object Keys {
     val Id = "ivory.ctx.id"

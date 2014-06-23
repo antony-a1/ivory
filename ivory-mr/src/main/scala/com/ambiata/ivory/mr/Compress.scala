@@ -9,14 +9,14 @@ import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
 
 object Compress {
 
-  def intermediate(conf: Configuration, codec: CompressionCodec): Unit = {
+  def intermediate(job: Job, codec: CompressionCodec): Unit = {
     // MR1
-    conf.set("mapred.compress.map.output", "true")
-    conf.set("mapred.map.output.compression.codec", codec.getClass.getName)
+    job.getConfiguration.set("mapred.compress.map.output", "true")
+    job.getConfiguration.set("mapred.map.output.compression.codec", codec.getClass.getName)
 
     // YARN
-    conf.set("mapreduce.map.output.compress", "true")
-    conf.set("mapred.map.output.compress.codec", codec.getClass.getName)
+    job.getConfiguration.set("mapreduce.map.output.compress", "true")
+    job.getConfiguration.set("mapred.map.output.compress.codec", codec.getClass.getName)
   }
 
   def output(job: Job, codec: CompressionCodec): Unit = {
