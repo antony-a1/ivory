@@ -137,10 +137,7 @@ Observations on the current process:
    and only importing whole dictionaries at the moment).
 
    For example, something like this might work for text format:
-
-       <namespace>:<feature>|[attribute=value]...
-
-       demographics:age|encoding=int|type=continuous|tombstone=NA|description=the stone age
+  `demographics:age|encoding=int|type=continuous|tombstone=NA|description=the stone age`
 
 
 4. Update ingestion workflow.
