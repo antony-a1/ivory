@@ -38,6 +38,8 @@ object IngestJob {
   def run(conf: Configuration, reducers: Int, allocations: ReducerLookup, namespaces: NamespaceLookup, features: FeatureIdLookup, dict: Dictionary, ivoryZone: DateTimeZone, ingestZone: DateTimeZone, root: Path, paths: List[String], target: Path, errors: Path, codec: Option[CompressionCodec]): Unit = {
 
     val job = Job.getInstance(conf)
+    val ctx = MrContext.newContext("ivory-ingest", job)
+
     job.setJarByClass(classOf[IngestMapper])
     job.setJobName("ivory-ingest")
 
@@ -73,10 +75,10 @@ object IngestJob {
     })
 
     /* cache / config initializtion */
-    ThriftCache.push(job, Keys.NamespaceLookup, namespaces)
-    ThriftCache.push(job, Keys.FeatureIdLookup, features)
-    ThriftCache.push(job, Keys.ReducerLookup, allocations)
-    TextCache.push(job, Keys.Dictionary, DictionaryTextStorage.delimitedDictionaryString(dict, '|'))
+    ctx.thriftCache.push(job, Keys.NamespaceLookup, namespaces)
+    ctx.thriftCache.push(job, Keys.FeatureIdLookup, features)
+    ctx.thriftCache.push(job, Keys.ReducerLookup, allocations)
+    ctx.textCache.push(job, Keys.Dictionary, DictionaryTextStorage.delimitedDictionaryString(dict, '|'))
     job.getConfiguration.set(Keys.IvoryZone, ivoryZone.getID)
     job.getConfiguration.set(Keys.IngestZone, ingestZone.getID)
     job.getConfiguration.set(Keys.IngestBase, FileSystem.get(conf).getFileStatus(root).getPath.toString)
@@ -90,6 +92,7 @@ object IngestJob {
       _  <- Hdfs.mv(new Path(out, "errors"), errors)
       ps <- Hdfs.globPaths(new Path(out), "*")
       _  <- ps.traverse(p => Hdfs.mv(p, target))
+      _  <- ctx.cleanup // remove tmp dir and cache
     } yield ()).run(conf).run.unsafePerformIO
   }
 
@@ -128,11 +131,13 @@ object IngestJob {
  */
 class IngestPartitioner extends Partitioner[LongWritable, BytesWritable] with Configurable {
   var _conf: Configuration = null
+  var ctx: MrContext = null
   val lookup = new ReducerLookup
 
   def setConf(conf: Configuration): Unit = {
     _conf = conf
-    ThriftCache.pop(conf, IngestJob.Keys.ReducerLookup, lookup)
+    ctx = MrContext.fromConfiguration(_conf)
+    ctx.thriftCache.pop(conf, IngestJob.Keys.ReducerLookup, lookup)
   }
 
   def getConf: Configuration =
@@ -153,6 +158,9 @@ class IngestPartitioner extends Partitioner[LongWritable, BytesWritable] with Co
  * The output value is the already serialized bytes of the fact ready to write.
  */
 class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritable] {
+  /* Context object contains tmp paths and dist cache */
+  var ctx: MrContext = null
+
   /* Cache for path -> namespace mapping. */
   var namespaces: scala.collection.mutable.Map[String, String] = scala.collection.mutable.Map.empty
 
@@ -187,9 +195,10 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
 
 
   override def setup(context: Mapper[LongWritable, Text, LongWritable, BytesWritable]#Context): Unit = {
+    ctx = MrContext.fromConfiguration(context.getConfiguration)
     out = new MultipleOutputs(context.asInstanceOf[Mapper[LongWritable, Text, NullWritable, BytesWritable]#Context])
-    ThriftCache.pop(context.getConfiguration, IngestJob.Keys.FeatureIdLookup, lookup)
-    dict = TextCache.pop(context.getConfiguration, IngestJob.Keys.Dictionary, DictionaryTextStorage.fromString("ingest", _))
+    ctx.thriftCache.pop(context.getConfiguration, IngestJob.Keys.FeatureIdLookup, lookup)
+    dict = ctx.textCache.pop(context.getConfiguration, IngestJob.Keys.Dictionary, DictionaryTextStorage.fromString("ingest", _))
     ivoryZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IvoryZone))
     ingestZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IngestZone))
     base = context.getConfiguration.get(IngestJob.Keys.IngestBase)
@@ -250,11 +259,13 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
  * is partitioned by namespace and date (determined by the input key).
  */
 class IngestReducer extends Reducer[LongWritable, BytesWritable, NullWritable, BytesWritable] {
+  var ctx: MrContext = null
   var out: MultipleOutputs[NullWritable, BytesWritable] = null
   var lookup: NamespaceLookup = new NamespaceLookup
 
   override def setup(context: Reducer[LongWritable, BytesWritable, NullWritable, BytesWritable]#Context): Unit = {
-    ThriftCache.pop(context.getConfiguration, IngestJob.Keys.NamespaceLookup, lookup)
+    ctx = MrContext.fromConfiguration(context.getConfiguration)
+    ctx.thriftCache.pop(context.getConfiguration, IngestJob.Keys.NamespaceLookup, lookup)
     out = new MultipleOutputs(context)
   }
 
