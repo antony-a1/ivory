@@ -7,12 +7,21 @@ import org.apache.hadoop.mapreduce.InputSplit
  * TaggedInputSplit is package protected, and we need to get to the
  * underlying InputSplit
  */
-case class ProxyTaggedInputSplit(split: TaggedInputSplit) {
+sealed trait ProxiedInputSplit {
+  def getUnderlying: InputSplit
+}
+case class ProxiedTaggedInputSplit(split: TaggedInputSplit) extends ProxiedInputSplit {
   def getUnderlying: InputSplit =
     split.getInputSplit()
 }
+case class ProxiedGenericInputSplit(split: InputSplit) extends ProxiedInputSplit {
+  def getUnderlying: InputSplit =
+    split
+}
 
-object ProxyTaggedInputSplit {
-  def fromInputSplit(split: InputSplit) =
-    ProxyTaggedInputSplit(split.asInstanceOf[TaggedInputSplit])
+object ProxiedInputSplit {
+  def fromInputSplit(split: InputSplit) = split match {
+    case tagged: TaggedInputSplit => ProxiedTaggedInputSplit(tagged)
+    case other                    => ProxiedGenericInputSplit(other)
+  }
 }

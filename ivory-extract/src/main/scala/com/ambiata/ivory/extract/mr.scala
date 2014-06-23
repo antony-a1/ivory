@@ -22,7 +22,6 @@ import org.apache.hadoop.util._
 import org.apache.hadoop.mapreduce.lib.input.SequenceFileInputFormat
 import org.apache.hadoop.mapreduce.lib.input.FileSplit
 import org.apache.hadoop.mapreduce.lib.input.MultipleInputs
-import org.apache.hadoop.mapreduce.lib.input.ProxyTaggedInputSplit
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.hadoop.mapreduce.lib.output.SequenceFileOutputFormat
 import org.apache.thrift.protocol.TCompactProtocol
@@ -165,7 +164,7 @@ abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritab
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
     date = Date.fromInt(strDate.toInt).getOrElse(sys.error(s"Invalid snapshot date '${strDate}'"))
     ctx.thriftCache.pop(context.getConfiguration, SnapshotJob.Keys.FactsetLookup, lookup)
-    stringPath = ProxyTaggedInputSplit.fromInputSplit(context.getInputSplit).getUnderlying.asInstanceOf[FileSplit].getPath.toString
+    stringPath = MrContext.getSplitPath(context.getInputSplit).toString
     partition = Partition.parseWith(stringPath) match {
       case Success(p) => p
       case Failure(e) => sys.error(s"Can not parse partition ${e}")
