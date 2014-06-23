@@ -111,6 +111,15 @@ The store key is `store`.
 
 The store value is a text value defined in `ivory-core`.
 
+#### Manifest
+
+Used for repository integrity checks.
+
+The store key is `manifest`.
+
+The store value is a thrift structure defined in `ivory-core`.
+
+
 #### Repository
 
 Used as a reference node for versioning multiple values at a time.
@@ -119,7 +128,6 @@ Contains a list of all the other key/values.
 The store key is `repository`.
 
 The store value is a text value defined in `ivory-core`.
-
 
 
 
