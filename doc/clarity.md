@@ -34,18 +34,18 @@ public interface
 core functions
 
 
-                +-----------+             +------------+             +------------+             +------------+
-                | ingestion |             |  snapshot  |             |   chords   |             |  loopback  |
-                +-----------+             +------------+             +------------+             +------------+
-                     |                          |                          |                          |
-                     |                          |                          |                          |
-                     |                          |                          |                          |
-                     |                          |                          |                          |
-                     ----------------------------------------------------------------------------------
-                                                         |
-                                                         |
-                                                    -------------
-                                                    v  v  v  v  v
+                                +-----------+             +------------+
+                                | ingestion |             | extraction |
+                                +-----------+             +------------+
+                                      |                          |
+                                      |                          |
+                                      |                          |
+                                      |                          |
+                                      ----------------------------
+                                                   |
+                                                   |
+                                             -------------
+                                             v  v  v  v  v
 
 *---------
 primitives
@@ -74,7 +74,7 @@ storage               |                                                      |
 
 Mapping this onto a more direct project structure.
 
- * `ivory-cli`: Command-line tools. Divided into two types of tools, `veneer` and `base`. `veener` tools include things like
+ * `ivory-cli`: Command-line tools. Divided into two types of tools, `veneer` and `base`. `veneer` tools include things like
                  ingestion workflows, snapshots, chording, loopback (feature engineering). `base` tools include things like cat fact set,
                 edit metadata directly in `$EDITOR`, ad-hoc import/edit of data/stores/dictionaries. _Only_ calls things in `api`.
 
@@ -89,12 +89,17 @@ Mapping this onto a more direct project structure.
 
  * `ivory-data`:  metadata, data storage interfaces, abstracts over HDFS/S3/HDFS+S3-SYNC/LOCAL/LOCAL+S3-SYNC/LOCAL+HDFS-SYNC, nothing specific to a feature store.
 
- * `ivory-example`: Example projects. Depend only on `cli`, and `api`.
+ * `ivory-example`: Example projects.
 
- * `ivory-benchmarks`: Benchmarks.
+ * `ivory-bench`: Benchmarks.
 
  * `ivory-regression`: Regression test-suite for cross version testing of data/metadata.
 
+
+Note there are no "generic" buckets here for scoobi/thrift/mr, they will evolve over time, and may stand on their own or be
+folded into one of the above.
+
+T.B.D. The core/data/storage distinction needs work and may not be clear until we have a clean meta-data implementation.
 
 Guidelines for APIs between components / layers:
 
@@ -102,7 +107,7 @@ Guidelines for APIs between components / layers:
 
  * A follow on to this is, don't export implementation specific effects. For example the storage layer may have a mix of `S3, HDFS` actions internally, but they should be unified to generic structures that don't have a reader of some config blob (this may be `ResultT[IO, _]`, `\/`, `Validation` or any number of things, but importantly lifecycle and control of implementation specific things should not accumulate through interfaces.
 
- * Don't sacriface performance for neat interfaces, we need to work out the best granularity of interface to achieve this and it will likely take some trial and error but we need to work towards a mix of safety/performance rather than avoiding it.
+ * Don't sacrifice performance for neat interfaces, we need to work out the best granularity of interface to achieve this and it will likely take some trial and error but we need to work towards a mix of safety/performance rather than avoiding it.
 
  * Always try to support non-hadoop implementations where possible. This helps with testing, usability and performance in the face of small-to-moderate sized data.
 

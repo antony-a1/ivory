@@ -33,7 +33,7 @@ Versions are a monotonically increasing 32 bit number rendered in hex:
 
 ### keys
 
-Keys are simply convenient identifiers for refering to values. All
+Keys are simply convenient identifiers for referring to values. All
 keys must consist of only alpha-numeric characters or hyphens '-' if a
 separator is required. This (enforced) convention is somewhat
 arbitrary, but forces a level of consistency and will also allow for
@@ -48,7 +48,7 @@ and any update should first update the meta-data to the latest
 version).
 
 Each value may have it's own format, but the preference is to to tend
-towards compact-encoded thrift structutures.
+towards compact-encoded thrift structures.
 
 ### storage
 
@@ -100,7 +100,7 @@ sense.
 
 #### Dictionaries
 
-The ivory dicitionary.
+The ivory dictionary.
 
 The dictionary key is `dictionary`.
 
@@ -167,7 +167,7 @@ a string and the burden is on the client to parse' philosophy.
    necessarily commutative (e.g. add fact sets to store, add
    entries to dictionary effects priority).
 
- - meta-data is categorizable into different objects, as in there isn't
+ - meta-data is categorized into different objects, as in there isn't
    just a giant blob of meta-data, we want to be able to label pieces
    for individual extraction / manipulation.
 
@@ -190,7 +190,7 @@ decent hash implementations on the JVM, and shelling out or
 implementing one is just not going to work at the
 moment. Specifically what I mean by "decent" is:
 
- - Parallizable, as in we would want something that does tree-hashing.
+ - Parallelizable, as in we would want something that does tree-hashing.
    Being forced to process things sequentially just because of your
    versioning scheme is daft and will likely run into a wall at some
    point.

@@ -6,7 +6,7 @@ The Ivory Dictionary
 Related work:
 
  - This assumes we are moving towards <https://github.com/ambiata/ivory/blob/master/doc/content-store.md>.
- - This is a part of larger piece of work highlighed by <https://github.com/ambiata/ivory/blob/master/doc/feature-gen.md> so decisions should be made in light of that.
+ - This is a part of larger piece of work highlighted by <https://github.com/ambiata/ivory/blob/master/doc/feature-gen.md> so decisions should be made in light of that.
 
 Related issues:
 
@@ -19,13 +19,13 @@ Related issues:
 
 The dictionary is a critical component of ivory. It serves as a basis
 for data validation and integrity, and the intention is it will be
-extended to server as the basis for feature generation. But to meet these
+extended to serve as the basis for feature generation. But to meet these
 goals we need address a number of issues:
  - The dictionary must be easily transportable, we need to send it to
    map-reduce jobs, import and export easily.
  - It must be relatively space efficient, whilst it is not huge, looking
    at a scale maxing out at 10,000s of features, it contains a lot of
-   clumbsy data like feature names and descriptions as strings.
+   clumsy data like feature names and descriptions as strings.
  - It must be evolvable. We will often need to update the dictionary schema
    to support new ivory features.
 
@@ -60,8 +60,8 @@ Then on each ingest/day, a copy of that dictionary is taken:
 <https://github.com/ambiata/ivory/blob/master/ivory-storage/src/main/scala/com/ambiata/ivory/storage/legacy/fatrepo/ImportWorkflow.scala#L99-L118>
 
 This process create a copy of the latest "named" dictionary and assigns it
-as "todays" dictionary in `<repository>/metadata/dictionaries/<yyyy-MM-dd>`.
-It is todays dictionary that is used for standard ivory ingestion and
+as "today's" dictionary in `<repository>/metadata/dictionaries/<yyyy-MM-dd>`.
+It is today's dictionary that is used for standard ivory ingestion and
 extractions processes.
 
 Observations on the current process:
@@ -90,17 +90,24 @@ Observations on the current process:
 
 1. Build out an ivory repository config file format. The format needs to
    include:
-     - The metadata version (i.e. the schema version not the versions of values stored).
-       Default to `1` for existing repositories without a version, which we will say
-       is the current text versions spec'd out above. And Default to `<latest>` for
-       new repositories.
+   - The meta-data version (i.e. the schema version not the versions of values stored).
+     Default to `1` for existing repositories without a version, which we will say
+     is the current text versions spec'd out above. And Default to `<latest>` for
+     new repositories.
 
-     - The repository timezone (This will be tricky to migrate to, but given that we
-       know the only users are in "Australia/Sydney" that will have to be the default,
-       and we will need to mandate a timezone id on `ivory create-repo` in the future).
+   - The repository timezone (This will be tricky to migrate to, but given that we
+     know the only users are in "Australia/Sydney" that will have to be the default,
+     and we will need to mandate a timezone id on `ivory create-repo` in the future).
+     The motivation for this is discussed in <https://github.com/ambiata/ivory/blob/master/doc/dates.md>.
+
+   The config should map to a data-structure in `ivory-core`, with standard mechanisms
+   to print an parse.
 
    Add a path onto `Repository` that specifies location of config in
-   repository.
+   repository, probably `metadata/ivory.conf` or similar.
+
+   The config is probably best as plain text as it is useful to be able to
+   inspect it without ivory tooling.
 
 
 2. Build up an ivory repository start-up module that controls reading
@@ -156,4 +163,4 @@ Observations on the current process:
    Always import into the internal thrift format.
 
    Support update vs override. i.e. should the imported dictionary totally
-   supersede the current one, or should it be merged with the curent one.
+   supersede the current one, or should it be merged with the current one.
