@@ -66,7 +66,7 @@ object ExtractLatestWorkflow {
   incr.collect({ case (p, sm) if sm.date <= date && sm.store == storeName => for {
     store      <- IvoryStorage.storeFromIvory(repo, storeName)
     partitions <- Hdfs.fromResultTIO(StoreGlob.between(repo, store, sm.date, date)).map(_.flatMap(_.partitions))
-    filtered = partitions.filter(_.date.isAfter(date)) // TODO this should probably be in StoreGlob.between, but not sure what else it will affect
+    filtered = partitions.filter(_.date.isAfter(sm.date)) // TODO this should probably be in StoreGlob.between, but not sure what else it will affect
     skip       <- if(filtered.isEmpty) Hdfs.value((true, p)) else outputDirectory(repo).map((false, _))
   } yield skip }).getOrElse(outputDirectory(repo).map((false, _)))
 
