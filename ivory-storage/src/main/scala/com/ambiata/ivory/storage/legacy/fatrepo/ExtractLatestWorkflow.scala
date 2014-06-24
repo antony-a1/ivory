@@ -11,6 +11,7 @@ import com.ambiata.ivory.data._
 import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
+import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.alien.hdfs._
 import com.ambiata.mundane.io._
 
@@ -36,29 +37,38 @@ object ExtractLatestWorkflow {
   def onHdfs(repoPath: Path, extractor: Extractor, date: Date, incremental: Boolean): ScoobiAction[(String, String, Path)] = {
     for {
       repo   <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
-      store  <- ScoobiAction.fromHdfs(latestStore(repo))
+      sname  <- ScoobiAction.fromHdfs(latestStore(repo))
       dname  <- ScoobiAction.fromHdfs(latestDictionary(repo))
       incr   <- ScoobiAction.fromHdfs(if(incremental) SnapshotMeta.latest(repo.snapshots.toHdfs, date) else Hdfs.ok(None))
-      output <- incr.collect({ case (p, sm) if sm.date == date && sm.store == store =>
-                  logger.info(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${store}'")
-                  ScoobiAction.value(p)
-                }).getOrElse(for {
-                  out <- ScoobiAction.fromHdfs(outputDirectory(repo))
-                  _    = logger.info(s"""
-                                      | Running extractor on:
-                                      | 
-                                      | Repository     : ${repo.root.path}
-                                      | Feature Store  : ${store}
-                                      | Dictionary     : ${dname}
-                                      | Date           : ${date.hyphenated}
-                                      | Output         : ${out}
-                                      | Incremental    : ${incr}
-                                      |
-                                      """.stripMargin)
-                  _   <- extractor(repo, store, dname, date, out, incr)
-                } yield out)
-    } yield (store, dname, output)
+      snap   <- ScoobiAction.fromHdfs(decideSnapshot(repo, date, sname, incr))
+      (skip, output) = snap
+      _      <- if(skip) {
+                  logger.info(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${sname}'")
+                  ScoobiAction.ok(())
+                } else {
+                  logger.info(s"""
+                                 | Running extractor on:
+                                 |
+                                 | Repository     : ${repo.root.path}
+                                 | Feature Store  : ${sname}
+                                 | Dictionary     : ${dname}
+                                 | Date           : ${date.hyphenated}
+                                 | Output         : ${output}
+                                 | Incremental    : ${incr}
+                                 |
+                                 """.stripMargin)
+                  extractor(repo, sname, dname, date, output, incr)
+                }
+    } yield (sname, dname, output)
   }
+
+  def decideSnapshot(repo: HdfsRepository, date: Date, storeName: String, incr: Option[(Path, SnapshotMeta)]): Hdfs[(Boolean, Path)] =
+  incr.collect({ case (p, sm) if sm.date <= date && sm.store == storeName => for {
+    store      <- IvoryStorage.storeFromIvory(repo, storeName)
+    partitions <- Hdfs.fromResultTIO(StoreGlob.between(repo, store, sm.date, date)).map(_.flatMap(_.partitions))
+    filtered = partitions.filter(_.date.isAfter(date)) // TODO this should probably be in StoreGlob.between, but not sure what else it will affect
+    skip       <- if(filtered.isEmpty) Hdfs.value((true, p)) else outputDirectory(repo).map((false, _))
+  } yield skip }).getOrElse(outputDirectory(repo).map((false, _)))
 
   def latestStore(repo: HdfsRepository): Hdfs[String] = for {
     _         <- Hdfs.value(logger.info(s"Finding latest feature store in the '${repo.root.path}' repository."))
