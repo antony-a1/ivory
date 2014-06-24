@@ -14,7 +14,7 @@ import com.ambiata.mundane.control.{Error, Ok}
 import scalaz._, Scalaz._
 import ScoobiS3EMRAction._
 
-object importFacts extends ScoobiApp {
+object importFacts extends IvoryApp {
 
   case class CliArguments(repositoryPath: String = "",
                           dictionary: String = "",
@@ -48,8 +48,7 @@ object importFacts extends ScoobiApp {
       s"timezone for the dates (see http://joda-time.sourceforge.net/timezones.html, for example Sydney is Australia/Sydney)"
   }
 
-  def run() {
-    parser.parse(args, CliArguments()).map { c =>
+  def cmd = IvoryCmd[CliArguments](parser, CliArguments(), ScoobiCmd { configuration => c =>
       val actions: ScoobiS3EMRAction[Unit] = if (c.repositoryPath.startsWith("s3://")) {
         // import to S3
         val p = c.repositoryPath.replace("s3://", "").toFilePath
@@ -69,10 +68,8 @@ object importFacts extends ScoobiApp {
         } yield ()
       }
 
-      actions.runScoobiAws(configuration).unsafePerformIO match {
-        case Ok(_)    => println(s"successfully imported into ${c.repositoryPath}")
-        case Error(e) => sys.error(s"failed! $e")
+      actions.runScoobiAwsT(configuration).map {
+        case _ => List(s"successfully imported into ${c.repositoryPath}")
       }
-    }
-  }
+    })
 }

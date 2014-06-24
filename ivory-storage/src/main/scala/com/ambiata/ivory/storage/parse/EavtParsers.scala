@@ -7,12 +7,16 @@ import org.joda.time.DateTimeZone
 
 import scalaz.{Value => _, _}, Scalaz._
 
+// FIX should be in storage.fact
 object EavtParsers {
   def splitLine(line: String): List[String] =
     line.split('|').toList match {
       case e :: a :: v :: t :: Nil => List(e, a, v, t.trim)
       case other                   => other
     }
+
+  def parse(line: String, dictionary: Dictionary, namespace: String, timezone: DateTimeZone): Validation[String, Fact] =
+    fact(dictionary, namespace, timezone).run(splitLine(line))
 
   def fact(dictionary: Dictionary, namespace: String, timezone: DateTimeZone): ListParser[Fact] =
     for {

@@ -1,5 +1,0 @@
-ns1|fname1|string|categorical|Test Feature 1|☠
-ns1|fname2|int|continuous|Test Feature 2|☠
-ns1|fname3|double|continuous|Test Feature 3|☠
-ns1|fname4|boolean|categorical|Test Feature 4|☠
-ns1|fname5|long|continuous|Test Feature 5|☠

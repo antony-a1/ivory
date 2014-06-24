@@ -14,6 +14,7 @@ import scalaz._, Scalaz._
 import java.io.File
 import org.specs2.matcher.ThrownExpectations
 import com.ambiata.ivory.core._
+import com.nicta.scoobi.Scoobi._
 
 class DictionaryImporterSpec extends Specification with ThrownExpectations { def is = s2"""
 
@@ -23,13 +24,15 @@ class DictionaryImporterSpec extends Specification with ThrownExpectations { def
 """
 
   def e1 = {
+    val repoPath = "ambiata-dev-app" </> "customer/ivory/repository1/"
     val dictionaryPath = new FilePath("target/test/dictionary.psv")
     val dictionary =
       """demo|postcode|string|categorical|Postcode|☠"""
 
     val onS3: HdfsS3Action[Unit] = for {
       _    <- fromHdfs(hdfs.Hdfs.writeWith(new Path(dictionaryPath.path), os => Streams.write(os, dictionary)))
-      _    <- DictionaryImporter.onS3("ambiata-dev-app" </> "customer/ivory/repository1/", "dictionary1", dictionaryPath)
+      repo  = Repository.fromS3(repoPath.rootname.path, repoPath.fromRoot, ScoobiConfiguration())
+      _    <- DictionaryImporter.onS3(repo, "dictionary1", dictionaryPath)
     } yield ()
 
     onS3.runHdfs(new Configuration) must beOk

@@ -1,29 +1,29 @@
 package com.ambiata.ivory.cli
 
-import com.nicta.scoobi.Scoobi._
+import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.io._
+
 import com.ambiata.ivory.extract.print.PrintFacts
 
-object catFacts extends App {
-  case class CliArguments(delimiter: String = "|", tombstone: String = "NA", path: String = "")
+object catFacts extends IvoryApp {
+  case class CliArguments(delimiter: String = "|", tombstone: String = "NA", paths: List[String] = Nil)
 
-  val parser = new scopt.OptionParser[CliArguments]("ivory-cat-facts") {
+  val parser = new scopt.OptionParser[CliArguments]("cat-facts") {
     head("""
-           |ivory-cat-facts [-d|--delimiter] [-t|--tombstone] GLOB_PATH_TO_FACT_SEQUENCE_FILE
            |Print facts as text (ENTITY-NAMESPACE-ATTRIBUTE-VALUE-DATETIME) to standard out, delimited by '|' or explicitly set delimiter.
            |The tombstone value is 'NA' by default.
            |""".stripMargin)
 
     help("help") text "shows this usage text"
-    opt[String]('p', "path")        action { (x, c) => c.copy(path = x) }      required() text "Input path (glob path to fact sequence file)"
-    opt[String]('d', "delimiter")   action { (x, c) => c.copy(delimiter = x) } optional() text "Delimiter (`|` by default)"
-    opt[String]('t', "tombstone")   action { (x, c) => c.copy(tombstone = x) } optional() text "Tombstone (NA by default)"
+    arg[String]("INPUT_PATH")       action { (x, c) => c.copy(paths = x :: c.paths) } required() unbounded() text
+      "Glob path to snapshot facts sequence files or parent dir"
+    opt[String]('d', "delimiter")   action { (x, c) => c.copy(delimiter = x) }        optional()             text
+      "Delimiter (`|` by default)"
+    opt[String]('t', "tombstone")   action { (x, c) => c.copy(tombstone = x) }        optional()             text
+      "Tombstone (NA by default)"
   }
 
-  parser.parse(args, CliArguments()).map { c =>
-    PrintFacts.printGlob(c.path, "*out*", c.delimiter, c.tombstone).execute(consoleLogging).unsafePerformIO.fold(
-      ok  => ok,
-      err => println(err)
-    )
-  }
+  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), HadoopCmd { conf => c =>
+    PrintFacts.print(c.paths.map(new Path(_)), conf, c.delimiter, c.tombstone).executeT(consoleLogging).map(_ => Nil)
+  })
 }

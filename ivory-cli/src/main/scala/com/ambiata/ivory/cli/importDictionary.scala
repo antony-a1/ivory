@@ -14,9 +14,7 @@ import com.ambiata.ivory.storage.repository._
 
 import com.nicta.scoobi.Scoobi._
 
-object importDictionary {
-
-  lazy val configuration = ScoobiConfiguration()
+object importDictionary extends IvoryApp {
 
   case class CliArguments(repo: String, path: String, name: String, tmpDirectory: FilePath = Repository.defaultS3TmpDirectory)
 
@@ -38,8 +36,7 @@ object importDictionary {
     opt[String]('n', "name") action { (x, c) => c.copy(name = x) } required() text s"Name of the dictionary in the repository."
   }
 
-  def main(args: Array[String]) {
-    parser.parse(args, CliArguments("", "", "")).map { c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", ""), HadoopCmd { configuration => c =>
       val actions =
         if (c.repo.startsWith("s3://")) {
           val p = c.repo.replace("s3://", "").toFilePath
@@ -49,10 +46,8 @@ object importDictionary {
         else
           DictionaryImporter.onHdfs(new Path(c.repo), new Path(c.path), c.name).run(configuration)
 
-      actions.run.unsafePerformIO() match {
-        case Ok(v)    => println(s"Successfully imported dictionary ${c.path} into ${c.repo} under the name ${c.name}.")
-        case Error(e) => sys.error(s"Failed to import dictionary: ${Result.asString(e)}")
+      actions.map {
+        case _ => List(s"Successfully imported dictionary ${c.path} into ${c.repo} under the name ${c.name}.")
       }
-    }
-  }
+  })
 }

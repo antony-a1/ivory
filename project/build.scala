@@ -19,10 +19,10 @@ object build extends Build {
     , cli
     , core
     , data
-    , example
     , extract
     , generate
     , ingest
+    , mr
     , scoobi
     , storage
     , validate
@@ -59,7 +59,7 @@ object build extends Build {
   , base = file("ivory-api")
   , settings = standardSettings ++ lib("api") ++ Seq[Settings](
       name := "ivory-api"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz)
+    ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value))
   )
   .dependsOn(generate, ingest, validate, extract)
 
@@ -109,15 +109,6 @@ object build extends Build {
     ))
   )
 
-  lazy val example = Project(
-    id = "example"
-  , base = file("ivory-example")
-  , settings = standardSettings ++ lib("example") ++ Seq[Settings](
-      name := "ivory-example"
-    ) ++ Seq[Settings](libraryDependencies ++= depend.scopt ++ depend.scalaz ++ depend.joda ++ depend.saws ++ depend.scoobi(version.value))
-  )
-  .dependsOn(api, cli)
-
   lazy val extract = Project(
     id = "extract"
   , base = file("ivory-extract")
@@ -125,7 +116,7 @@ object build extends Build {
       name := "ivory-extract"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value))
   )
-  .dependsOn(core, scoobi, storage, validate)
+  .dependsOn(core, scoobi, storage, validate, mr)
 
   lazy val generate = Project(
     id = "generate"
@@ -143,7 +134,16 @@ object build extends Build {
       name := "ivory-ingest"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.specs2 ++ depend.scoobi(version.value) ++ depend.saws)
   )
-  .dependsOn(core, storage, alien_hdfs, scoobi)
+  .dependsOn(core, storage, alien_hdfs, scoobi, mr)
+
+  lazy val mr = Project(
+    id = "mr"
+  , base = file("ivory-mr")
+  , settings = standardSettings ++ lib("mr") ++ Seq[Settings](
+      name := "ivory-mr"
+    ) ++ Seq[Settings](libraryDependencies ++= depend.thrift ++ depend.mundane ++ depend.scalaz ++ depend.specs2 ++ depend.hadoop(version.value))
+  )
+  .dependsOn(core, alien_hdfs)
 
   lazy val scoobi = Project(
     id = "scoobi"
@@ -205,4 +205,5 @@ object build extends Build {
       art.copy(`classifier` = Some("assembly"))
     }
   ) ++ addArtifact(artifact in (Compile, assembly), assembly)
+
 }

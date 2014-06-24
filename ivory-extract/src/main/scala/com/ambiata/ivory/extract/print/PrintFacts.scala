@@ -23,19 +23,9 @@ import com.ambiata.ivory.alien.hdfs.Hdfs
  */
 object PrintFacts {
 
-  def printGlob(path: String, glob: String, delim: String, tombstone: String): IOAction[Unit] = for {
-    l <- IOActions.ask
-    _ <- Print.printGlobWith(path, glob, SeqSchemas.factSeqSchema, printFact(delim, tombstone, l))
-  } yield ()
-
-  def printPaths(paths: List[Path], config: Configuration, delim: String, tombstone: String): IOAction[Unit] = for {
+  def print(paths: List[Path], config: Configuration, delim: String, tombstone: String): IOAction[Unit] = for {
     l <- IOActions.ask
     _ <- Print.printPathsWith(paths, config, SeqSchemas.factSeqSchema, printFact(delim, tombstone, l))
-  } yield ()
-
-  def print(path: Path, config: Configuration, delim: String, tombstone: String): IOAction[Unit] = for {
-    l <- IOActions.ask
-    _ <- Print.printWith(path, config, SeqSchemas.factSeqSchema, printFact(delim, tombstone, l))
   } yield ()
 
   def printFact(delim: String, tombstone: String, logger: Logger)(path: Path, f: Fact): Task[Unit] = Task.delay {

@@ -26,8 +26,8 @@ case class HdfsGenerateFacts(entities: Int, dictPath: Path, flags: Path, start: 
   } yield scoobiJob(dict, fl)
 
   def scoobiJob(dict: Dictionary, flags: List[FeatureFlags])(implicit sc: ScoobiConfiguration) {
-    // average 100m data points per mapper
-    val dataPointsPerMapper = 100000000
+    // average 1m data points per mapper
+    val dataPointsPerMapper = 1000000
     val mappers = math.max(((entities * factsPerEntity(flags)) / dataPointsPerMapper).toInt, 1)
 
     // set parallelism factor

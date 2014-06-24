@@ -1,5 +1,8 @@
 [
 {
+  "class-name"   : "com.ambiata.ivory.cli.main"
+},
+{
   "service-name" : "create-repository",
   "class-name"   : "com.ambiata.ivory.cli.createRepository"
 },
@@ -48,6 +51,10 @@
   "class-name"   : "com.ambiata.ivory.cli.generateDictionary"
 },
 {
+  "service-name" : "generate-facts",
+  "class-name"   : "com.ambiata.ivory.cli.generateFacts"
+},
+{
   "service-name" : "cat-facts",
   "class-name"   : "com.ambiata.ivory.cli.catFacts"
 },
@@ -58,6 +65,10 @@
 {
   "service-name" : "cat-errors",
   "class-name"   : "com.ambiata.ivory.cli.catErrors"
+},
+{
+  "service-name" : "count-facts",
+  "class-name"   : "com.ambiata.ivory.cli.countFacts"
 },
 {
   "service-name" : "fact-diff",

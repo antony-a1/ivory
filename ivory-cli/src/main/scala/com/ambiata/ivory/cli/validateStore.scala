@@ -1,15 +1,15 @@
-package com.ambiata.ivory.validate
+package com.ambiata.ivory.cli
 
-import com.nicta.scoobi.Scoobi._
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.control._
 
 import com.ambiata.ivory.core._
+import com.ambiata.ivory.validate._
 
-object validateStore extends ScoobiApp {
+object validateStore extends IvoryApp {
   case class CliArguments(repo: String, store: String, dictionary: String, output: String, includeOverridden: Boolean)
 
-  val parser = new scopt.OptionParser[CliArguments]("ValidateStore") {
+  val parser = new scopt.OptionParser[CliArguments]("validate-store") {
     head("""
          |Validate a feature store.
          |
@@ -23,13 +23,9 @@ object validateStore extends ScoobiApp {
     opt[Unit]("include-overridden") action { (_, c) => c.copy(includeOverridden = true) }  text s"Validate overridden facts. Default is false."
   }
 
-  def run() {
-    parser.parse(args, CliArguments("", "", "", "", false)).map(c => {
-      val res = Validate.validateHdfsStore(new Path(c.repo), c.store, c.dictionary, new Path(c.output), c.includeOverridden).run(configuration).run.unsafePerformIO()
-      res match {
-        case Ok(_)    => println(s"validated feature store ${c.store} with dictionary ${c.dictionary} in the ${c.repo} repository.")
-        case Error(e) => sys.error(s"failed! ${e}")
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", "", false), ScoobiCmd { configuration => c =>
+      Validate.validateHdfsStore(new Path(c.repo), c.store, c.dictionary, new Path(c.output), c.includeOverridden).run(configuration).map {
+        case _ => List(s"validated feature store ${c.store} with dictionary ${c.dictionary} in the ${c.repo} repository.")
       }
     })
-  }
 }

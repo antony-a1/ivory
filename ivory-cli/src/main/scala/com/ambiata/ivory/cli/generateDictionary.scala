@@ -12,9 +12,7 @@ import com.ambiata.ivory.generate._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.alien.hdfs._
 
-object generateDictionary {
-
-  lazy val configuration = new Configuration
+object generateDictionary extends IvoryApp {
 
   case class CliArguments(namespaces: Int, features: Int, output: String)
 
@@ -31,14 +29,11 @@ object generateDictionary {
     opt[String]('o', "output")  action { (x, c) => c.copy(output = x) }     required() text s"Hdfs path to write dictionary to."
   }
 
-  def main(args: Array[String]) {
-    parser.parse(args, CliArguments(0, 0, "")).map(c =>
-      generate(c.namespaces, c.features, new Path(c.output, "dictionary"), new Path(c.output, "flags")).run(configuration).run.unsafePerformIO() match {
-        case Ok(v)    => println(s"Dictionary successfully written to ${c.output}.")
-        case Error(e) => println(s"Failed to generate dictionary: ${Result.asString(e)}")
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments(0, 0, ""), HadoopCmd { configuration => c =>
+      generate(c.namespaces, c.features, new Path(c.output, "dictionary"), new Path(c.output, "flags")).run(configuration).map {
+        case _ => List(s"Dictionary successfully written to ${c.output}.")
       }
-    )
-  }
+    })
 
   def generate(namespaces: Int, features: Int, dictPath: Path, flagsPath: Path): Hdfs[Unit] = for {
     _    <- GenerateDictionary.onHdfs(namespaces, features, dictPath)

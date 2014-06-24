@@ -24,16 +24,11 @@ import com.nicta.scoobi.io.sequence.SeqSchema
  */
 object Print {
 
-  def printGlobWith[A](path: String, glob: String, schema: SeqSchema[A], printA: (Path, A) => Task[Unit]): IOAction[Unit] = {
-    val configuration = new Configuration
-    for {
-      paths <- IOActions.fromResultT(Hdfs.globFilesRecursively(new Path(path), glob).run(configuration))
-      _     <- printPathsWith(paths, configuration, schema, printA)
-    } yield ()
-  }
-
   def printPathsWith[A](paths: List[Path], configuration: Configuration, schema: SeqSchema[A], printA: (Path, A) => Task[Unit]): IOAction[Unit] =
-    paths.map(path => printWith(path, configuration, schema, printA)).sequenceU.map(_ => ())
+    paths.traverseU(path => for {
+      files <- IOActions.fromResultT(Hdfs.globFiles(path, "*").filterHidden.run(configuration))
+      _     <- files.traverse(file => printWith(file, configuration, schema, printA))
+    } yield ()).void
 
   def printWith[A](path: Path, configuration: Configuration, schema: SeqSchema[A], printA: (Path, A) => Task[Unit]): IOAction[Unit] = IOActions.result { logger =>
     val reader = new SequenceFile.Reader(configuration, SequenceFile.Reader.file(path))

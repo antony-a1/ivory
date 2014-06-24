@@ -67,13 +67,12 @@ object EavtTextImporter {
   val keyedByPartition: KeyedBy[String] =
     f => s"${f.namespace}/${f.date.string("/")}"
 
-  // FIX lots of duplication with RawFeatureThriftImporter and below
   def compoundScoobiJob(
     repository: HdfsRepository,
     dictionary: Dictionary,
     factset: Factset,
     namespaces: List[String],
-    path: Path,
+    root: Path,
     errorPath: Path,
     timezone: DateTimeZone,
     partitions: List[(String, Long)],
@@ -84,38 +83,23 @@ object EavtTextImporter {
     sc: ScoobiConfiguration
   ) {
 
-    val (reducers, allocation) = Skew.calculate(dictionary, partitions, optimal)
-    val indexed = allocation.map({ case (n, f, idx) => FeatureId(n, f) -> idx }).toMap
-
-    sc.setMinReducers(reducers)
-    val parsedFacts = namespaces.map(namespace => {
-      fromEavtTextFile(path.toString + "/" + namespace + "/*", dictionary, namespace, timezone, preprocess)
-    }).reduceLeft(_ ++ _)
-
-    val grouping = new Grouping[FeatureId] {
-      val grp = implicitly[Grouping[String]]
-
-      override def partition(f: FeatureId, total: Int): Int =
-        indexed.get(f).map(i => i % total).getOrElse(grp.partition(f.toString, total))
-
-      override def groupCompare(x: FeatureId, y: FeatureId) =
-        grp.groupCompare(x.toString, y.toString)
+    def index(dict: Dictionary): (NamespaceLookup, FeatureIdLookup) = {
+      val namespaces = new NamespaceLookup
+      val features = new FeatureIdLookup
+      dict.meta.toList.zipWithIndex.foreach({ case ((fid, _), idx) =>
+        namespaces.putToNamespaces(idx, fid.namespace)
+                                             features.putToIds(fid.toString, idx)
+                                           })
+      (namespaces, features)
     }
-
-    val keyedByFeature: KeyedBy[FeatureId] =
-      f => f.featureId
-
-    scoobiJobOnFacts(
-      parsedFacts,
-      repository,
-      factset,
-      path,
-      errorPath,
-      keyedByFeature,
-      grouping,
-      codec
-    )
+    val (reducers, allocations) = Skew.calculate(dictionary, partitions, optimal)
+    val (namespaces, features) = index(dictionary)
+    val indexed = new ReducerLookup
+    allocations.foreach({ case (n, f, r) =>
+      indexed.putToReducers(features.ids.get(FeatureId(n, f).toString), r) })
+    IngestJob.run(sc, reducers, indexed, namespaces, features, dictionary, timezone, timezone, root, partitions.map(_._1).map(namespace => root.toString + "/" + namespace + "/*"), repository.factset(factset).toHdfs, errorPath, codec)
   }
+
 
   // FIX lots of duplication with RawFeatureThriftImporter
   def basicScoobiJob(

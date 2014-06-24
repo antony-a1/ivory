@@ -31,15 +31,16 @@ sealed trait Validate {
       counter <- Option(grp.findCounter(name))
     } yield counter.getValue).getOrElse(0)
 
-  def exec(output: Path)(implicit sc: ScoobiConfiguration): ScoobiAction[Long] = for {
-    j <- scoobiJob
-    _ <- ScoobiAction.safe(j.toTextFile(output.toString, overwrite = true).persist)
-  } yield getCounter(parseErrorCounterName) + getCounter(encodingErrorCounterName)
+  def exec(output: Path): ScoobiAction[Long] = for {
+    sc <- ScoobiAction.scoobiConfiguration
+    j  <- scoobiJob
+    _  <- ScoobiAction.safe(j.toTextFile(output.toString, overwrite = true).persist(sc))
+  } yield getCounter(parseErrorCounterName)(sc) + getCounter(encodingErrorCounterName)(sc)
 
   def scoobiJob: ScoobiAction[DList[String]]
 }
 
-case class ValidateStoreHdfs(repo: HdfsRepository, store: FeatureStore, dict: Dictionary, includeOverridden: Boolean)(implicit sc: ScoobiConfiguration) extends Validate {
+case class ValidateStoreHdfs(repo: HdfsRepository, store: FeatureStore, dict: Dictionary, includeOverridden: Boolean) extends Validate {
   def scoobiJob: ScoobiAction[DList[String]] =
     factsFromIvoryStore(repo, store).map(input => {
       val errors: DList[String] = countRecords(input.collect {
@@ -99,14 +100,14 @@ case class ValidateFactSetHdfs(repo: HdfsRepository, factset: Factset, dict: Dic
 
 object Validate {
 
-  def validateHdfsStore(repoPath: Path, store: String, dict: String, output: Path, includeOverridden: Boolean)(implicit sc: ScoobiConfiguration): ScoobiAction[Long] = for {
+  def validateHdfsStore(repoPath: Path, store: String, dict: String, output: Path, includeOverridden: Boolean): ScoobiAction[Long] = for {
     r <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
     d <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dict))
     s <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
     c <- ValidateStoreHdfs(r, s, d, includeOverridden).exec(output)
   } yield c
 
-  def validateHdfsFactSet(repoPath: Path, factset: Factset, dict: String, output: Path)(implicit sc: ScoobiConfiguration): ScoobiAction[Long] = for {
+  def validateHdfsFactSet(repoPath: Path, factset: Factset, dict: String, output: Path): ScoobiAction[Long] = for {
     r <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
     d <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dict))
     c <- ValidateFactSetHdfs(r, factset, d).exec(output)

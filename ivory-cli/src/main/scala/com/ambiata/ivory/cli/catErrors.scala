@@ -1,27 +1,25 @@
 package com.ambiata.ivory.cli
 
-import com.nicta.scoobi.Scoobi._
+import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.io._
 import com.ambiata.ivory.extract.print.PrintErrors
 
-object catErrors extends App {
-  case class CliArguments(delimiter: String = "|", path: String = "")
+object catErrors extends IvoryApp {
+  case class CliArguments(delimiter: String = "|", paths: List[String] = Nil)
 
-  val parser = new scopt.OptionParser[CliArguments]("ivory-cat-errors") {
+  val parser = new scopt.OptionParser[CliArguments]("cat-errors") {
     head("""
-           |ivory-cat-errors [-d|--delimiter] GLOB_PATH_TO_ERROR_SEQUENCE_FILE
            |Print errors as text (LINE-MESSAGE) to standard out, delimited by '|' or explicitly set delimiter.
            |""".stripMargin)
 
     help("help") text "shows this usage text"
-    opt[String]('p', "path")        action { (x, c) => c.copy(path = x) }      required() text "Input path (glob path to error sequence file)"
-    opt[String]('d', "delimiter")   action { (x, c) => c.copy(delimiter = x) } optional() text "Delimiter (`|` by default)"
+    arg[String]("INPUT_PATH")       action { (x, c) => c.copy(paths = x :: c.paths) } required() unbounded() text
+      "Glob path to errors file or parent dir"
+    opt[String]('d', "delimiter")   action { (x, c) => c.copy(delimiter = x) }        optional()             text
+      "Delimiter (`|` by default)"
   }
 
-  parser.parse(args, CliArguments()).map { c =>
-    PrintErrors.printGlob(c.path, "*out*", c.delimiter).execute(consoleLogging).unsafePerformIO.fold(
-      ok  => ok,
-      err => println(err)
-    )
-  }
+  val cmd = new IvoryCmd[CliArguments](parser, CliArguments(), HadoopCmd { conf => c =>
+    PrintErrors.print(c.paths.map(new Path(_)), conf, c.delimiter).executeT(consoleLogging).map(_ => Nil)
+  })
 }

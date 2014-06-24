@@ -24,6 +24,9 @@ class Date private(val underlying: Int) extends AnyVal {
   def hyphenated: String =
     string("-")
 
+  def slashed: String =
+    string("/")
+
   def string(delim: String): String =
     s"%4d${delim}%02d${delim}%02d".format(year, month, day)
 

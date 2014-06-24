@@ -9,15 +9,13 @@ import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
 
-import com.nicta.scoobi.Scoobi._
-
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress._
 import org.apache.commons.logging.LogFactory
 
 import scalaz.{DList => _, _}, Scalaz._
 
-object chord extends ScoobiApp {
+object chord extends IvoryApp {
 
   case class CliArguments(repo: String, output: String, tmp: String, errors: String, entities: String, takeSnapshot: Boolean, pivot: Boolean, delim: Char, tombstone: String)
 
@@ -31,7 +29,7 @@ object chord extends ScoobiApp {
       }
     })
 
-  val parser = new scopt.OptionParser[CliArguments]("chord") {
+  val parser = new scopt.OptionParser[CliArguments]("extract-chord") {
     head("""
          |Extract the latest features from a given ivory repo using a list of entity id and date pairs
          |
@@ -50,15 +48,12 @@ object chord extends ScoobiApp {
     opt[String]("tombstone")     action { (x, c) => c.copy(tombstone = x) }            text "Tombstone for pivot file, default 'NA'."
   }
 
-  def run {
-    parser.parse(args, CliArguments("", "", "", "", "", true, false, '|', "NA")).map(c => {
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", "", "", "", true, false, '|', "NA"), ScoobiCmd { configuration => c =>
       val res = onHdfs(new Path(c.repo), new Path(c.output), new Path(c.tmp), new Path(c.errors), new Path(c.entities), c.takeSnapshot, c.pivot, c.delim, c.tombstone)
-      res.run(configuration).run.unsafePerformIO() match {
-        case Ok(_)    => println(s"Successfully extracted chord from '${c.repo}' and stored in '${c.output}'")
-        case Error(e) => println(s"Failed! - ${e}")
+      res.run(configuration).map {
+        case _ => List(s"Successfully extracted chord from '${c.repo}' and stored in '${c.output}'")
       }
     })
-  }
 
   def onHdfs(repoPath: Path, outputPath: Path, tmpPath: Path, errorPath: Path, entitiesPath: Path, takeSnapshot: Boolean, pivot: Boolean, delim: Char, tombstone: String): ScoobiAction[Unit] = for {
     tout <- ScoobiAction.value(new Path(outputPath, "thrift"))

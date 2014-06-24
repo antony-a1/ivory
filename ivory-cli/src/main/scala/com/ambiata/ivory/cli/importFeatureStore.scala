@@ -14,9 +14,7 @@ import com.ambiata.ivory.storage.repository._
 
 import com.nicta.scoobi.Scoobi._
 
-object importFeatureStore {
-
-  lazy val configuration = ScoobiConfiguration()
+object importFeatureStore extends IvoryApp {
 
   case class CliArguments(repo: String, name: String, path: String, tmpDirectory: FilePath = Repository.defaultS3TmpDirectory)
 
@@ -38,8 +36,7 @@ object importFeatureStore {
     opt[String]('p', "path") action { (x, c) => c.copy(path = x) } required() text s"Hdfs path to feature store to import."
   }
 
-  def main(args: Array[String]) {
-    parser.parse(args, CliArguments("", "", "")).map { c =>
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", ""), HadoopCmd { configuration => c =>
       val actions =
         if (c.repo.startsWith("s3://")) {
           val p = c.repo.replace("s3://", "").toFilePath
@@ -49,10 +46,8 @@ object importFeatureStore {
         else
           FeatureStoreImporter.onHdfs(HdfsRepository(c.path.toFilePath, configuration, ScoobiRun(configuration)), c.name, new Path(c.path)).run(configuration)
 
-      actions.run.unsafePerformIO() match {
-        case Ok(v)    => println(s"Successfully imported feature store into ${c.repo} under the name ${c.name}.")
-        case Error(e) => println(s"Failed to import dictionary: ${Result.asString(e)}")
+      actions.map {
+        case _ => List(s"Successfully imported feature store into ${c.repo} under the name ${c.name}.")
       }
-    }
-  }
+    })
 }

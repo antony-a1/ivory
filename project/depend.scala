@@ -23,8 +23,8 @@ object depend {
 
   def scoobi(version: String) = {
     val scoobiVersion =
-      if (version.contains("cdh3"))      "0.9.0-cdh3-20140528074037-3adbe0e"
-      else if (version.contains("cdh4")) "0.9.0-cdh4-20140528074037-3adbe0e"
+      if (version.contains("cdh3"))      "0.9.0-cdh3-20140610022751-7b2296d"
+      else if (version.contains("cdh4")) "0.9.0-cdh4-20140610022328-7b2296d"
       else if (version.contains("cdh5")) "0.9.0-cdh5-20140610021710-7b2296d"
       else                               "0.9.0-cdh5-20140610021710-7b2296d"
 
@@ -36,8 +36,8 @@ object depend {
     if (version.contains("cdh3"))      Seq("org.apache.hadoop" % "hadoop-core"   % "0.20.2-cdh3u1" % "provided",
                                            "org.apache.avro"   % "avro-mapred"   % "1.7.4" % "provided")
 
-    else if (version.contains("cdh4")) Seq("org.apache.hadoop" % "hadoop-client" % "2.0.0-mr1-cdh4.0.1" % "provided" exclude("asm", "asm"),
-                                           "org.apache.hadoop" % "hadoop-core"   % "2.0.0-mr1-cdh4.0.1" % "provided",
+    else if (version.contains("cdh4")) Seq("org.apache.hadoop" % "hadoop-client" % "2.0.0-mr1-cdh4.6.0" % "provided" exclude("asm", "asm"),
+                                           "org.apache.hadoop" % "hadoop-core"   % "2.0.0-mr1-cdh4.6.0" % "provided",
                                            "org.apache.avro"   % "avro-mapred"   % "1.7.4" % "provided" classifier "hadoop2")
 
     else if (version.contains("cdh5")) Seq("org.apache.hadoop" % "hadoop-client" % "2.2.0-cdh5.0.0-beta-2" % "provided" exclude("asm", "asm"),

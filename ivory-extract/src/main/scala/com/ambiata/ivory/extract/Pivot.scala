@@ -32,10 +32,10 @@ object Pivot {
 
   def onHdfs(input: Path, output: Path, errors: Path, dictionary: Path, delim: Char, tombstone: String): ScoobiAction[Unit] = for {
     d <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextLoader(dictionary).load)
-    _ <- onHdfs(input, output, errors, d, delim, tombstone)
+    _ <- onHdfsWithDictionary(input, output, errors, d, delim, tombstone)
   } yield ()
 
-  def onHdfs(input: Path, output: Path, errors: Path, dictionary: Dictionary, delim: Char, tombstone: String): ScoobiAction[Unit] = {
+  def onHdfsWithDictionary(input: Path, output: Path, errors: Path, dictionary: Dictionary, delim: Char, tombstone: String): ScoobiAction[Unit] = {
     val s = DenseRowTextStorageV1.DenseRowTextStorer(output.toString, dictionary, delim, tombstone)
     for {
       _ <- scoobiJob(input, s, errors)

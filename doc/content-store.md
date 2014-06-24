@@ -5,7 +5,6 @@ At the core of ivory is the ability to store data sets and meta-data
 about those data sets. This spec is largely concerned with describing
 the core versioned k-v store used as the basis for storing meta-data.
 
-
 meta-data vs data terminology
 -----------------------------
 
@@ -25,8 +24,7 @@ the meta-data store
 -------------------
 
 The meta-data store allows for a series of versions of a key-value
-store. Each version can be though of as a "commit", and a "commit" may
-contain several updates to key-values.
+store. Each key is versioned individually.
 
 ### versions
 
@@ -35,28 +33,22 @@ Versions are a monotonically increasing 32 bit number rendered in hex:
 
 ### keys
 
-Keys are simply convenient identifiers for refering to values. All keys
-must consist of only alpha-numeric characters or hyphens '-' if a
-separator is required. This (enforced) convention is somewhat arbitrary
-forces a level of consistency and will also allow for implementations
-which have restrictions on filenames or values.
+Keys are simply convenient identifiers for referring to values. All
+keys must consist of only alpha-numeric characters or hyphens '-' if a
+separator is required. This (enforced) convention is somewhat
+arbitrary, but forces a level of consistency and will also allow for
+implementations which have restrictions on filenames or values.
 
 ### values
 
-Values are semi-structured data. The data types supported are:
-  - `record`: some externally defined record type that can serialize to bytes (for example something like thrift or just psv).
-  - `list`: a list of values
-  - `map`: an associative structure mapping a key to value
-  - `pointer`: a pointer to a different version (potentially in a different repository)
+Values are semi-structured data, each value should have a defined
+format and should be _eagerly_ updated (i.e. there is a single
+descriptor describing the state of all meta-data in the repository,
+and any update should first update the meta-data to the latest
+version).
 
-Taking a semi-structured approach allows us to define a higher level
-of tooling and allows for automated diff/merge/sync.
-
-### operations
-
-  - set/get the whole value [record, list, dict]
-  - append [list]
-  - set/get value for key [dict]
+Each value may have it's own format, but the preference is to to tend
+towards compact-encoded thrift structures.
 
 ### storage
 
@@ -67,8 +59,8 @@ on-disk representation for posix, s3 & hdfs.
 ```
 <repository>
   /metadata
-    /{version}
-      /{key}
+    /{key}
+      /{version}
         /{value}
 ```
 
@@ -98,28 +90,49 @@ operations. Atomic operations may be performed in 1 of 2 ways:
 Support for atomic operations should be a core tool within ivory.
 *Implementation detail to be added*.
 
-T.B.D. document and understand how we get atomicity under all
-implementations.
+T.B.D. Discuss with Russell who has an implementation using atomic
+moves.
 
+T.B.D. A "staging" like area followed by a commit probably makes a
+sense.
 
 ### feature store specifics
 
 #### Dictionaries
 
+The ivory dictionary.
+
 The dictionary key is `dictionary`.
 
-The dictionary value is:  map[{featurename}, {Dictionary}]
-
-{Dictionary} is a record: Dictionary(namespace, featurename, attributed)
+The dictionary value is a thrift struct defined in `ivory-core`.
 
 #### Stores
 
+Stores lists of fact-sets that contribute to the current "store".
+
 The store key is `store`.
 
-The store value is: list[{Store}]
+The store value is a text value defined in `ivory-core`.
 
-{Store} is a record: Store(/path/to/facts)
+#### Manifest
 
+Used for repository integrity checks.
+
+The store key is `manifest`.
+
+The store value is a thrift structure defined in `ivory-core`.
+
+#### Repository
+
+Used as a reference node for versioning multiple values at a time.
+Contains a list of all the other key/values.
+
+The store key is `repository`.
+
+The store value is a text value defined in `ivory-core`.
+
+
+## Justification / Discussion
 
 justification
 -------------
@@ -150,11 +163,11 @@ These restrictions may not be necessary, but it is likely they will
 help pull out some general properties, rather than the 'everything is
 a string and the burden is on the client to parse' philosophy.
 
- - meta-data can always be appended to (i.e. it is a monoid) but the
-   addition is not necessarily commutative (e.g. add fact sets to
-   store, add entries to dictionary).
+ - meta-data can always be appended to but the addition is not
+   necessarily commutative (e.g. add fact sets to store, add
+   entries to dictionary effects priority).
 
- - meta-data is categorizable into different objects, as in there isn't
+ - meta-data is categorized into different objects, as in there isn't
    just a giant blob of meta-data, we want to be able to label pieces
    for individual extraction / manipulation.
 
@@ -164,8 +177,6 @@ a string and the burden is on the client to parse' philosophy.
    able to inspect or reason about multiple ancestors because it
    prevents us from mechanically and deterministic processing
    updates (where we don't force changes to be commutative).
-   T.B.D. make the above make sense and include better justification context
-
 
 ### versions
 
@@ -179,7 +190,7 @@ decent hash implementations on the JVM, and shelling out or
 implementing one is just not going to work at the
 moment. Specifically what I mean by "decent" is:
 
- - Parallizable, as in we would want something that does tree-hashing.
+ - Parallelizable, as in we would want something that does tree-hashing.
    Being forced to process things sequentially just because of your
    versioning scheme is daft and will likely run into a wall at some
    point.

@@ -26,9 +26,6 @@ object DictionaryImporter {
      } yield ()
    }
 
-  def onS3(path: FilePath, dictionaryName: String, dictionaryPath: FilePath): HdfsS3Action[Dictionary] =
-    onS3(Repository.fromS3(path.rootname.path, path.fromRoot, ScoobiConfiguration()), dictionaryName, dictionaryPath)
-
   def onS3(repository: S3Repository, dictionaryName: String, dictionaryPath: FilePath): HdfsS3Action[Dictionary] = {
     val onHdfs = for {
       files <- Hdfs.globFiles(new Path(dictionaryPath.path))
@@ -38,7 +35,7 @@ object DictionaryImporter {
 
     for {
       ds <- HdfsS3Action.fromHdfs(onHdfs)
-      a  <- IvoryStorage.dictionariesToIvory(repository, ds, dictionaryName)
+      a  <- IvoryStorage.dictionariesToIvoryS3(repository, ds, dictionaryName)
     } yield ds.reduce(_ append _)
   }
 }
