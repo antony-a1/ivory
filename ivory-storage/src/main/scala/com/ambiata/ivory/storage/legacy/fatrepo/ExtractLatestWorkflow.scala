@@ -39,7 +39,7 @@ object ExtractLatestWorkflow {
       store  <- ScoobiAction.fromHdfs(latestStore(repo))
       dname  <- ScoobiAction.fromHdfs(latestDictionary(repo))
       incr   <- ScoobiAction.fromHdfs(if(incremental) SnapshotMeta.latest(repo.snapshots.toHdfs, date) else Hdfs.ok(None))
-      output <- incr.collect({ case (p, sm) if sm.date <= date && sm.store == store =>
+      output <- incr.collect({ case (p, sm) if sm.date == date && sm.store == store =>
                   logger.info(s"Not running snapshot as already have a snapshot for '${date.hyphenated}' and '${store}'")
                   ScoobiAction.value(p)
                 }).getOrElse(for {
