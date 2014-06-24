@@ -8,6 +8,7 @@ package object api {
   type Fact = com.ambiata.ivory.core.Fact
 
   type Value = com.ambiata.ivory.core.Value
+  // MTH these should not be exposed they are not types
   type BooleanValue = com.ambiata.ivory.core.BooleanValue
   type IntValue = com.ambiata.ivory.core.IntValue
   type LongValue = com.ambiata.ivory.core.LongValue
@@ -40,6 +41,7 @@ package object api {
    * Repository types
    */
   type Repository = com.ambiata.ivory.storage.repository.Repository
+  // MTH these should _never_ be exposed
   type HdfsRepository = com.ambiata.ivory.storage.repository.HdfsRepository
   type S3Repository = com.ambiata.ivory.storage.repository.S3Repository
   type LocalRepository = com.ambiata.ivory.storage.repository.LocalRepository
@@ -47,11 +49,13 @@ package object api {
   /**
    * Scoobi types
    */
+  // MTH we should not be leaking scoobi into the api
   type ScoobiAction[A] = com.ambiata.ivory.scoobi.ScoobiAction[A]
 
   /**
    * Storage types
    */
+  // MTH these are probably to granular, we want probably want functions not modules exported
   type IvoryLoader[A] = com.ambiata.ivory.storage.legacy.IvoryLoader[A]
   type IvoryStorer[A, B] = com.ambiata.ivory.storage.legacy.IvoryStorer[A, B]
   type IvoryScoobiLoader[A] = com.ambiata.ivory.storage.legacy.IvoryScoobiLoader[A]
@@ -61,6 +65,8 @@ package object api {
    * Core
    */
   val Fact = com.ambiata.ivory.core.Fact
+
+  // MTH I don't think these are useful enough to expose
   val BooleanFact = com.ambiata.ivory.core.BooleanFact
   val IntFact = com.ambiata.ivory.core.IntFact
   val LongFact = com.ambiata.ivory.core.LongFact
@@ -109,6 +115,7 @@ package object api {
   /**
    * Storage
    */
+  // MTH anything in storage.legacy should be automatically relegated to the "legacy api"
   val writeFactsetVersion = com.ambiata.ivory.storage.legacy.IvoryStorage.writeFactsetVersion _
 
   val factsFromIvoryStore = com.ambiata.ivory.storage.legacy.IvoryStorage.factsFromIvoryStore _
@@ -149,6 +156,7 @@ package object api {
    * Ingest
    */
   val importWorkflow = com.ambiata.ivory.storage.legacy.fatrepo.ImportWorkflow.onHdfs _
+  // FIX there shouldn't be separate hdfs/s3 impls, and we can drop (or nursery) all the s3 stuff from the api for now.
   val importDictionary = com.ambiata.ivory.ingest.DictionaryImporter.onHdfs _
   val importStore = com.ambiata.ivory.ingest.FeatureStoreImporter.onHdfs _
   val importDictionaryS3 = com.ambiata.ivory.ingest.DictionaryImporter.onS3 _
@@ -174,6 +182,7 @@ package object api {
   /**
    * Scoobi
    */
+  // MTH do these really need to be public?
   val ScoobiAction = com.ambiata.ivory.scoobi.ScoobiAction
   val Groupings = com.ambiata.ivory.scoobi.Groupings
 
