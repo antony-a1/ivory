@@ -35,9 +35,10 @@ object recreate extends ScoobiApp {
                                  codec = Some(new SnappyCodec),
                                  reduce = c.reduce,
                                  clean = c.clean,
-                                 dry = c.dry)
+                                 dry = c.dry,
+                                 logger = consoleLogging)
       RecreateAction.all.run(rconf).run.unsafePerformIO.fold(
-        ok => { println("Done!"); ok },
+        ok =>  { println("Done!"); ok },
         err => { println(err); sys.exit(1) }
       )
     }
