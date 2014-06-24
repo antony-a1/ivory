@@ -23,10 +23,16 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
 import IvoryStorage._
 
-class ChordSpec extends HadoopSpecification with SimpleJobs with FileMatchers with SampleFacts {
-  override def isCluster = false
+class ChordSpec extends Specification with FileMatchers with SampleFacts { def is = s2"""
 
-  "Can extract expected facts" >> { implicit sc: ScoobiConfiguration =>
+ChordSpec
+-----------
+
+  Can extract expected facts  $e1
+
+"""
+  def e1 = {
+    implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
     val directory = path(TempFiles.createTempDir("chord").getPath)
     val repo = Repository.fromHdfsPath(directory </> "repo", sc)
 
