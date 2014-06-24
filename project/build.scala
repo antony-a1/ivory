@@ -192,6 +192,7 @@ object build extends Build {
   , logBuffered := false
   , cancelable := true
   , fork in test := true
+  , testOptions in Test += Tests.Setup(() => System.setProperty("log4j.configuration", "file:etc/log4j-test.properties"))
   , javaOptions += "-Xmx3G"
   )
 
