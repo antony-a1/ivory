@@ -37,7 +37,7 @@ object recreate extends ScoobiApp {
                                  clean = c.clean,
                                  dry = c.dry,
                                  logger = consoleLogging)
-      RecreateAction.all.run(rconf).run.unsafePerformIO.fold(
+      Recreate.all.run(rconf).run.unsafePerformIO.fold(
         ok =>  { println("Done!"); ok },
         err => { println(err); sys.exit(1) }
       )
