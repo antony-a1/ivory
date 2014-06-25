@@ -150,5 +150,5 @@ object Recreate {
    * Execute a stat action and log the result
    */
   private def logStat[A](name: String, repository: Repository, stat: StatAction[A]): RecreateAction[Unit] =
-    fromStat(repository, stat).log(value => s"$name in '${repository.root}' is '$value'")
+    fromStat(repository, stat).log(value => s"$name in ${repository.root}: $value")
 }
