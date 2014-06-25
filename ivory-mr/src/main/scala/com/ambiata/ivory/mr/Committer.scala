@@ -11,16 +11,12 @@ import scalaz._, Scalaz._
  */
 object Committer {
 
-  def commitSingle(context: MrContext, target: Path, cleanup: Boolean): Hdfs[Unit] = for {
-    _     <- Hdfs.mkdir(target)
-    files <- Hdfs.globFiles(context.output, "*")
-    _     <- files.traverse(f => Hdfs.mv(f, target))
-    _     <- if(cleanup) context.cleanup else Hdfs.ok(())
-  } yield ()
+  def commitInto(context: MrContext, target: Path, cleanup: Boolean): Hdfs[Unit] =
+    commitWith(context, source => new Path(target, source.getName), cleanup)
 
-  def commitMulti(context: MrContext, target: Path => Path, cleanup: Boolean): Hdfs[Unit] = for {
+  def commitWith(context: MrContext, mapping: Path => Path, cleanup: Boolean): Hdfs[Unit] = for {
     paths <- Hdfs.globPaths(context.output, "*")
-    _     <- paths.traverse(p => Hdfs.mv(p, target(p)))
+    _     <- paths.traverse(p => { val t = mapping(p); Hdfs.mkdir(t.getParent) >> Hdfs.mv(p, t) })
     _     <- if(cleanup) context.cleanup else Hdfs.ok(())
   } yield ()
 }

@@ -92,7 +92,7 @@ object SnapshotJob {
       sys.error("ivory snapshot failed.")
 
     /* commit files to factset */
-    Committer.commitSingle(ctx, output, true).run(conf).run.unsafePerformIO
+    Committer.commitInto(ctx, output, true).run(conf).run.unsafePerformIO
   }
 
   def priorityTable(globs: List[FactsetGlob]): FactsetLookup = {

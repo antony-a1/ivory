@@ -88,7 +88,7 @@ object IngestJob {
       sys.error("ivory ingest failed.")
 
     /* commit files to factset */
-    Committer.commitMulti(ctx, {
+    Committer.commitWith(ctx, {
       case p if p.getName == "errors" => errors
       case p                          => target
     }, true).run(conf).run.unsafePerformIO
