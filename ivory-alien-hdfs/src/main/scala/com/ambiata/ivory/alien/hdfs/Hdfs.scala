@@ -30,6 +30,9 @@ case class Hdfs[+A](action: ActionT[IO, Unit, Configuration, A]) {
 
   def filterHidden(implicit ev: A <:< List[Path]): Hdfs[List[Path]] =
     map(_.filter(p => !p.getName.startsWith("_") && !p.getName.startsWith(".")))
+
+  def unless(condition: Boolean): Hdfs[Unit] =
+    Hdfs.unless(condition)(this)
 }
 
 object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
@@ -189,6 +192,12 @@ object Hdfs extends ActionTSupport[IO, Unit, Configuration] {
 
   def deleteAll(p: Path): Hdfs[Unit] =
     filesystem.map(fs => fs.delete(p, true))
+
+  def log(message: String) =
+    fromIO(IO(println(message)))
+
+  def unless[A](condition: Boolean)(action: Hdfs[A]): Hdfs[Unit] =
+    if (!condition) action.map(_ => ()) else Hdfs.ok(())
 
   implicit def HdfsMonad: Monad[Hdfs] = new Monad[Hdfs] {
     def point[A](v: => A) = ok(v)

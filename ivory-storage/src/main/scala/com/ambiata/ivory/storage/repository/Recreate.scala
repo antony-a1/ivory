@@ -13,6 +13,8 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodec
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.scoobi.FactFormats._
+import IvoryStorage._
+import ScoobiAction.scoobiJob
 
 import scalaz.{DList => _, _}, Scalaz._, \&/._
 import scalaz.effect.IO
@@ -72,38 +74,27 @@ object Recreate {
         }
     }
 
+  private def copyDictionaries(from: HdfsRepository, to: HdfsRepository, dry: Boolean): Hdfs[Unit] =
+    Hdfs.mkdir(to.dictionaries.toHdfs).unless(dry) >>
+    Hdfs.globPaths(from.dictionaries.toHdfs).flatMap(_.traverse(copyDictionary(from, to, dry))).void
 
-  private def copyDictionaries(from: HdfsRepository, to: HdfsRepository, dry: Boolean): Hdfs[Unit] = for {
-    dictPaths <- Hdfs.globPaths(from.dictionaries.toHdfs)
-    _         <- if (dry) Hdfs.ok(()) else Hdfs.mkdir(to.dictionaries.toHdfs)
-    _         <- dictPaths.traverse(dp => {
-      println(s"${from.dictionaryByName(dp.getName)} -> ${to.dictionaryByName(dp.getName)}")
-      if(dry) Hdfs.ok(()) else for {
-        ret <- IvoryStorage.dictionaryPartsFromIvory(from, dp.getName).map((dp.getName, _))
-        (n, dicts) = ret
-        _   <- IvoryStorage.dictionariesToIvory(to, dicts, n)
-      } yield ()
-    })
-  } yield ()
+  private def copyDictionary(from: HdfsRepository, to: HdfsRepository, dry: Boolean) = (path: Path) =>
+    Hdfs.log(s"${from.dictionaryByName(path.getName)} -> ${to.dictionaryByName(path.getName)}") >>
+    dictionaryPartsFromIvory(from, path.getName).map(dicts => dictionariesToIvory(to, dicts, path.getName)).unless(dry)
 
-  private def copyStores(from: HdfsRepository, to: HdfsRepository, clean: Boolean, dry: Boolean): Hdfs[Unit] = for {
-    storePaths <- Hdfs.globFiles(from.stores.toHdfs)
-    _          <- if(dry) Hdfs.ok(()) else Hdfs.mkdir(to.stores.toHdfs)
-    factsets   <- Hdfs.globPaths(from.factsets.toHdfs)
-    filtered   <- filterEmptyFactsets(factsets).map(_.map(_.getName).toSet)
-    stores     <- storePaths.traverse(sp => for {
-      _        <- Hdfs.fromIO(IO(println(s"${from.storeByName(sp.getName)} -> ${to.storeByName(sp.getName)}")))
-      ret        <- IvoryStorage.storeFromIvory(from, sp.getName).map(s => (sp.getName, s))
-      (n, s)     = ret
-      store      = if(clean)
-        FeatureStore(PrioritizedFactset.fromFactsets(s.factsets.collect({
-          case PrioritizedFactset(set, _) if filtered.contains(set.name) => set
-        })))                else s
-      removed    = PrioritizedFactset.diff(s.factsets, store.factsets).map(_.set.name)
-      _          = if (removed.nonEmpty) println(s"Removed factsets '${removed.mkString(",")}' from feature store '${n}' as they are empty.")
-      _          <- if (dry) Hdfs.ok(()) else IvoryStorage.storeToIvory(to, store, n)
-    } yield ())
-  } yield ()
+  private def copyStores(from: HdfsRepository, to: HdfsRepository, clean: Boolean, dry: Boolean): Hdfs[Unit] =
+    Hdfs.mkdir(to.stores.toHdfs).unless(dry) >>
+    (nonEmptyFactsetsNames(from) |@| storesPaths(from)) { (names, stores) =>
+      stores.traverse(copyStore(from, to, clean, dry, names))
+    }
+
+  private def copyStore(from: HdfsRepository, to: HdfsRepository, clean: Boolean, dry: Boolean, filtered: Set[String]) = (path: Path) =>
+    for {
+      _       <- Hdfs.log(s"${from.storeByName(path.getName)} -> ${to.storeByName(path.getName)}")
+      store   <- storeFromIvory(from, path.getName)
+      cleaned <- cleanupStore(path.getName, store, filtered, clean)
+      _       <- storeToIvory(to, cleaned, path.getName).unless(dry)
+    } yield ()
 
   private def copySnapshots(from: HdfsRepository, to: HdfsRepository, codec: Option[CompressionCodec], dry: Boolean): ScoobiAction[Unit] = for {
     snapPaths <- ScoobiAction.fromHdfs(Hdfs.globPaths(from.snapshots.toHdfs))
@@ -115,28 +106,37 @@ object Recreate {
       })
       FlatFactThriftStorer(new Path(to.snapshots.toHdfs, sp.getName).toString, codec).storeScoobi(facts)
     }))
-    _ <- if(dry) ScoobiAction.ok(()) else ScoobiAction.scoobiJob(sc => persist(dlists.reduce(_++_))(sc))
+    _ <- scoobiJob(sc => persist(dlists.reduce(_++_))(sc)).unless(dry)
   } yield ()
 
   private def copyFactsets(from: HdfsRepository, to: HdfsRepository, codec: Option[CompressionCodec], dry: Boolean): ScoobiAction[Unit] = for {
-    fpaths    <- ScoobiAction.fromHdfs(Hdfs.globPaths(from.factsets.toHdfs))
-    filtered  <- ScoobiAction.fromHdfs(filterEmptyFactsets(fpaths))
-    _         <- filtered.traverse(fp => for {
-      factset   <- ScoobiAction.value(Factset(fp.getName))
-      raw       <- IvoryStorage.factsFromIvoryFactset(from, factset)
-      _         <- ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-        import IvoryStorage._
-        val facts = raw.map({
-          case -\/(e) => sys.error("Could not load facts '${e}'")
+    filtered  <- ScoobiAction.fromHdfs(nonEmptyFactsetsNames(from))
+    _         <- filtered.toList.traverse(fp => for {
+      factset   <- ScoobiAction.value(Factset(fp))
+      raw       <- factsFromIvoryFactset(from, factset)
+      _         <- scoobiJob { implicit sc: ScoobiConfiguration =>
+        val facts = raw.map {
+          case -\/(e) => sys.error(s"Could not load facts '$e'")
           case \/-(f) => f
-        })
-        if(!dry) persist(facts.toIvoryFactset(to, factset, codec))
-      })
+        }
+        facts.toIvoryFactset(to, factset, codec).persist
+      }.unless(dry)
     } yield ())
   } yield ()
 
-  private def filterEmptyFactsets(paths: List[Path]): Hdfs[List[Path]] = for {
+  private def cleanupStore(name: String, store: FeatureStore, setsToKeep: Set[String], clean: Boolean) = {
+    val cleaned = if (clean) store.filter(setsToKeep) else store
+    val removed = store.diff(cleaned).factsets.map(_.name)
+    Hdfs.log(s"Removed factsets '${removed.mkString(",")}' from feature store '$name' as they are empty.").unless(removed.isEmpty) >>
+    Hdfs.safe(cleaned)
+  }
+
+  private def storesPaths(from: Repository): Hdfs[List[Path]] =
+    Hdfs.globFiles(from.stores.toHdfs)
+
+  private def nonEmptyFactsetsNames(from: Repository): Hdfs[Set[String]] = for {
+    paths    <- Hdfs.globPaths(from.factsets.toHdfs)
     children <- paths.traverse(p => Hdfs.globFiles(p, "*/*/*/*/*").map(ps => (p, ps.isEmpty)) ||| Hdfs.value((p, true)))
-  } yield children.collect({ case (p, false) => p })
+  } yield children.filterNot(_._2).map(_._1.getName).toSet
 
 }

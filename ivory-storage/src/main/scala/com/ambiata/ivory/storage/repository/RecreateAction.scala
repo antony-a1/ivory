@@ -65,6 +65,9 @@ case class RecreateAction[+A](action: ActionT[IO, Unit, RecreateConfig, A]) {
 
   def logged(message: =>String): RecreateAction[A] =
     flatMap((a: A) => RecreateAction.log(message).flatMap(_ => RecreateAction.safe(a)))
+
+  def unless(condition: Boolean): RecreateAction[Unit] =
+    RecreateAction.unless(condition)(this)
 }
 
 object RecreateAction extends ActionTSupport[IO, Unit, RecreateConfig] {

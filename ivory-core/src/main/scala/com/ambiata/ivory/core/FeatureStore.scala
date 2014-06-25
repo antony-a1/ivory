@@ -13,4 +13,12 @@ case class FeatureStore(factsets: List[PrioritizedFactset]) {
 
   def ---(other: FeatureStore): FeatureStore =
     FeatureStore(PrioritizedFactset.diff(factsets, other.factsets))
+
+  /** @return a FeatureStore having only the sets accepted by the predicate */
+  def filter(predicate: String => Boolean) =
+    FeatureStore(factsets.filter(set => predicate(set.set.name)))
+
+  /** @return a FeatureStore that contains everything in this minus what is in other */
+  def diff(other: FeatureStore) =
+    FeatureStore(PrioritizedFactset.diff(this.factsets, other.factsets))
 }

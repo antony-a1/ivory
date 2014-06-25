@@ -5,6 +5,8 @@ import scalaz._, Scalaz._
 case class PrioritizedFactset(set: Factset, priority: Priority) {
   def globPath: String =
     set.name + "/*/*/*/*/*"
+
+  def name = set.name
 }
 
 object PrioritizedFactset {
