@@ -58,7 +58,7 @@ object Recreate {
   private def recreate[A, V](name: String, f: Repository => FilePath)(action: RecreateConfig => RecreateAction[A]): RecreateAction[Unit] =
     configuration.flatMap { conf =>
       logStat("Number of "+name, conf.from, StatAction.numberOf(f)) >>
-      logStat("Size of "+name, conf.from, StatAction.sizeOf(f)) >>
+      logStat("Size of "+name, conf.from, StatAction.showSizeOfInBytes(f)) >>
         action(conf) >>
         unless (conf.dry) {
           logStat("Number of "+name, conf.from, StatAction.numberOf(f)) >>

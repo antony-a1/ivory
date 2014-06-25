@@ -1,6 +1,6 @@
 package com.ambiata.ivory.storage.repository
 
-import com.ambiata.mundane.io.FilePath
+import com.ambiata.mundane.io.{Bytes, BytesQuantity, FilePath}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.control._
@@ -84,6 +84,12 @@ object StatAction extends ActionTSupport[IO, Unit, StatConfig] {
     case r: HdfsRepository => StatAction.fromHdfs(hdfsPathSize(path(r).toHdfs))
     case _                 => fail("Unsupported repository!")
   })
+
+  def sizeOfInBytes(path: Repository => FilePath): StatAction[BytesQuantity] =
+    sizeOf(path).map(Bytes.apply)
+
+  def showSizeOfInBytes(path: Repository => FilePath): StatAction[String] =
+    sizeOfInBytes(path).map(_.show)
 
   def numberOf(path: Repository => FilePath): StatAction[Int] = repository.flatMap({
     case r: HdfsRepository => StatAction.fromHdfs(Hdfs.globPaths(path(r).toHdfs).map(_.size))
