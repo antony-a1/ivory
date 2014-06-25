@@ -3,7 +3,7 @@ package storage
 package repository
 
 import com.ambiata.ivory.alien.hdfs.Hdfs
-import com.ambiata.ivory.core.{IvorySyntax, Factset, PrioritizedFactset, FeatureStore}
+import com.ambiata.ivory.core._
 import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.legacy.FlatFactThriftStorageV1.{FlatFactThriftStorer, FlatFactThriftLoader}
 import com.ambiata.ivory.storage.legacy.{FlatFactThriftStorageV1, IvoryStorage}
@@ -98,16 +98,19 @@ object Recreate {
 
   private def copySnapshots(from: HdfsRepository, to: HdfsRepository, codec: Option[CompressionCodec], dry: Boolean): ScoobiAction[Unit] = for {
     snapPaths <- ScoobiAction.fromHdfs(Hdfs.globPaths(from.snapshots.toHdfs))
-    dlists    <- snapPaths.traverse(sp => ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
-      import FlatFactThriftStorageV1._
-      val facts = FlatFactThriftLoader(sp.toString).loadScoobi.map({
-        case -\/(e) => sys.error("Could not load facts '${e}'")
-        case \/-(f) => f
-      })
-      FlatFactThriftStorer(new Path(to.snapshots.toHdfs, sp.getName).toString, codec).storeScoobi(facts)
-    }))
-    _ <- scoobiJob(sc => persist(dlists.reduce(_++_))(sc)).unless(dry)
+    dlists    <- snapPaths.traverse(copySnapshot(from, to, codec, dry))
+    _         <- scoobiJob(dlists.reduce(_++_).persist(_)).unless(dry)
   } yield ()
+
+  import FlatFactThriftStorageV1._
+  private def copySnapshot(from: HdfsRepository, to: HdfsRepository, codec: Option[CompressionCodec], dry: Boolean) = (path: Path) =>
+    loadFacts(path).flatMap(storeFacts(path, to, codec))
+
+  private def loadFacts(path: Path): ScoobiAction[DList[Fact]] =
+    scoobiJob(FlatFactThriftLoader(path.toString).loadScoobi(_)).map(_.map(throwAwayErrors("Could not load facts")))
+
+  private def storeFacts(path: Path,to: HdfsRepository, codec: Option[CompressionCodec]) = (facts: DList[Fact]) =>
+    scoobiJob(FlatFactThriftStorer(new Path(to.snapshots.toHdfs, path.getName).toString, codec).storeScoobi(facts)(_))
 
   private def copyFactsets(from: HdfsRepository, to: HdfsRepository, codec: Option[CompressionCodec], dry: Boolean): ScoobiAction[Unit] = for {
     filtered  <- ScoobiAction.fromHdfs(nonEmptyFactsetsNames(from))
@@ -115,10 +118,7 @@ object Recreate {
       factset   <- ScoobiAction.value(Factset(fp))
       raw       <- factsFromIvoryFactset(from, factset)
       _         <- scoobiJob { implicit sc: ScoobiConfiguration =>
-        val facts = raw.map {
-          case -\/(e) => sys.error(s"Could not load facts '$e'")
-          case \/-(f) => f
-        }
+        val facts = raw.map(throwAwayErrors("Could not load facts"))
         facts.toIvoryFactset(to, factset, codec).persist
       }.unless(dry)
     } yield ())
@@ -139,4 +139,8 @@ object Recreate {
     children <- paths.traverse(p => Hdfs.globFiles(p, "*/*/*/*/*").map(ps => (p, ps.isEmpty)) ||| Hdfs.value((p, true)))
   } yield children.filterNot(_._2).map(_._1.getName).toSet
 
+  private def throwAwayErrors[E, A](message: String) = (ea: E \/ A) => ea match {
+    case -\/(e) => sys.error(s"$message '$e'")
+    case \/-(a) => a
+  }
 }
