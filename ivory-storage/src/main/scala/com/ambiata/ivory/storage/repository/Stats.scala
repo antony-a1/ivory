@@ -1,5 +1,6 @@
 package com.ambiata.ivory.storage.repository
 
+import com.ambiata.mundane.io.FilePath
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.control._
@@ -63,21 +64,11 @@ object StatAction extends ActionTSupport[IO, Unit, StatConfig] {
   def fromResultTIO[A](res: ResultTIO[A]): StatAction[A] =
     StatAction(super.fromIOResult(res.run))
 
-  def repositorySize: StatAction[Long] = for {
-    fs <- factsetsSize
-    ms <- metadataSize
-    ss <- snapshotsSize
-  } yield fs + ms + ss
+  def repositorySize: StatAction[Long] =
+    (factsetsSize |@| metadataSize |@| snapshotsSize)(_ + _ + _)
 
-  def factsetsSize: StatAction[Long] = repository.flatMap({
-    case r: HdfsRepository => StatAction.fromHdfs(hdfsPathSize(r.factsets.toHdfs))
-    case _                 => fail("Unsupported repository!")
-  })
-
-  def factsetCount: StatAction[Int] = repository.flatMap({
-    case r: HdfsRepository => StatAction.fromHdfs(Hdfs.globPaths(r.factsets.toHdfs).map(_.size))
-    case _                 => fail("Unsupported repository!")
-  })
+  def metadataSize: StatAction[Long] =
+    (dictionariesSize |@| storesSize)(_ + _)
 
   def factsetSize(factset: Factset): StatAction[Long] = repository.flatMap({
     case r: HdfsRepository => StatAction.fromHdfs(hdfsPathSize(r.factset(factset).toHdfs))
@@ -89,40 +80,27 @@ object StatAction extends ActionTSupport[IO, Unit, StatConfig] {
     case _                 => fail("Unsupported repository!")
   })
 
-  def metadataSize: StatAction[Long] = for {
-    ds <- dictionariesSize
-    ss <- storesSize
-  } yield ds + ss
-
-  def dictionariesSize: StatAction[Long] = repository.flatMap({
-    case r: HdfsRepository => StatAction.fromHdfs(hdfsPathSize(r.dictionaries.toHdfs))
+  def sizeOf(path: Repository => FilePath): StatAction[Long] = repository.flatMap({
+    case r: HdfsRepository => StatAction.fromHdfs(hdfsPathSize(path(r).toHdfs))
     case _                 => fail("Unsupported repository!")
   })
 
-  def dictionaryVersions: StatAction[Int] = repository.flatMap({
-    case r: HdfsRepository => StatAction.fromHdfs(Hdfs.globPaths(r.dictionaries.toHdfs).map(_.size))
+  def numberOf(path: Repository => FilePath): StatAction[Int] = repository.flatMap({
+    case r: HdfsRepository => StatAction.fromHdfs(Hdfs.globPaths(path(r).toHdfs).map(_.size))
     case _                 => fail("Unsupported repository!")
   })
 
-  def storesSize: StatAction[Long] = repository.flatMap({
-    case r: HdfsRepository => StatAction.fromHdfs(hdfsPathSize(r.stores.toHdfs))
-    case _                 => fail("Unsupported repository!")
-  })
+  def dictionariesSize: StatAction[Long]  = sizeOf((_:Repository).dictionaries)
+  def dictionaryVersions: StatAction[Int] = numberOf((_:Repository).dictionaries)
 
-  def storeCount: StatAction[Int] = repository.flatMap({
-    case r: HdfsRepository => StatAction.fromHdfs(hdfsPathFiles(r.stores.toHdfs))
-    case _                 => fail("Unsupported repository!")
-  })
+  def storesSize: StatAction[Long] = sizeOf((_:Repository).stores)
+  def storeCount: StatAction[Int]  = numberOf((_:Repository).stores)
 
-  def snapshotsSize: StatAction[Long] = repository.flatMap({
-    case r: HdfsRepository => StatAction.fromHdfs(hdfsPathSize(r.snapshots.toHdfs))
-    case _                 => fail("Unsupported repository!")
-  })
+  def factsetsSize: StatAction[Long] = sizeOf((_:Repository).factsets)
+  def factsetCount: StatAction[Int] = numberOf((_:Repository).factsets)
 
-  def snapshotCount: StatAction[Int] = repository.flatMap({
-    case r: HdfsRepository => StatAction.fromHdfs(Hdfs.globPaths(r.snapshots.toHdfs).map(_.size))
-    case _                 => fail("Unsupported repository!")
-  })
+  def snapshotsSize: StatAction[Long] = sizeOf((_:Repository).snapshots)
+  def snapshotCount: StatAction[Int]  = numberOf((_:Repository).snapshots)
 
   private def hdfsPathSize(path: Path): Hdfs[Long] = for {
     files <- Hdfs.globFilesRecursively(path)
