@@ -39,7 +39,7 @@ Committer
       _ <- writeFile(new Path(ctx.output, "path2/f2"), "test2")
     } yield ()).run(c) must beOk
 
-    Committer.commitWith(ctx, p => { if(p.getName == "path1") new Path(target, "p1") else new Path(target, "p2") }, true).run(c) must beOk
+    Committer.commitWith(ctx, p => { if(p == "path1") new Path(target, "p1") else new Path(target, "p2") }, true).run(c) must beOk
 
     readFile(new Path(target, "p1/f1")).run(c) must beOkLike(_ must_== "test1")
     readFile(new Path(target, "p2/f2")).run(c) must beOkLike(_ must_== "test2")

@@ -65,8 +65,7 @@ object IngestJob {
     LazyOutputFormat.setOutputFormatClass(job, classOf[SequenceFileOutputFormat[_, _]])
     MultipleOutputs.addNamedOutput(job, Keys.Out,  classOf[SequenceFileOutputFormat[_, _]],  classOf[NullWritable], classOf[BytesWritable]);
     MultipleOutputs.addNamedOutput(job, Keys.Err,  classOf[SequenceFileOutputFormat[_, _]],  classOf[NullWritable], classOf[BytesWritable]);
-    val out = "/tmp/ivory-ingest-" + java.util.UUID.randomUUID
-    FileOutputFormat.setOutputPath(job, new Path(out))
+    FileOutputFormat.setOutputPath(job, ctx.output)
 
     /* compression */
     codec.foreach(cc => {
@@ -89,8 +88,8 @@ object IngestJob {
 
     /* commit files to factset */
     Committer.commitWith(ctx, {
-      case p if p.getName == "errors" => errors
-      case p                          => target
+      case "errors"  => errors
+      case "factset" => target
     }, true).run(conf).run.unsafePerformIO
   }
 
@@ -105,7 +104,7 @@ object IngestJob {
   }
 
   def partitionFor(lookup: NamespaceLookup, key: LongWritable): String =
-    lookup.namespaces.get((key.get >>> 32).toInt) + "/" + Date.unsafeFromInt((key.get & 0xffffffff).toInt).slashed + "/part"
+    "factset" + "/" + lookup.namespaces.get((key.get >>> 32).toInt) + "/" + Date.unsafeFromInt((key.get & 0xffffffff).toInt).slashed + "/part"
 
   object Keys {
     val NamespaceLookup = ThriftCache.Key("namespace-lookup")
