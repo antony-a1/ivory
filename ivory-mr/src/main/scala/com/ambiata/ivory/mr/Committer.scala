@@ -12,8 +12,10 @@ import scalaz._, Scalaz._
 object Committer {
 
   def commitSingle(context: MrContext, target: Path, cleanup: Boolean): Hdfs[Unit] = for {
-    _ <- Hdfs.mv(context.output, target)
-    _ <- if(cleanup) context.cleanup else Hdfs.ok(())
+    _     <- Hdfs.mkdir(target)
+    files <- Hdfs.globFiles(context.output, "*")
+    _     <- files.traverse(f => Hdfs.mv(f, target))
+    _     <- if(cleanup) context.cleanup else Hdfs.ok(())
   } yield ()
 
   def commitMulti(context: MrContext, target: Path => Path, cleanup: Boolean): Hdfs[Unit] = for {
