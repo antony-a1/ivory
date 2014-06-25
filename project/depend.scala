@@ -18,7 +18,7 @@ object depend {
   val thrift    = Seq("org.apache.thrift"    %  "libthrift"       % "0.9.1")
   val saws      = Seq("com.ambiata"          %% "saws"            % "1.2.1-20140415232043-cc305d0",
                       "net.java.dev.jets3t"  %  "jets3t"          % "0.9.0" )
-  val mundane   = Seq("com.ambiata"          %% "mundane"         % "1.2.1-20140505014353-a175c40")
+  val mundane   = Seq("com.ambiata"          %% "mundane"         % "1.2.1-20140625071311-b1e5391")
   val caliper   = Seq("com.google.caliper"   %  "caliper"         % "0.5-rc1")
 
   def scoobi(version: String) = {
