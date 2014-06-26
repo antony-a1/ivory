@@ -44,7 +44,7 @@ object IvoryRetire {
   val importDictionary = com.ambiata.ivory.ingest.DictionaryImporter.onHdfs _
   val importStore = com.ambiata.ivory.ingest.FeatureStoreImporter.onHdfs _
 
-  implicit def DListToIvoryFactStorage(dlist: com.nicta.scoobi.core.DList[Fact]): com.ambiata.ivory.storage.legacy.IvoryStorage.IvoryFactStorage =
+  implicit def DListToIvoryFactStorage(dlist: com.nicta.scoobi.core.DList[Ivory.Fact]): com.ambiata.ivory.storage.legacy.IvoryStorage.IvoryFactStorage =
     com.ambiata.ivory.storage.legacy.IvoryStorage.IvoryFactStorage(dlist)
 
   /**
