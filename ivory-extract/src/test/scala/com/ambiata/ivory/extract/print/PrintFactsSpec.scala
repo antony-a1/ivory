@@ -1,8 +1,9 @@
 package com.ambiata.ivory.extract.print
 
-import com.nicta.scoobi.core.ScoobiConfiguration
-import com.nicta.scoobi.testing.{TempFiles, HadoopSpecification}
+import org.specs2._
+import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.testing.TestFiles._
+import com.nicta.scoobi.testing.TempFiles
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.extract._
@@ -13,13 +14,14 @@ import com.ambiata.mundane.testing.ResultMatcher.{beOk => beOkResult}
 import com.ambiata.mundane.io._
 import scalaz.effect.IO
 
-class PrintFactsSpec extends HadoopSpecification with SampleFacts { def is = s2"""
+class PrintFactsSpec extends Specification with SampleFacts { def is = s2"""
 
  A sequence file containing facts can be read and printed on the console $a1
 
 """
 
-  def a1 = { implicit sc: ScoobiConfiguration =>
+  def a1 = {
+    implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
     val directory = path(TempFiles.createTempDir("snapshot").getPath)
     val repo = Repository.fromHdfsPath(directory </> "repo", sc)
 
@@ -42,6 +44,4 @@ class PrintFactsSpec extends HadoopSpecification with SampleFacts { def is = s2"
          |eid3|ns2|fid3|true|2012-03-20|00:00:00
          |""".stripMargin
   }
-
-  override def isCluster = false
 }

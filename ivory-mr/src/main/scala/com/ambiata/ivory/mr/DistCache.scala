@@ -18,21 +18,24 @@ import org.apache.hadoop.mapreduce.Job
  * _unsafe_ at best, and should be used with extreme caution. The only valid reason to
  * use it is when writing raw map reduce jobs.
  */
-case class DistCache(base: Path) {
+case class DistCache(base: Path, contextId: ContextId) {
 
   /* Push a representation of a data-type to the distributed cache for this job, under the
-     specified key. This fails _hard_ if anything goes wrong. Use DistCache#pop in the
-     setup method of Mapper or Reducer to recover data. */
+     specified key. A namespace is added to the key to make it unique for each instance
+     of DistCache and is maintained through the configuration object. This fails _hard_ if
+     anything goes wrong. Use DistCache#pop in the setup method of Mapper or Reducer to
+     recover data. */
   def push(job: Job, key: DistCache.Key, bytes: Array[Byte]): Unit = {
-    val tmp = s"${base}/${key.value}"
-    val uri = new URI(tmp + "#" + key.value)
+    val nskey = key.namespaced(contextId.value)
+    val tmp = s"${base}/${nskey.combined}"
+    val uri = new URI(tmp + "#" + nskey.combined)
     (Hdfs.writeWith(new Path(tmp), Streams.writeBytes(_, bytes)) >> Hdfs.safe {
-      addCacheFile(new URI(tmp + "#" + key.value), job)
+      addCacheFile(new URI(tmp + "#" + nskey.combined), job)
     }).run(job.getConfiguration).run.unsafePerformIO match {
       case Ok(_) =>
         ()
       case Error(e) =>
-        sys.error(s"Could not push $key to distributed cache: ${Result.asString(e)}")
+        sys.error(s"Could not push $nskey to distributed cache: ${Result.asString(e)}")
     }
   }
 
@@ -41,13 +44,14 @@ case class DistCache(base: Path) {
      this job where a call to DistCache#push has prepared everything. This fails
      _hard_ if anything goes wrong. */
   def pop[A](conf: Configuration, key: DistCache.Key, f: Array[Byte] => String \/ A): A = {
-    Files.readBytes(findCacheFile(conf, key).toFilePath).flatMap(bytes => ResultT.safe { f(bytes) }).run.unsafePerformIO match {
+    val nskey = key.namespaced(contextId.value)
+    Files.readBytes(findCacheFile(conf, nskey).toFilePath).flatMap(bytes => ResultT.safe { f(bytes) }).run.unsafePerformIO match {
       case Ok(\/-(a)) =>
         a
       case Ok(-\/(s)) =>
-        sys.error(s"Could not decode $key on pop from local path: ${s}")
+        sys.error(s"Could not decode ${nskey} on pop from local path: ${s}")
       case Error(e) =>
-        sys.error(s"Could not pop $key from local path: ${Result.asString(e)}")
+        sys.error(s"Could not pop ${nskey} from local path: ${Result.asString(e)}")
     }
   }
   def addCacheFile(uri: URI, job: Job): Unit = {
@@ -55,13 +59,24 @@ case class DistCache(base: Path) {
     cache.addCacheFile(uri, job.getConfiguration)
   }
 
-  def findCacheFile(conf: Configuration, key: DistCache.Key): String =
+  def findCacheFile(conf: Configuration, nskey: DistCache.NamespacedKey): String =
     if (org.apache.hadoop.util.VersionInfo.getVersion.contains("cdh4"))
-      com.nicta.scoobi.impl.util.Compatibility.cache.getLocalCacheFiles(conf).toList.find(_.getName == key.value).getOrElse(sys.error("Could not find $key to pop from local path.")).toString
+      com.nicta.scoobi.impl.util.Compatibility.cache.getLocalCacheFiles(conf).toList.find(_.getName == nskey.combined).getOrElse(sys.error("Could not find $nskey to pop from local path.")).toString
     else
-      key.value
+      nskey.combined
 }
 
 object DistCache {
-  case class Key(value: String)
+  case class Key(value: String) {
+    def namespaced(ns: String): NamespacedKey =
+      NamespacedKey(ns, value)
+  }
+  case class NamespacedKey(namespace: String, value: String) {
+    def combined: String =
+      s"${namespace}${value}"
+  }
+
+  object Keys {
+    val namespace = "ivory.dist-cache.namespace"
+  }
 }

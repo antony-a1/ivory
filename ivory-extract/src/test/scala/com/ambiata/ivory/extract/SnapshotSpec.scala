@@ -1,7 +1,9 @@
 package com.ambiata.ivory.extract
 
-import com.nicta.scoobi.testing.{TempFiles, HadoopSpecification}
+import org.specs2._
+import com.nicta.scoobi.Scoobi._
 import com.nicta.scoobi.testing.TestFiles._
+import com.nicta.scoobi.testing.TempFiles
 import com.ambiata.mundane.io._
 import com.ambiata.ivory.core._, IvorySyntax._
 import com.ambiata.ivory.extract._
@@ -10,13 +12,14 @@ import org.apache.hadoop.fs.Path
 import org.joda.time.LocalDate
 import com.nicta.scoobi.core.ScoobiConfiguration
 
-class SnapshotSpec extends HadoopSpecification with SampleFacts { def is = s2"""
+class SnapshotSpec extends Specification with SampleFacts { def is = s2"""
 
   A snapshot of the features can be extracted as a sequence file $e1
 
 """
 
-  def e1 = { implicit sc: ScoobiConfiguration =>
+  def e1 = {
+    implicit val sc: ScoobiConfiguration = ScoobiConfiguration()
     val directory = path(TempFiles.createTempDir("snapshot").getPath)
     val repo = Repository.fromHdfsPath(directory </> "repo", sc)
 
@@ -28,6 +31,4 @@ class SnapshotSpec extends HadoopSpecification with SampleFacts { def is = s2"""
     val snapshot1 = HdfsSnapshot.takeSnapshot(repo.root.toHdfs, new Path(s"testDir/errors"), Date.fromLocalDate(LocalDate.now), false, None)
     ok
   }
-
-  override def isCluster = false
 }

@@ -24,7 +24,7 @@ Committer
 
   def e1 = {
     val c = new Configuration
-    val ctx = MrContext(UUID.randomUUID.toString)
+    val ctx = MrContext(ContextId.randomContextId)
     val target = new Path("target/test/CommitterSpec-" + UUID.randomUUID.toString)
 
     (for {
@@ -40,7 +40,7 @@ Committer
 
   def e2 = {
     val c = new Configuration
-    val ctx = MrContext(UUID.randomUUID.toString)
+    val ctx = MrContext(ContextId.randomContextId)
     val target = new Path("target/test/CommitterSpec-" + UUID.randomUUID.toString)
 
     writeFile(new Path(ctx.output, "f1"), "test1").run(c) must beOk
@@ -50,7 +50,7 @@ Committer
 
   def e3 = {
     val c = new Configuration
-    val ctx = MrContext(UUID.randomUUID.toString)
+    val ctx = MrContext(ContextId.randomContextId)
     val target = new Path("target/test/CommitterSpec-" + UUID.randomUUID.toString)
 
     Hdfs.mkdir(target).run(c) must beOk
