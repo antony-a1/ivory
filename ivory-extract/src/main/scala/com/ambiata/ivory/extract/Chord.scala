@@ -21,7 +21,7 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
 
-case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: HashMap[String, Array[Int]], outputPath: Path, tmpPath: Path, errorPath: Path, incremental: Option[Path], codec: Option[CompressionCodec]) {
+case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: HashMap[String, Array[Int]], outputPath: Path, tmpPath: Path, incremental: Option[Path], codec: Option[CompressionCodec]) {
   import IvoryStorage._
 
   type PackedDate = Int
@@ -130,17 +130,17 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
 
 object Chord {
 
-  def onHdfs(repoPath: Path, entities: Path, outputPath: Path, tmpPath: Path, errorPath: Path, takeSnapshot: Boolean, codec: Option[CompressionCodec]): ScoobiAction[Unit] = for {
+  def onHdfs(repoPath: Path, entities: Path, outputPath: Path, tmpPath: Path, takeSnapshot: Boolean, codec: Option[CompressionCodec]): ScoobiAction[Unit] = for {
     es                  <- ScoobiAction.fromHdfs(Chord.readChords(entities))
     (earliest, latest)   = DateMap.bounds(es)
     _                    = println(s"Earliest date in chord file is '${earliest}'")
     _                    = println(s"Latest date in chord file is '${latest}'")
     snap                <- if(takeSnapshot)
-                             HdfsSnapshot.takeSnapshot(repoPath, errorPath, earliest, true, codec).map({ case (s, d, p) => (s, d, Some(p)) })
+                             HdfsSnapshot.takeSnapshot(repoPath, earliest, true, codec).map({ case (s, d, p) => (s, d, Some(p)) })
                            else
                              ScoobiAction.fromHdfs(latestSnapshot(repoPath, earliest))
     (store, dname, path) = snap
-    _                   <- HdfsChord(repoPath, store, dname, es, outputPath, tmpPath, errorPath, path, codec).run
+    _                   <- HdfsChord(repoPath, store, dname, es, outputPath, tmpPath, path, codec).run
   } yield ()
 
   def latestSnapshot(repoPath: Path, date: Date): Hdfs[(String, String, Option[Path])] = for {

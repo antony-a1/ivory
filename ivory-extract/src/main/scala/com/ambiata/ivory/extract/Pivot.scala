@@ -23,27 +23,27 @@ import com.ambiata.ivory.alien.hdfs._
  */
 object Pivot {
 
-  def onHdfsFromSnapshot(repoPath: Path, output: Path, errors: Path, delim: Char, tombstone: String, date: Date, codec: Option[CompressionCodec]): ScoobiAction[Unit] = for {
+  def onHdfsFromSnapshot(repoPath: Path, output: Path, delim: Char, tombstone: String, date: Date, codec: Option[CompressionCodec]): ScoobiAction[Unit] = for {
     repo <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
-    snap <- HdfsSnapshot.takeSnapshot(repoPath, errors, date, true, codec)
+    snap <- HdfsSnapshot.takeSnapshot(repoPath, date, true, codec)
     (store, dname, path) = snap
-    _    <- onHdfs(path, output, errors, repo.dictionaryByName(dname).toHdfs, delim, tombstone)
+    _    <- onHdfs(path, output, repo.dictionaryByName(dname).toHdfs, delim, tombstone)
   } yield ()
 
-  def onHdfs(input: Path, output: Path, errors: Path, dictionary: Path, delim: Char, tombstone: String): ScoobiAction[Unit] = for {
+  def onHdfs(input: Path, output: Path, dictionary: Path, delim: Char, tombstone: String): ScoobiAction[Unit] = for {
     d <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextLoader(dictionary).load)
-    _ <- onHdfsWithDictionary(input, output, errors, d, delim, tombstone)
+    _ <- onHdfsWithDictionary(input, output, d, delim, tombstone)
   } yield ()
 
-  def onHdfsWithDictionary(input: Path, output: Path, errors: Path, dictionary: Dictionary, delim: Char, tombstone: String): ScoobiAction[Unit] = {
+  def onHdfsWithDictionary(input: Path, output: Path, dictionary: Dictionary, delim: Char, tombstone: String): ScoobiAction[Unit] = {
     val s = DenseRowTextStorageV1.DenseRowTextStorer(output.toString, dictionary, delim, tombstone)
     for {
-      _ <- scoobiJob(input, s, errors)
+      _ <- scoobiJob(input, s)
       _ <- s.storeMeta
     } yield ()
   }
 
-  def scoobiJob(input: Path, storer: DenseRowTextStorageV1.DenseRowTextStorer, errorPath: Path): ScoobiAction[Unit] =
+  def scoobiJob(input: Path, storer: DenseRowTextStorageV1.DenseRowTextStorer): ScoobiAction[Unit] =
     ScoobiAction.scoobiJob { implicit sc: ScoobiConfiguration =>
       val facts = valueFromSequenceFile[Fact](input.toString)
       persist(storer.storeScoobi(facts))
