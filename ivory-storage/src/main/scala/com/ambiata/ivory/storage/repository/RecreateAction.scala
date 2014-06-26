@@ -19,12 +19,13 @@ case class RecreateAction[+A](action: ActionT[IO, Unit, RecreateConfig, A]) {
   def run(conf: RecreateConfig): ResultTIO[A] = 
     validate.flatMap(_ => this).action.executeT(conf)
   
-  def validate: RecreateAction[Unit] = for {
-    c <- RecreateAction.configuration
-    _ <- if(c.hdfsFrom.root == c.hdfsTo.root) RecreateAction.fail(s"Repository '${c.hdfsFrom}' is the same as '${c.hdfsTo}'") else RecreateAction.ok(())
-    e <- RecreateAction.fromHdfs(Hdfs.exists(c.hdfsTo.root.toHdfs))
-    _ <- if(e) RecreateAction.fail(s"Repository '${c.hdfsTo.root}' already exists") else RecreateAction.ok(())
-  } yield ()
+  def validate: RecreateAction[Unit] = RecreateAction.configuration flatMap { c =>
+    RecreateAction.fail(s"Repository '${c.hdfsFrom}' is the same as '${c.hdfsTo}'")
+      .when(c.hdfsFrom.root == c.hdfsTo.root) >>
+    RecreateAction.fail(s"Repository '${c.hdfsTo.root}' already exists")
+      .when(!c.overwrite)
+      .when(RecreateAction.fromHdfs(Hdfs.exists(c.hdfsTo.root.toHdfs)))
+  }
 
   def map[B](f: A => B): RecreateAction[B] =
     RecreateAction(action.map(f))
@@ -58,6 +59,16 @@ case class RecreateAction[+A](action: ActionT[IO, Unit, RecreateConfig, A]) {
 
   def unless(condition: Boolean): RecreateAction[Unit] =
     RecreateAction.unless(condition)(this)
+
+  def unless(condition: RecreateAction[Boolean]): RecreateAction[Unit] =
+    condition.flatMap(unless)
+
+  def when(condition: Boolean): RecreateAction[Unit] =
+    RecreateAction.when(condition)(this)
+
+  def when(condition: RecreateAction[Boolean]): RecreateAction[Unit] =
+    condition.flatMap(when)
+
 }
 
 object RecreateAction extends ActionTSupport[IO, Unit, RecreateConfig] {
@@ -100,7 +111,10 @@ object RecreateAction extends ActionTSupport[IO, Unit, RecreateConfig] {
   } yield a
 
   def unless[A](condition: Boolean)(action: RecreateAction[A]): RecreateAction[Unit] =
-    if (!condition) action.map(_ => ()) else RecreateAction.ok(())
+    when(!condition)(action)
+
+  def when[A](condition: Boolean)(action: RecreateAction[A]): RecreateAction[Unit] =
+    if (condition) action.void else RecreateAction.ok(())
 
   implicit def RecreateActionMonad: Monad[RecreateAction] = new Monad[RecreateAction] {
     def point[A](v: => A) = ok(v)
@@ -111,6 +125,7 @@ object RecreateAction extends ActionTSupport[IO, Unit, RecreateConfig] {
 case class RecreateConfig(from: Repository, to: Repository,
                           sc: ScoobiConfiguration, codec: Option[CompressionCodec],
                           reduce: Boolean, clean: Boolean, dry: Boolean, recreateData: List[RecreateData],
+                          overwrite: Boolean,
                           logger: Logger) {
   val (hdfsFrom, hdfsTo) = (from, to) match {
     case (f: HdfsRepository, t: HdfsRepository) => (f, t)

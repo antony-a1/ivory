@@ -8,7 +8,7 @@ import com.ambiata.mundane.io._
 import com.ambiata.ivory.storage.repository._
 
 object recreate extends ScoobiApp {
-  case class CliArguments(input: String, output: String, reduce: Boolean, clean: Boolean, dry: Boolean, recreateData: List[RecreateData])
+  case class CliArguments(input: String, output: String, reduce: Boolean, clean: Boolean, dry: Boolean, overwrite: Boolean, recreateData: List[RecreateData])
 
   val parser = new scopt.OptionParser[CliArguments]("ivory-recreate") {
     head("""Clone an ivory repository, recompressing each part file and storing in a the latest format.""")
@@ -27,10 +27,12 @@ object recreate extends ScoobiApp {
 
     opt[String]('t', "type")   action { (x, c) => c.copy(recreateData = RecreateData.parse(x)) } optional() text "Type of data to recreate: dictionary, store, snapshot, factset, all (default)"
 
+    opt[Unit]('w', "overwrite")  action { (_, c) => c.copy(overwrite = true) } optional() text "Overwrite the destination repository."
+
   }
 
   def run {
-    parser.parse(args, CliArguments(input = "", output = "", reduce = false, clean = true, dry = false, recreateData = RecreateData.ALL)).map { c =>
+    parser.parse(args, CliArguments(input = "", output = "", reduce = false, clean = true, dry = false, overwrite = false, recreateData = RecreateData.ALL)).map { c =>
       val rconf = RecreateConfig(from = Repository.fromHdfsPath(FilePath(c.input), configuration),
                                  to = Repository.fromHdfsPath(FilePath(c.output), configuration),
                                  sc = configuration,
@@ -38,6 +40,7 @@ object recreate extends ScoobiApp {
                                  reduce = c.reduce,
                                  clean = c.clean,
                                  dry = c.dry,
+                                 overwrite = c.overwrite,
                                  recreateData = c.recreateData,
                                  logger = consoleLogging)
       Recreate.all.run(rconf).run.unsafePerformIO.fold(
