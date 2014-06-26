@@ -34,22 +34,22 @@ object Recreate {
 
   def dictionaries: RecreateAction[Unit] =
     recreate("dictionaries", (_:Repository).dictionaries) { conf =>
-      fromHdfs(copyDictionaries(conf.hdfsFrom, conf.hdfsTo, conf.dry))
+      fromHdfs(copyDictionaries(conf.hdfsFrom, conf.hdfsTo, conf.dryFor(RecreateData.DICTIONARY)))
     }
 
   def stores: RecreateAction[Unit] =
     recreate("stores", (_:Repository).stores) { conf =>
-      fromHdfs(copyStores(conf.hdfsFrom, conf.hdfsTo, conf.clean, conf.dry))
+      fromHdfs(copyStores(conf.hdfsFrom, conf.hdfsTo, conf.clean, conf.dryFor(RecreateData.STORE)))
     }
 
   def factsets: RecreateAction[Unit] =
     recreate("factsets", (_:Repository).factsets) { conf =>
-      fromScoobi(copyFactsets(conf.hdfsFrom, conf.hdfsTo, conf.codec, conf.dry))
+      fromScoobi(copyFactsets(conf.hdfsFrom, conf.hdfsTo, conf.codec, conf.dryFor(RecreateData.FACTSET)))
     }
 
   def snapshots: RecreateAction[Unit] =
     recreate("snapshots", (_:Repository).snapshots) { conf =>
-      fromScoobi(copySnapshots(conf.hdfsFrom, conf.hdfsTo, conf.codec, conf.dry))
+      fromScoobi(copySnapshots(conf.hdfsFrom, conf.hdfsTo, conf.codec, conf.dryFor(RecreateData.SNAPSHOT)))
     }
 
   /**

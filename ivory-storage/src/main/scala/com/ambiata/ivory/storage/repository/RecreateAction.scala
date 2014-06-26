@@ -15,16 +15,6 @@ import scalaz.{DList => _, _}, Scalaz._, \&/._
 import scalaz.effect.IO
 import StatAction._
 
-case class RecreateConfig(from: Repository, to: Repository,
-                          sc: ScoobiConfiguration, codec: Option[CompressionCodec],
-                          reduce: Boolean, clean: Boolean, dry: Boolean,
-                          logger: Logger) {
-  val (hdfsFrom, hdfsTo) = (from, to) match {
-    case (f: HdfsRepository, t: HdfsRepository) => (f, t)
-    case _ => sys.error(s"Repository combination '${from}' and '${to}' not supported!")
-  }
-}
-
 case class RecreateAction[+A](action: ActionT[IO, Unit, RecreateConfig, A]) {
   def run(conf: RecreateConfig): ResultTIO[A] = 
     validate.flatMap(_ => this).action.executeT(conf)
@@ -118,3 +108,37 @@ object RecreateAction extends ActionTSupport[IO, Unit, RecreateConfig] {
   }
 }
 
+case class RecreateConfig(from: Repository, to: Repository,
+                          sc: ScoobiConfiguration, codec: Option[CompressionCodec],
+                          reduce: Boolean, clean: Boolean, dry: Boolean, recreateData: List[RecreateData],
+                          logger: Logger) {
+  val (hdfsFrom, hdfsTo) = (from, to) match {
+    case (f: HdfsRepository, t: HdfsRepository) => (f, t)
+    case _ => sys.error(s"Repository combination '$from' and '$to' not supported!")
+  }
+
+  def dryFor(data: RecreateData) =
+    dry || !recreateData.contains(data)
+}
+
+class RecreateData
+object RecreateData {
+  val DICTIONARY = new RecreateData
+  val STORE      = new RecreateData
+  val FACTSET    = new RecreateData
+  val SNAPSHOT   = new RecreateData
+  val ALL        = List(DICTIONARY, STORE, FACTSET, SNAPSHOT)
+
+  def parse(s: String) = {
+    def parseElement(string: String) =
+      if (string == "dictionary")    Some(DICTIONARY)
+      else if (string == "store")    Some(STORE)
+      else if (string == "factset")  Some(FACTSET)
+      else if (string == "snapshot") Some(SNAPSHOT)
+      else                           None
+
+    val result = s.toLowerCase.split(",").map(_.trim).map(parseElement).flatten.distinct.toList
+    if (result.nonEmpty) result
+    else                 ALL
+  }
+}
