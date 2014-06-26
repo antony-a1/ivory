@@ -18,7 +18,7 @@ import org.apache.hadoop.mapreduce.Job
  * _unsafe_ at best, and should be used with extreme caution. The only valid reason to
  * use it is when writing raw map reduce jobs.
  */
-case class DistCache(base: Path) {
+case class DistCache(base: Path, contextId: ContextId) {
 
   /* Push a representation of a data-type to the distributed cache for this job, under the
      specified key. A namespace is added to the key to make it unique for each instance
@@ -26,7 +26,7 @@ case class DistCache(base: Path) {
      anything goes wrong. Use DistCache#pop in the setup method of Mapper or Reducer to
      recover data. */
   def push(job: Job, key: DistCache.Key, bytes: Array[Byte]): Unit = {
-    val nskey = key.namespaced(getNamespace(job.getConfiguration))
+    val nskey = key.namespaced(contextId.value)
     val tmp = s"${base}/${nskey.combined}"
     val uri = new URI(tmp + "#" + nskey.combined)
     (Hdfs.writeWith(new Path(tmp), Streams.writeBytes(_, bytes)) >> Hdfs.safe {
@@ -44,7 +44,7 @@ case class DistCache(base: Path) {
      this job where a call to DistCache#push has prepared everything. This fails
      _hard_ if anything goes wrong. */
   def pop[A](conf: Configuration, key: DistCache.Key, f: Array[Byte] => String \/ A): A = {
-    val nskey = key.namespaced(getNamespace(conf))
+    val nskey = key.namespaced(contextId.value)
     Files.readBytes(findCacheFile(conf, nskey).toFilePath).flatMap(bytes => ResultT.safe { f(bytes) }).run.unsafePerformIO match {
       case Ok(\/-(a)) =>
         a
@@ -64,14 +64,6 @@ case class DistCache(base: Path) {
       com.nicta.scoobi.impl.util.Compatibility.cache.getLocalCacheFiles(conf).toList.find(_.getName == nskey.combined).getOrElse(sys.error("Could not find $nskey to pop from local path.")).toString
     else
       nskey.combined
-
-  /* Get the namespace for this DistCache instance from the configuration. If it
-     hasn't been set, createa a new one and set it in the configuration. */
-  def getNamespace(conf: Configuration): String =
-    Option(conf.get(DistCache.Keys.namespace)) match {
-      case Some(ns) => ns
-      case None     => val ns = UUID.randomUUID.toString; conf.set(DistCache.Keys.namespace, ns); ns
-    }
 }
 
 object DistCache {

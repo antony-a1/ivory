@@ -20,8 +20,8 @@ import org.apache.hadoop.mapreduce.Job
  * _unsafe_ at best, and should be used with extreme caution. The only valid reason to
  * use it is when writing raw map reduce jobs.
  */
-case class ThriftCache(base: Path) {
-  val distCache = DistCache(base)
+case class ThriftCache(base: Path, id: ContextId) {
+  val distCache = DistCache(base, id)
   val serializer = new TSerializer(new TCompactProtocol.Factory)
   val deserializer = new TDeserializer(new TCompactProtocol.Factory)
 

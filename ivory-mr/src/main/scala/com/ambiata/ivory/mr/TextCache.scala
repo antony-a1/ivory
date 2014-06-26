@@ -18,9 +18,9 @@ import org.apache.hadoop.mapreduce.Job
  * _unsafe_ at best, and should be used with extreme caution. The only valid reason to
  * use it is when writing raw map reduce jobs.
  */
-case class TextCache(base: Path) {
+case class TextCache(base: Path, id: ContextId) {
 
-  val distCache = DistCache(base)
+  val distCache = DistCache(base, id)
 
   /* Push a text representation of a data-type to the distributed cache
      for this job, under the specified key. This fails _hard_ if anything
