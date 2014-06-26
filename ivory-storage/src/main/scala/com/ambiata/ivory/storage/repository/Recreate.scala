@@ -18,49 +18,52 @@ import ScoobiAction.scoobiJob
 import scalaz.{DList => _, _}, Scalaz._, \&/._
 import RecreateAction._
 import IvorySyntax._
+import RecreateData._
 
 /**
  * Recreate actions for recreating parts or all of a repository
  */
 object Recreate {
   def all: RecreateAction[Unit] =
-    metadata. log("****** Recreating metadata")   >>
-    factsets. log("****** Recreating factsets")   >>
-    snapshots.log(s"****** Recreating snapshots")
+    log("****** Recreating metadata")   >> metadata >>
+    log("****** Recreating factsets")   >> factsets >>
+    log(s"****** Recreating snapshots") >> snapshots
 
   def metadata: RecreateAction[Unit] =
-    dictionaries.log(s"****** Recreating dictionaries") >>
-    stores.      log(s"****** Recreating stores")
+    log(s"****** Recreating dictionaries") >> dictionaries >>
+    log(s"****** Recreating stores")       >> stores
 
   def dictionaries: RecreateAction[Unit] =
-    recreate("dictionaries", (_:Repository).dictionaries) { conf =>
+    recreate(DICTIONARY, (_:Repository).dictionaries) { conf =>
       fromHdfs(copyDictionaries(conf.hdfsFrom, conf.hdfsTo, conf.dryFor(RecreateData.DICTIONARY)))
     }
 
   def stores: RecreateAction[Unit] =
-    recreate("stores", (_:Repository).stores) { conf =>
+    recreate(STORE, (_:Repository).stores) { conf =>
       fromHdfs(copyStores(conf.hdfsFrom, conf.hdfsTo, conf.clean, conf.dryFor(RecreateData.STORE)))
     }
 
   def factsets: RecreateAction[Unit] =
-    recreate("factsets", (_:Repository).factsets) { conf =>
+    recreate(FACTSET, (_:Repository).factsets) { conf =>
       fromScoobi(copyFactsets(conf.hdfsFrom, conf.hdfsTo, conf.codec, conf.dryFor(RecreateData.FACTSET)))
     }
 
   def snapshots: RecreateAction[Unit] =
-    recreate("snapshots", (_:Repository).snapshots) { conf =>
+    recreate(SNAPSHOT, (_:Repository).snapshots) { conf =>
       fromScoobi(copySnapshots(conf.hdfsFrom, conf.hdfsTo, conf.codec, conf.dryFor(RecreateData.SNAPSHOT)))
     }
 
   /**
    * recreate a given set of data and log before/after count and size
    */
-  private def recreate[A, V](name: String, f: Repository => FilePath)(action: RecreateConfig => RecreateAction[A]): RecreateAction[Unit] =
+  private def recreate[A, V](data: RecreateData, f: Repository => FilePath)(action: RecreateConfig => RecreateAction[A]): RecreateAction[Unit] =
     configuration.flatMap { conf =>
+      val name = data.plural
+      log("Dry run!").when(conf.dryFor(data)) >>
       logStat("Number of "+name, conf.from, StatAction.numberOf(f)) >>
       logStat("Size of "+name, conf.from, StatAction.showSizeOfInBytes(f)) >>
         action(conf) >>
-        unless (conf.dry) {
+        unless (conf.dryFor(data)) {
           logStat("Number of "+name, conf.from, StatAction.numberOf(f)) >>
           logStat("Size of "+name, conf.from, StatAction.sizeOf(f))
         }

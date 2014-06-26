@@ -136,12 +136,14 @@ case class RecreateConfig(from: Repository, to: Repository,
     dry || !recreateData.contains(data)
 }
 
-class RecreateData
+case class RecreateData(name: String) {
+  def plural: String = name+"s"
+}
 object RecreateData {
-  val DICTIONARY = new RecreateData
-  val STORE      = new RecreateData
-  val FACTSET    = new RecreateData
-  val SNAPSHOT   = new RecreateData
+  val DICTIONARY = new RecreateData("dictionary") { override def plural = "dictionaries" }
+  val STORE      = RecreateData("store")
+  val FACTSET    = RecreateData("factset")
+  val SNAPSHOT   = RecreateData("snapshot")
   val ALL        = List(DICTIONARY, STORE, FACTSET, SNAPSHOT)
 
   def parse(s: String) = {
