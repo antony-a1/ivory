@@ -73,7 +73,7 @@ object SnapshotJob {
     })
 
     /* output */
-    val tmpout = ctx.output
+    val tmpout = new Path(ctx.output, "snap")
     job.setOutputFormatClass(classOf[SequenceFileOutputFormat[_, _]])
     FileOutputFormat.setOutputPath(job, tmpout)
 
@@ -92,7 +92,9 @@ object SnapshotJob {
       sys.error("ivory snapshot failed.")
 
     /* commit files to factset */
-    Committer.commitSingle(ctx, output, true).run(conf).run.unsafePerformIO
+    Committer.commit(ctx, {
+      case "snap" => output
+    }, true).run(conf).run.unsafePerformIO
   }
 
   def priorityTable(globs: List[FactsetGlob]): FactsetLookup = {

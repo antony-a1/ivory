@@ -71,29 +71,27 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
 
       HdfsSnapshot.readFacts(repo, store, latestDate, incremental).map { input =>
 
-        // DANGER - needs to be executed on mapper
-        lazy val map: Mappings = Chord.deserialiseChords(chordPath).run(sc).run.unsafePerformIO() match {
+        val mappings: DObject[Mappings] = lazyObject(Chord.deserialiseChords(chordPath).run(sc).run.unsafePerformIO() match {
           case Ok(m)    => m
           case Error(e) => sys.error("Can not deserialise chord map - " + Result.asString(e))
-        }
+        })
 
         // filter out the facts which are not in the entityMap or
         // which date are greater than the required dates for this entity
-        val facts: DList[(Priority, Fact)] = input.map({
+        val facts: DList[(Priority, Fact)] = (mappings join input.map({
           case -\/(e) => sys.error("A critical error has occured, where we could not determine priority and namespace from partitioning: " + e)
           case \/-(v) => v
-        }).collect({
-          case (p, _, f) if(DateMap.keep(map, f.entity, f.date.year, f.date.month, f.date.day)) => (p, f)
+        })).collect({
+          case (map, (p, _, f)) if(DateMap.keep(map, f.entity, f.date.year, f.date.month, f.date.day)) => (p, f)
         })
 
         /**
          * 1. group by entity and feature id
          * 2. for a given entity and feature id, get the latest facts, with the lowest priority
          */
+        val grp = facts.groupBy { case (p, f) => (f.entity, f.featureId.toString) }
         val latest: DList[(Priority, Fact)] =
-          facts
-            .groupBy { case (p, f) => (f.entity, f.featureId.toString) }
-            .mapFlatten { case ((entityId, featureId), fs) =>
+          (mappings join grp).mapFlatten { case (map, ((entityId, featureId), fs)) =>
               // the required dates
               val dates = map.get(entityId)
 
