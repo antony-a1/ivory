@@ -13,6 +13,7 @@ object IvoryRetire {
      neutral APIs. */
   type ScoobiAction[A] = com.ambiata.ivory.scoobi.ScoobiAction[A]
   val ScoobiAction = com.ambiata.ivory.scoobi.ScoobiAction
+  type HdfsRepository = com.ambiata.ivory.storage.repository.HdfsRepository
 
   /**
    * Storage types. These components expose the internal representations of ivory.
