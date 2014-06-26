@@ -58,6 +58,7 @@ object depend {
       Resolver.sonatypeRepo("public"),
       Resolver.typesafeRepo("releases"),
       "cloudera"             at "https://repository.cloudera.com/content/repositories/releases",
+      "cloudera2"            at "https://repository.cloudera.com/artifactory/public",
       Resolver.url("ambiata-oss", new URL("https://ambiata-oss.s3.amazonaws.com"))(Resolver.ivyStylePatterns),
       "Scalaz Bintray Repo"  at "http://dl.bintray.com/scalaz/releases")
 }
