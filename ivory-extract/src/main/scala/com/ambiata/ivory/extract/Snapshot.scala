@@ -109,6 +109,10 @@ object HdfsSnapshot {
   def takeSnapshot(repoPath: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[(String, String, Path)] =
     fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(codec, true), date, incremental)
 
+  /* This is exposed through the external API */
+  def snapshot(repoPath: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[Path] =
+    takeSnapshot(repoPath, date, incremental, codec).map(_._3)
+
   def extractLatest(codec: Option[CompressionCodec], fast: Boolean)(repo: HdfsRepository, store: String, dictName: String, date: Date, outputPath: Path, incremental: Option[(Path, SnapshotMeta)]): ScoobiAction[Unit] =
     HdfsSnapshot(repo.root.toHdfs, store, dictName, None, date, outputPath, incremental, codec, fast).run
 

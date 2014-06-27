@@ -33,6 +33,8 @@ object IvoryRetire {
   val dictionariesToIvory = com.ambiata.ivory.storage.legacy.IvoryStorage.dictionariesToIvory _
   val dictionaryToIvory = com.ambiata.ivory.storage.legacy.IvoryStorage.dictionaryToIvory _
 
+  val snapshotFromHdfs = com.ambiata.ivory.storage.legacy.SnapshotStorageV1.snapshotFromHdfs _
+
   val createRepository = com.ambiata.ivory.storage.legacy.CreateRepository.onHdfs _
 
   /**
@@ -54,7 +56,7 @@ object IvoryRetire {
    * They will be replaced by a safer, stable API that lets users interact with
    * ivory, without concern for the current implementation.
    */
-  val takeSnapshot = com.ambiata.ivory.extract.HdfsSnapshot.takeSnapshot _
+  val snapshot = com.ambiata.ivory.extract.HdfsSnapshot.snapshot _
   val extractChord = com.ambiata.ivory.extract.Chord.onHdfs _
   val pivot = com.ambiata.ivory.extract.Pivot.onHdfs _
 
