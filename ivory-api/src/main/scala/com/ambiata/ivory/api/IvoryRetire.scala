@@ -34,6 +34,7 @@ object IvoryRetire {
   val dictionaryToIvory = com.ambiata.ivory.storage.legacy.IvoryStorage.dictionaryToIvory _
 
   val snapshotFromHdfs = com.ambiata.ivory.storage.legacy.SnapshotStorageV1.snapshotFromHdfs _
+  val snapshotToHdfs = com.ambiata.ivory.storage.legacy.SnapshotStorageV1.snapshotToHdfs _
 
   val createRepository = com.ambiata.ivory.storage.legacy.CreateRepository.onHdfs _
 

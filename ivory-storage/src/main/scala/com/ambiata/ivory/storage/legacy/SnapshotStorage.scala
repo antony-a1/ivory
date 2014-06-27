@@ -31,4 +31,7 @@ object SnapshotStorageV1 {
     ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration =>
       SnapshotLoader(path).loadScoobi
     })
+
+  def snapshotToHdfs(dlist: DList[Fact], path: Path, codec: Option[CompressionCodec]): ScoobiAction[DList[Fact]] =
+  ScoobiAction.scoobiJob({ implicit sc: ScoobiConfiguration => SnapshotStorer(path, codec).storeScoobi(dlist) })
 }
