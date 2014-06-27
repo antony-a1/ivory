@@ -22,7 +22,7 @@ import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
 
-case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: Date, outputPath: Path, errorPath: Path, incremental: Option[(Path, SnapshotMeta)], codec: Option[CompressionCodec], fast: Boolean) {
+case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entities: Option[Path], snapshot: Date, outputPath: Path, incremental: Option[(Path, SnapshotMeta)], codec: Option[CompressionCodec], fast: Boolean) {
   import IvoryStorage._
 
   def run: ScoobiAction[Unit] = for {
@@ -103,14 +103,18 @@ case class HdfsSnapshot(repoPath: Path, store: String, dictName: String, entitie
 object HdfsSnapshot {
   val SnapshotName: String = "ivory-incremental-snapshot"
 
-  def takeSlowSnapshot(repoPath: Path, errors: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[(String, String, Path)] =
-    fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(errors, codec, false), date, incremental)
+  def takeSlowSnapshot(repoPath: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[(String, String, Path)] =
+    fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(codec, false), date, incremental)
 
-  def takeSnapshot(repoPath: Path, errors: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[(String, String, Path)] =
-    fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(errors, codec, true), date, incremental)
+  def takeSnapshot(repoPath: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[(String, String, Path)] =
+    fatrepo.ExtractLatestWorkflow.onHdfs(repoPath, extractLatest(codec, true), date, incremental)
 
-  def extractLatest(errorPath: Path, codec: Option[CompressionCodec], fast: Boolean)(repo: HdfsRepository, store: String, dictName: String, date: Date, outputPath: Path, incremental: Option[(Path, SnapshotMeta)]): ScoobiAction[Unit] =
-    HdfsSnapshot(repo.root.toHdfs, store, dictName, None, date, outputPath, errorPath, incremental, codec, fast).run
+  /* This is exposed through the external API */
+  def snapshot(repoPath: Path, date: Date, incremental: Boolean, codec: Option[CompressionCodec]): ScoobiAction[Path] =
+    takeSnapshot(repoPath, date, incremental, codec).map(_._3)
+
+  def extractLatest(codec: Option[CompressionCodec], fast: Boolean)(repo: HdfsRepository, store: String, dictName: String, date: Date, outputPath: Path, incremental: Option[(Path, SnapshotMeta)]): ScoobiAction[Unit] =
+    HdfsSnapshot(repo.root.toHdfs, store, dictName, None, date, outputPath, incremental, codec, fast).run
 
   def readFacts(repo: HdfsRepository, store: FeatureStore, latestDate: Date, incremental: Option[(Path, FeatureStore, SnapshotMeta)]): ScoobiAction[DList[ParseError \/ (Priority, Factset, Fact)]] = {
     import IvoryStorage._

@@ -38,7 +38,6 @@ object snapshot extends IvoryApp {
   val cmd = IvoryCmd[CliArguments](parser, CliArguments("", LocalDate.now(), true), ScoobiCmd {
     configuration => c =>
       val runId = UUID.randomUUID
-      val errors = s"${c.repo}/errors/snapshot/${runId}"
       val banner = s"""======================= snapshot =======================
                       |
                       |Arguments --
@@ -46,12 +45,11 @@ object snapshot extends IvoryApp {
                       |  Run ID                  : ${runId}
                       |  Ivory Repository        : ${c.repo}
                       |  Extract At Date         : ${c.date.toString("yyyy/MM/dd")}
-                      |  Errors                  : ${errors}
                       |  Incremental             : ${c.incremental}
                       |
                       |""".stripMargin
       println(banner)
-      val res = HdfsSnapshot.takeSnapshot(new Path(c.repo), new Path(errors), Date.fromLocalDate(c.date), c.incremental, Some(new SnappyCodec))
+      val res = HdfsSnapshot.takeSnapshot(new Path(c.repo), Date.fromLocalDate(c.date), c.incremental, Some(new SnappyCodec))
       res.run(configuration <| { c =>
         // MR1
         c.set("mapred.compress.map.output", "true")
