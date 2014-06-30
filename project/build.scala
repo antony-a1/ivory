@@ -116,7 +116,7 @@ object build extends Build {
       name := "ivory-extract"
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value))
   )
-  .dependsOn(core, scoobi, storage, validate, mr)
+  .dependsOn(core % "test->test", scoobi, storage, validate, mr)
 
   lazy val generate = Project(
     id = "generate"

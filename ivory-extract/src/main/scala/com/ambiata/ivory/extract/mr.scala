@@ -40,7 +40,7 @@ object SnapshotJob {
     job.setJobName("ivory-snapshot")
 
     /* map */
-    job.setMapOutputKeyClass(classOf[Text]);
+    job.setMapOutputKeyClass(classOf[BytesWritable]);
     job.setMapOutputValueClass(classOf[BytesWritable]);
 
     /* partiton & sort */
@@ -105,8 +105,20 @@ object SnapshotJob {
     lookup
   }
 
-  def outputKey(f: Fact): String =
-    s"${f.entity}|${f.namespace}|${f.feature}"
+  private val keyBytes = new Array[Byte](4096)
+
+  /* Create an output key by mutating a BytesWritable with the bytes from
+     entity/namespace/feature */
+  @inline
+  def populateKey(f: Fact, bytes: BytesWritable) {
+    val b1 = f.entity.getBytes
+    val b2 = f.namespace.getBytes
+    val b3 = f.feature.getBytes
+    System.arraycopy(b1, 0, keyBytes, 0, b1.length)
+    System.arraycopy(b2, 0, keyBytes, b1.length, b2.length)
+    System.arraycopy(b3, 0, keyBytes, b1.length + b2.length, b3.length)
+    bytes.set(keyBytes, 0, b1.length + b2.length + b3.length)
+  }
 
   object Keys {
     val SnapshotDate = "ivory.snapdate"
@@ -124,10 +136,10 @@ object SnapshotJob {
  * The output key is a sting of entity|namespace|attribute
  *
  * The output value is expected (can not be typed checked because its all bytes) to be
- * a thrift serialized PrioritizedFactBytes object. This is a container that holds a
+ * a thrift serialized PriorityTag object. This is a container that holds a
  * factset priority and thrift serialized NamespacedFact object.
  */
-abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritable, Text, BytesWritable] {
+abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
 
   /* Context object holding dist cache paths */
   var ctx: MrContext = null
@@ -139,6 +151,9 @@ abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritab
   /* Empty instance to use when deserialising */
   val tfact = new ThriftFact
 
+  /* empty conainter class used to populate priority and serialized fact. This is mutated per record */
+  val container = new PriorityTag
+
   /* Snapshot date, see #setup. */
   var strDate: String = null
   var date: Date = Date.unsafeFromInt(0)
@@ -147,7 +162,7 @@ abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritab
   val lookup = new FactsetLookup
 
   /* The output key, only create once per mapper. */
-  val kout = new Text
+  val kout = new BytesWritable
 
   /* The output value, only create once per mapper. */
   val vout = new BytesWritable
@@ -161,7 +176,8 @@ abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritab
   /* Priority of the factset, only created once per record */
   var priority: Short = 0
 
-  override def setup(context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
+  override def setup(context: Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context): Unit = {
+    kout.setCapacity(4096)
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     strDate = context.getConfiguration.get(SnapshotJob.Keys.SnapshotDate)
     date = Date.fromInt(strDate.toInt).getOrElse(sys.error(s"Invalid snapshot date '${strDate}'"))
@@ -179,7 +195,7 @@ abstract class SnapshotFactseBaseMapper extends Mapper[NullWritable, BytesWritab
  * FactsetVersionOne mapper
  */
 class SnapshotFactsetVersionOneMapper extends SnapshotFactseBaseMapper {
-  override def map(key: NullWritable, value: BytesWritable, context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
+  override def map(key: NullWritable, value: BytesWritable, context: Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context): Unit = {
     deserializer.deserialize(tfact, value.getBytes)
 
     PartitionFactThriftStorageV1.parseFact(stringPath, tfact) match {
@@ -189,10 +205,13 @@ class SnapshotFactsetVersionOneMapper extends SnapshotFactseBaseMapper {
         if(f.date > date)
           context.getCounter("ivory", "snapshot.v1.skip").increment(1)
         else {
-          kout.set(SnapshotJob.outputKey(f))
+          SnapshotJob.populateKey(f, kout)
 
           val factbytes = serializer.serialize(f.toNamespacedThrift)
-          val v = serializer.serialize(new PrioritizedFactBytes(priority, ByteBuffer.wrap(factbytes)))
+          container.clear()
+          container.setPriority(priority)
+          container.setFactbytes(ByteBuffer.wrap(factbytes))
+          val v = serializer.serialize(container)
           vout.set(v, 0, v.length)
 
           context.write(kout, vout)
@@ -207,7 +226,7 @@ class SnapshotFactsetVersionOneMapper extends SnapshotFactseBaseMapper {
  * FactsetVersionTwo mapper
  */
 class SnapshotFactsetVersionTwoMapper extends SnapshotFactseBaseMapper {
-  override def map(key: NullWritable, value: BytesWritable, context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
+  override def map(key: NullWritable, value: BytesWritable, context: Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context): Unit = {
     deserializer.deserialize(tfact, value.getBytes)
 
     PartitionFactThriftStorageV2.parseFact(stringPath, tfact) match {
@@ -217,10 +236,13 @@ class SnapshotFactsetVersionTwoMapper extends SnapshotFactseBaseMapper {
         if(f.date > date)
           context.getCounter("ivory", "snapshot.v2.skip").increment(1)
         else {
-          kout.set(SnapshotJob.outputKey(f))
+          SnapshotJob.populateKey(f, kout)
 
           val factbytes = serializer.serialize(f.toNamespacedThrift)
-          val v = serializer.serialize(new PrioritizedFactBytes(priority, ByteBuffer.wrap(factbytes)))
+          container.clear()
+          container.setPriority(priority)
+          container.setFactbytes(ByteBuffer.wrap(factbytes))
+          val v = serializer.serialize(container)
           vout.set(v, 0, v.length)
 
           context.write(kout, vout)
@@ -234,7 +256,7 @@ class SnapshotFactsetVersionTwoMapper extends SnapshotFactseBaseMapper {
 /**
  * Incremental snapshot mapper.
  */
-class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Text, BytesWritable] {
+class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable] {
 
   /* Thrift serializer/deserializer. */
   val serializer = new TSerializer(new TCompactProtocol.Factory)
@@ -243,8 +265,11 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Text
   /* Empty instance to use when deserialising */
   val fact = new NamespacedThriftFact with NamespacedThriftFactDerived
 
+  /* empty conainter class used to populate priority and serialized fact. This is mutated per record */
+  val container = new PriorityTag
+
   /* The output key, only create once per mapper. */
-  val kout = new Text
+  val kout = new BytesWritable
 
   /* The output value, only create once per mapper. */
   val vout = new BytesWritable
@@ -252,8 +277,12 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Text
   /* Priority of the incremental is always Priority.Max */
   val priority = Priority.Max.toShort
 
-  override def map(key: NullWritable, value: BytesWritable, context: Mapper[NullWritable, BytesWritable, Text, BytesWritable]#Context): Unit = {
+  override def setup(context: Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context): Unit = {
+    kout.setCapacity(4096)
+    vout.setCapacity(4096)
+  }
 
+  override def map(key: NullWritable, value: BytesWritable, context: Mapper[NullWritable, BytesWritable, BytesWritable, BytesWritable]#Context): Unit = {
     context.getCounter("ivory", "snapshot.incr.ok").increment(1)
     
     val size = value.getLength
@@ -261,9 +290,12 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Text
     System.arraycopy(value.getBytes, 0, bytes, 0, size)
 
     deserializer.deserialize(fact, bytes)
-    kout.set(SnapshotJob.outputKey(fact))
+    SnapshotJob.populateKey(fact, kout)
 
-    val v = serializer.serialize(new PrioritizedFactBytes(priority, ByteBuffer.wrap(bytes)))
+    container.clear()
+    container.setPriority(priority)
+    container.setFactbytes(ByteBuffer.wrap(bytes))
+    val v = serializer.serialize(container)
     vout.set(v, 0, v.length)
 
     context.write(kout, vout)
@@ -280,13 +312,13 @@ class SnapshotIncrementalMapper extends Mapper[NullWritable, BytesWritable, Text
  *
  * The output is a sequence file, with no key, and the bytes of the serialized NamespacedFact.
  */
-class SnapshotReducer extends Reducer[Text, BytesWritable, NullWritable, BytesWritable] {
+class SnapshotReducer extends Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable] {
 
   /* Thrift deserializer. */
   val deserializer = new TDeserializer(new TCompactProtocol.Factory)
   
   /* empty conainter class used to populate deserialized values. This is mutated per record */
-  val container = new PrioritizedFactBytes
+  val container = new PriorityTag
 
   /* empty fact class used to populate deserialized facts. This is mutated per record */
   val fact = new NamespacedThriftFact with NamespacedThriftFactDerived
@@ -294,7 +326,11 @@ class SnapshotReducer extends Reducer[Text, BytesWritable, NullWritable, BytesWr
   /* The output value, only create once per mapper. */
   val vout = new BytesWritable
 
-  override def reduce(key: Text, iter: JIterable[BytesWritable], context: Reducer[Text, BytesWritable, NullWritable, BytesWritable]#Context): Unit = {
+  override def setup(context: Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable]#Context): Unit = {
+    vout.setCapacity(4096)
+  }
+
+  override def reduce(key: BytesWritable, iter: JIterable[BytesWritable], context: Reducer[BytesWritable, BytesWritable, NullWritable, BytesWritable]#Context): Unit = {
 
     /****************** !!!!!! WARNING !!!!!! ******************
      *
@@ -306,7 +342,7 @@ class SnapshotReducer extends Reducer[Text, BytesWritable, NullWritable, BytesWr
     val iterator = iter.iterator
 
     // use one object to hold state instead of three
-    var latestContainer: PrioritizedFactBytes = null
+    var latestContainer: PriorityTag = null
     var latestDate = 0l
     var isTombstone = true
     while (iterator.hasNext) {

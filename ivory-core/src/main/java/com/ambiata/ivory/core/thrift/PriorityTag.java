@@ -4,7 +4,7 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package com.ambiata.ivory.extract;
+package com.ambiata.ivory.core.thrift;
 
 import org.apache.thrift.scheme.IScheme;
 import org.apache.thrift.scheme.SchemeFactory;
@@ -32,16 +32,16 @@ import java.util.Arrays;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PrioritizedFactBytes implements org.apache.thrift.TBase<PrioritizedFactBytes, PrioritizedFactBytes._Fields>, java.io.Serializable, Cloneable, Comparable<PrioritizedFactBytes> {
-  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("PrioritizedFactBytes");
+public class PriorityTag implements org.apache.thrift.TBase<PriorityTag, PriorityTag._Fields>, java.io.Serializable, Cloneable, Comparable<PriorityTag> {
+  private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("PriorityTag");
 
   private static final org.apache.thrift.protocol.TField PRIORITY_FIELD_DESC = new org.apache.thrift.protocol.TField("priority", org.apache.thrift.protocol.TType.I16, (short)1);
   private static final org.apache.thrift.protocol.TField FACTBYTES_FIELD_DESC = new org.apache.thrift.protocol.TField("factbytes", org.apache.thrift.protocol.TType.STRING, (short)2);
 
   private static final Map<Class<? extends IScheme>, SchemeFactory> schemes = new HashMap<Class<? extends IScheme>, SchemeFactory>();
   static {
-    schemes.put(StandardScheme.class, new PrioritizedFactBytesStandardSchemeFactory());
-    schemes.put(TupleScheme.class, new PrioritizedFactBytesTupleSchemeFactory());
+    schemes.put(StandardScheme.class, new PriorityTagStandardSchemeFactory());
+    schemes.put(TupleScheme.class, new PriorityTagTupleSchemeFactory());
   }
 
   public short priority; // required
@@ -119,13 +119,13 @@ public class PrioritizedFactBytes implements org.apache.thrift.TBase<Prioritized
     tmpMap.put(_Fields.FACTBYTES, new org.apache.thrift.meta_data.FieldMetaData("factbytes", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING        , true)));
     metaDataMap = Collections.unmodifiableMap(tmpMap);
-    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(PrioritizedFactBytes.class, metaDataMap);
+    org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(PriorityTag.class, metaDataMap);
   }
 
-  public PrioritizedFactBytes() {
+  public PriorityTag() {
   }
 
-  public PrioritizedFactBytes(
+  public PriorityTag(
     short priority,
     ByteBuffer factbytes)
   {
@@ -138,7 +138,7 @@ public class PrioritizedFactBytes implements org.apache.thrift.TBase<Prioritized
   /**
    * Performs a deep copy on <i>other</i>.
    */
-  public PrioritizedFactBytes(PrioritizedFactBytes other) {
+  public PriorityTag(PriorityTag other) {
     __isset_bitfield = other.__isset_bitfield;
     this.priority = other.priority;
     if (other.isSetFactbytes()) {
@@ -147,8 +147,8 @@ public class PrioritizedFactBytes implements org.apache.thrift.TBase<Prioritized
     }
   }
 
-  public PrioritizedFactBytes deepCopy() {
-    return new PrioritizedFactBytes(this);
+  public PriorityTag deepCopy() {
+    return new PriorityTag(this);
   }
 
   @Override
@@ -162,7 +162,7 @@ public class PrioritizedFactBytes implements org.apache.thrift.TBase<Prioritized
     return this.priority;
   }
 
-  public PrioritizedFactBytes setPriority(short priority) {
+  public PriorityTag setPriority(short priority) {
     this.priority = priority;
     setPriorityIsSet(true);
     return this;
@@ -190,12 +190,12 @@ public class PrioritizedFactBytes implements org.apache.thrift.TBase<Prioritized
     return factbytes;
   }
 
-  public PrioritizedFactBytes setFactbytes(byte[] factbytes) {
+  public PriorityTag setFactbytes(byte[] factbytes) {
     setFactbytes(factbytes == null ? (ByteBuffer)null : ByteBuffer.wrap(factbytes));
     return this;
   }
 
-  public PrioritizedFactBytes setFactbytes(ByteBuffer factbytes) {
+  public PriorityTag setFactbytes(ByteBuffer factbytes) {
     this.factbytes = factbytes;
     return this;
   }
@@ -267,12 +267,12 @@ public class PrioritizedFactBytes implements org.apache.thrift.TBase<Prioritized
   public boolean equals(Object that) {
     if (that == null)
       return false;
-    if (that instanceof PrioritizedFactBytes)
-      return this.equals((PrioritizedFactBytes)that);
+    if (that instanceof PriorityTag)
+      return this.equals((PriorityTag)that);
     return false;
   }
 
-  public boolean equals(PrioritizedFactBytes that) {
+  public boolean equals(PriorityTag that) {
     if (that == null)
       return false;
 
@@ -303,7 +303,7 @@ public class PrioritizedFactBytes implements org.apache.thrift.TBase<Prioritized
   }
 
   @Override
-  public int compareTo(PrioritizedFactBytes other) {
+  public int compareTo(PriorityTag other) {
     if (!getClass().equals(other.getClass())) {
       return getClass().getName().compareTo(other.getClass().getName());
     }
@@ -347,7 +347,7 @@ public class PrioritizedFactBytes implements org.apache.thrift.TBase<Prioritized
 
   @Override
   public String toString() {
-    StringBuilder sb = new StringBuilder("PrioritizedFactBytes(");
+    StringBuilder sb = new StringBuilder("PriorityTag(");
     boolean first = true;
 
     sb.append("priority:");
@@ -388,15 +388,15 @@ public class PrioritizedFactBytes implements org.apache.thrift.TBase<Prioritized
     }
   }
 
-  private static class PrioritizedFactBytesStandardSchemeFactory implements SchemeFactory {
-    public PrioritizedFactBytesStandardScheme getScheme() {
-      return new PrioritizedFactBytesStandardScheme();
+  private static class PriorityTagStandardSchemeFactory implements SchemeFactory {
+    public PriorityTagStandardScheme getScheme() {
+      return new PriorityTagStandardScheme();
     }
   }
 
-  private static class PrioritizedFactBytesStandardScheme extends StandardScheme<PrioritizedFactBytes> {
+  private static class PriorityTagStandardScheme extends StandardScheme<PriorityTag> {
 
-    public void read(org.apache.thrift.protocol.TProtocol iprot, PrioritizedFactBytes struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol iprot, PriorityTag struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TField schemeField;
       iprot.readStructBegin();
       while (true)
@@ -433,7 +433,7 @@ public class PrioritizedFactBytes implements org.apache.thrift.TBase<Prioritized
       struct.validate();
     }
 
-    public void write(org.apache.thrift.protocol.TProtocol oprot, PrioritizedFactBytes struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol oprot, PriorityTag struct) throws org.apache.thrift.TException {
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
@@ -451,16 +451,16 @@ public class PrioritizedFactBytes implements org.apache.thrift.TBase<Prioritized
 
   }
 
-  private static class PrioritizedFactBytesTupleSchemeFactory implements SchemeFactory {
-    public PrioritizedFactBytesTupleScheme getScheme() {
-      return new PrioritizedFactBytesTupleScheme();
+  private static class PriorityTagTupleSchemeFactory implements SchemeFactory {
+    public PriorityTagTupleScheme getScheme() {
+      return new PriorityTagTupleScheme();
     }
   }
 
-  private static class PrioritizedFactBytesTupleScheme extends TupleScheme<PrioritizedFactBytes> {
+  private static class PriorityTagTupleScheme extends TupleScheme<PriorityTag> {
 
     @Override
-    public void write(org.apache.thrift.protocol.TProtocol prot, PrioritizedFactBytes struct) throws org.apache.thrift.TException {
+    public void write(org.apache.thrift.protocol.TProtocol prot, PriorityTag struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       BitSet optionals = new BitSet();
       if (struct.isSetPriority()) {
@@ -479,7 +479,7 @@ public class PrioritizedFactBytes implements org.apache.thrift.TBase<Prioritized
     }
 
     @Override
-    public void read(org.apache.thrift.protocol.TProtocol prot, PrioritizedFactBytes struct) throws org.apache.thrift.TException {
+    public void read(org.apache.thrift.protocol.TProtocol prot, PriorityTag struct) throws org.apache.thrift.TException {
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(2);
       if (incoming.get(0)) {

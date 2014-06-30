@@ -23,3 +23,8 @@ struct NamespacedThriftFact {
     2: string nspace;
     3: i32 yyyyMMdd; // this is a packed int, with a the first 16 bits representing the year, the next 8 the month and the final 8 the day
 }
+
+struct PriorityTag {
+    1: i16 priority;
+    2: binary factbytes;
+}
