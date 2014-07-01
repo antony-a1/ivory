@@ -71,47 +71,62 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
 
       HdfsSnapshot.readFacts(repo, store, latestDate, incremental).map { input =>
 
-        val mappings: DObject[Mappings] = lazyObject(Chord.deserialiseChords(chordPath).run(sc).run.unsafePerformIO() match {
-          case Ok(m)    => m
-          case Error(e) => sys.error("Can not deserialise chord map - " + Result.asString(e))
-        })
-
         // filter out the facts which are not in the entityMap or
         // which date are greater than the required dates for this entity
-        val facts: DList[(Priority, Fact)] = (mappings join input.map({
+        val facts: DList[(Priority, Fact)] = input.map({
           case -\/(e) => sys.error("A critical error has occured, where we could not determine priority and namespace from partitioning: " + e)
           case \/-(v) => v
-        })).collect({
-          case (map, (p, _, f)) if(DateMap.keep(map, f.entity, f.date.year, f.date.month, f.date.day)) => (p, f)
+        }).parallelDo(new DoFn[(Priority, Factset, Fact), (Priority, Fact)] {
+          var mappings: Mappings = null
+          override def setup() {
+            mappings = Chord.getMappings(chordPath)
+          }
+          override def process(input: (Priority, Factset, Fact), emitter: Emitter[(Priority, Fact)]) {
+            input match { case (p, _, f) =>
+              if(DateMap.keep(mappings, f.entity, f.date.year, f.date.month, f.date.day)) emitter.emit((p, f))
+            }
+          }
+          override def cleanup(emitter: Emitter[(Priority, Fact)]) { }
         })
 
         /**
          * 1. group by entity and feature id
          * 2. for a given entity and feature id, get the latest facts, with the lowest priority
          */
-        val grp = facts.groupBy { case (p, f) => (f.entity, f.featureId.toString) }
         val latest: DList[(Priority, Fact)] =
-          (mappings join grp).mapFlatten { case (map, ((entityId, featureId), fs)) =>
-              // the required dates
-              val dates = map.get(entityId)
+          facts
+            .groupBy { case (p, f) => (f.entity, f.featureId.toString) }
+            .parallelDo(new DoFn[((String, String), Iterable[(Priority, Fact)]), (Priority, Fact)] {
+              var mappings: Mappings = null
+              override def setup() {
+                mappings = Chord.getMappings(chordPath)
+              }
+              override def process(input: ((String, String), Iterable[(Priority, Fact)]), emitter: Emitter[(Priority, Fact)]) {
+                input match { case ((entityId, featureId), fs) =>
+                  // the required dates
+                  val dates = mappings.get(entityId)
 
-              // we traverse all facts and for each required date
-              // we keep the "best" fact which date is just before that date
-              fs.foldLeft(dates.map((_, Priority.Min, None)): Array[(Int, Priority, Option[Fact])]) { case (ds, (priority, fact)) =>
-                val factDate = fact.date.int
-                ds.map {
-                  case previous @ (date, p, None)    =>
-                    // we found a first suitable fact for that date
-                    if (factDate <= date) (date, priority, Some(fact))
-                    else                  previous
+                  // we traverse all facts and for each required date
+                  // we keep the "best" fact which date is just before that date
+                  fs.foldLeft(dates.map((_, Priority.Min, None)): Array[(Int, Priority, Option[Fact])]) { case (ds, (priority, fact)) =>
+                    val factDate = fact.date.int
+                    ds.map {
+                      case previous @ (date, p, None)    =>
+                        // we found a first suitable fact for that date
+                        if (factDate <= date) (date, priority, Some(fact))
+                        else                  previous
 
-                  case previous @ (date, p, Some(f)) =>
-                    // we found a fact with a better time, or better priority if there is a tie
-                    if (factDate <= date && (fact, priority) < ((f, p))) (date, priority, Some(fact))
-                    else                                               previous
+                      case previous @ (date, p, Some(f)) =>
+                        // we found a fact with a better time, or better priority if there is a tie
+                        if (factDate <= date && (fact, priority) < ((f, p))) (date, priority, Some(fact))
+                        else                                                 previous
+                    }
+                  }.collect({ case (d, p, Some(f)) => (p, f.withEntity(f.entity + ":" + Date.unsafeFromInt(d).hyphenated)) })
+                   .foreach({ case (p, f) => if(!f.isTombstone) emitter.emit((p, f)) })
                 }
-              }.collect { case (d, p, Some(f)) => (p, f.withEntity(f.entity + ":" + Date.unsafeFromInt(d).hyphenated)) }.toIterable
-            }.collect { case (p, f) if !f.isTombstone => (p, f) }
+              }
+              override def cleanup(emitter: Emitter[(Priority, Fact)]) { }
+            })
 
         val validated: DList[Fact] = latest.map({ case (p, f) =>
           Validate.validateFact(f, dict).disjunction.leftMap(e => e + " - Factset " + factsetMap.get(p).getOrElse("Unknown, priority " + p))
@@ -168,4 +183,10 @@ object Chord {
   def readChords(path: Path): Hdfs[HashMap[String, Array[Int]]] = for {
     chords <- Hdfs.readWith(path, is => Streams.read(is))
   } yield DateMap.chords(chords)
+
+  def getMappings(chordPath: Path)(implicit sc: ScoobiConfiguration): HashMap[String, Array[Int]] =
+    deserialiseChords(chordPath).run(sc).run.unsafePerformIO() match {
+      case Ok(m)    => m
+      case Error(e) => sys.error("Can not deserialise chord map - " + Result.asString(e))
+    }
 }
