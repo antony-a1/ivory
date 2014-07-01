@@ -19,7 +19,7 @@ object FactsetGlob {
   def select(repository: Repository, factset: Factset): ResultT[IO, List[Partition]] = for {
     paths <- repository.toStore.list(Repository.factset(factset) </> "/*/*/*/*")
     parts <- paths.traverseU(path => ResultT.fromDisjunction[IO, Partition](Partition.parseWith((repository.root </> path).path).disjunction.leftMap(This.apply)))
-  } yield parts
+  } yield parts.distinct
 
   def before(repository: Repository, factset: Factset, to: Date): ResultT[IO, List[Partition]] =
     select(repository, factset).map(_.filter(_.date.isBeforeOrEqual(to)))
