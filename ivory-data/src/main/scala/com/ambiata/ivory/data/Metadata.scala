@@ -24,14 +24,8 @@ case class StoreMetadata(store: Store[ResultTIO]) extends Metadata[ResultTIO] {
   val meta = "meta".toFilePath
   val stage = "stage".toFilePath
 
-  def put(key: Key, value: ByteVector): ResultT[IO, Identifier] = {
-    val uuid = java.util.UUID.randomUUID.toString
-    for {
-      _ <- store.bytes.write(stage </> key.render </> uuid, value)
-      i <- store.list(data </> key.render).map(_.map(x => Identifier.parse(x.relativeTo(data </> key.render).path)).flatten.sorted.lastOption.flatMap(_.next).getOrElse(Identifier.initial))
-      _ <- store.move(stage </> key.render </> uuid, data </> key.render </> i.render)
-    } yield i
-  }
+  def put(key: Key, value: ByteVector): ResultT[IO, Identifier] =
+     IdentifierStorage.put(value)(store, data </> key.render).map(_._1)
 
   def get(identifier: Identifier, key: Key): ResultT[IO, ByteVector] =
     store.bytes.read(data </> key.render </> identifier.render)
