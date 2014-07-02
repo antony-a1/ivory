@@ -34,7 +34,7 @@ repos for individuals to cook up their own features:
 
 * improve performance of snapshots as of "now"
 * steps:
-  1. generate a snaphsot using the traditional approach
+  1. generate a snapshot using the traditional approach
   2. store the snapshot as a fact set in another repo, the "snapshot" repo
   3. in the "snapshot repo" create a feature store that includes the snapshot fact set and all fact sets
   added since the first snapshot
@@ -61,7 +61,7 @@ Generalising the idea of versioning
 One of the core ideas of Ivory is that it is an immutable *database* of facts. Immutable views or *versions* of
 the database are constructed by combining a specific feature store and dictionary together. All queries, then,
 should be with respect to a particular *version*. Whilst the design of ivory allows for the notion of versions,
-it is currently not a first class citizen. Furthermore, it were to be made a first class citizen, the mechansim
+it is currently not a first class citizen. Furthermore, it were to be made a first class citizen, the mechanism
 for dealing with remote repos may fall out more naturally.
 
 There are a number of *objects* in our data model that should be versioned:
@@ -73,9 +73,9 @@ There are a number of *objects* in our data model that should be versioned:
 
 It may be worth borrowing ideas from Git on how this is designed. For example:
 
-* Version identifers are hashes of their content. For fact sets we could use CRCs associated with the data.
+* Version identifiers are hashes of their content. For fact sets we could use CRCs associated with the data.
 * Have human-readable references to identifiers, i.e. *branches* and *tags*.
 * The concept of branches is interesting in that it suggests a lineage between different versions. Given the
-changes to dictionaries and feature store are typcially incremental in nature, the idea of a version being
+changes to dictionaries and feature store are typically incremental in nature, the idea of a version being
 a delta applied to a *parent* version may be worth while.
 * This all, of course, plays in to the *remote* concept. That is, remote fact sets can be referenced by version.

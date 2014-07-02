@@ -18,9 +18,7 @@ import scalaz.{DList => _, _}, Scalaz._
 
 object ingestBulk extends IvoryApp {
 
-  val tombstone = List("☠")
-
-  case class CliArguments(repo: String, dictionary: Option[String], input: String, tmp: String, timezone: DateTimeZone, optimal: Long, codec: Option[CompressionCodec])
+  case class CliArguments(repo: String, dictionary: Option[String], input: String, timezone: DateTimeZone, optimal: Long, codec: Option[CompressionCodec])
 
   val parser = new scopt.OptionParser[CliArguments]("ingest-bulk") {
     head("""
@@ -34,7 +32,6 @@ object ingestBulk extends IvoryApp {
     opt[Unit]('n', "no-compression")         action { (_, c) => c.copy(codec = None) }    text "Don't use compression."
 
     opt[String]('r', "repo")                 action { (x, c) => c.copy(repo = x) }       required() text "Path to an ivory repository."
-    opt[String]('t', "tmp")                  action { (x, c) => c.copy(tmp = x) }        required() text "Path to store tmp data."
     opt[String]('i', "input")                action { (x, c) => c.copy(input = x) }      required() text "Path to data to import."
     opt[Long]('o', "optimal-input-chunk")    action { (x, c) => c.copy(optimal = x) }      text "Optimal size (in bytes) of input chunk.."
     opt[String]('d', "dictionary")           action { (x, c) => c.copy(dictionary = Some(x)) }      text "Name of dictionary to use."
@@ -47,21 +44,21 @@ object ingestBulk extends IvoryApp {
   type Parts = String
 
   def cmd = IvoryCmd[CliArguments](parser,
-      CliArguments("", None, "", "", DateTimeZone.getDefault, 1024 * 1024 * 256 /* 256MB */, Some(new SnappyCodec)),
+      CliArguments("", None, "", DateTimeZone.getDefault, 1024 * 1024 * 256 /* 256MB */, Some(new SnappyCodec)),
       ScoobiCmd(configuration => c => {
-      val res = onHdfs(new Path(c.repo), c.dictionary, new Path(c.input), tombstone, new Path(c.tmp), c.timezone, c.optimal, c.codec)
+      val res = onHdfs(new Path(c.repo), c.dictionary, new Path(c.input), c.timezone, c.optimal, c.codec)
       res.run(configuration).map {
         case f => List(s"Successfully imported '${c.input}' as ${f} into '${c.repo}'")
       }
     }))
 
-  def onHdfs(repo: Path, dictionary: Option[String], input: Path, tombstone: List[String], tmp: Path, timezone: DateTimeZone, optimal: Long, codec: Option[CompressionCodec]): ScoobiAction[Factset] =
-    fatrepo.ImportWorkflow.onHdfs(repo, dictionary.map(defaultDictionaryImport(_)), importFeed(input, optimal, codec), tombstone, tmp, timezone)
+  def onHdfs(repo: Path, dictionary: Option[String], input: Path, timezone: DateTimeZone, optimal: Long, codec: Option[CompressionCodec]): ScoobiAction[Factset] =
+    fatrepo.ImportWorkflow.onHdfs(repo, dictionary.map(defaultDictionaryImport(_)), importFeed(input, optimal, codec), timezone)
 
-  def defaultDictionaryImport(dictionary: String)(repo: HdfsRepository, name: String, tombstone: List[String], tmpPath: Path): Hdfs[Unit] =
+  def defaultDictionaryImport(dictionary: String)(repo: HdfsRepository, name: String): Hdfs[Unit] =
     DictionaryImporter.onHdfs(repo.root.toHdfs, repo.dictionaryByName(dictionary).toHdfs, name)
 
-  def importFeed(input: Path, optimal: Long, codec: Option[CompressionCodec])(repo: HdfsRepository, factset: Factset, dname: String, tmpPath: Path, errorPath: Path, timezone: DateTimeZone): ScoobiAction[Unit] = for {
+  def importFeed(input: Path, optimal: Long, codec: Option[CompressionCodec])(repo: HdfsRepository, factset: Factset, dname: String, errorPath: Path, timezone: DateTimeZone): ScoobiAction[Unit] = for {
     dict <- ScoobiAction.fromHdfs(IvoryStorage.dictionaryFromIvory(repo, dname))
     list <- listing(input)
     conf <- ScoobiAction.scoobiConfiguration

@@ -48,7 +48,7 @@ object IngestJob {
     job.setMapOutputKeyClass(classOf[LongWritable]);
     job.setMapOutputValueClass(classOf[BytesWritable]);
 
-    /* partiton & sort */
+    /* partition & sort */
     job.setPartitionerClass(classOf[IngestPartitioner])
     job.setGroupingComparatorClass(classOf[LongWritable.Comparator])
     job.setSortComparatorClass(classOf[LongWritable.Comparator])
@@ -122,8 +122,8 @@ object IngestJob {
 /**
  * Partitioner for ivory-ingest.
  *
- * Keys are partitioned by the extrnalized feature id (held in the top 32 bits of the key)
- * into pre-determined buckets. We use the predtermined buckets as upfront knowledge of
+ * Keys are partitioned by the externalized feature id (held in the top 32 bits of the key)
+ * into predetermined buckets. We use the predetermined buckets as upfront knowledge of
  * the input size is used to reduce skew on input data.
  */
 class IngestPartitioner extends Partitioner[LongWritable, BytesWritable] with Configurable {
