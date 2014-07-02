@@ -8,8 +8,6 @@ import com.ambiata.mundane.parse._
 
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.alien.hdfs._
-import com.ambiata.ivory.alien.hdfs.HdfsS3Action._
-import com.ambiata.saws.s3.S3
 
 object DictionaryTextStorage {
 
@@ -21,13 +19,6 @@ object DictionaryTextStorage {
   case class DictionaryTextStorer(path: Path, delim: Char = '|') extends IvoryStorer[Dictionary, Hdfs[Unit]] {
     def store(dict: Dictionary): Hdfs[Unit] =
       Hdfs.writeWith(path, os => Streams.write(os, delimitedDictionaryString(dict, delim)))
-  }
-
-  case class DictionaryTextStorerS3(bucket: String, key: String, delim: Char = '|') {
-    def store(dict: Dictionary): HdfsS3Action[Unit] = for {
-      _ <- HdfsS3Action.fromHdfs(Hdfs.writeWith(new Path(key), os => Streams.write(os, delimitedDictionaryString(dict, delim))))
-      a <- HdfsS3.putPaths(bucket, key, new Path(key))
-    } yield a
   }
 
   def dictionaryFromHdfs(path: Path): Hdfs[Dictionary] =
