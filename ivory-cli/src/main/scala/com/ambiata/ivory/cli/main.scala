@@ -11,6 +11,7 @@ import scalaz.effect._
 object main {
 
   val commands: List[IvoryApp] = List(
+    catDictionary,
     catErrors,
     catFacts,
     catRepositoryFacts,
