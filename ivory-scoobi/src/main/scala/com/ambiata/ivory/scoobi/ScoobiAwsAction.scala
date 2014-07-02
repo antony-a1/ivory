@@ -60,7 +60,7 @@ object ScoobiS3Action extends ActionTSupport[IO, Vector[AwsLog], (ScoobiConfigur
     scoobiConfiguration.map(f)
 
   def configuration: ScoobiAwsAction[Configuration, AmazonS3Client] =
-  fromHdfs(Hdfs.configuration)
+    fromHdfs(Hdfs.configuration)
 
   def fromScoobiAction[A](action: ScoobiAction[A]): ScoobiAwsAction[A, AmazonS3Client] =
     ScoobiAwsAction(ActionT((c: Config) => ActionT.fromResultT[IO, Vector[AwsLog], Config, A](action.run(c._1)).runT(c)))
