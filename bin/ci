@@ -4,9 +4,4 @@ HADOOP_VERSION=cdh5; export HADOOP_VERSION
 
 JVM_OPTS="-Dfile.encoding=UTF8 -XX:MaxPermSize=512m -Xms512m -Xmx2g -XX:+CMSClassUnloadingEnabled -XX:+UseConcMarkSweepGC"; export JVM_OPTS
 
-IVORY_PUBLISH=""
-if [ "$1" = "--publish" ]; then
-  IVORY_PUBLISH="publish; project cli; set credentials := Seq(Credentials(realm=\"Amazon S3\", host=\"ambiata-dist.s3.amazonaws.com\", userName=\"$AWS_ACCESS_KEY\", passwd=\"$AWS_SECRET_KEY\")); s3Upload; "
-fi
-
-./sbt -Dsbt.log.noformat=true "; clean; update; test-only -- console junitxml html; $IVORY_PUBLISH project ivory; echo-version"
+./sbt -Dsbt.log.noformat=true "; clean; update; test-only -- console junitxml html; project ivory; echo-version"
