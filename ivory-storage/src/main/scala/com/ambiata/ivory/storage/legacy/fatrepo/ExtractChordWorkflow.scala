@@ -14,18 +14,16 @@ import com.ambiata.mundane.io._
 object ExtractChordWorkflow {
 
   type FeatureStoreName = String
-  type DictionaryName = String
-  type Extractor = (HdfsRepository, FeatureStoreName, DictionaryName) => ScoobiAction[Unit]
+  type Extractor = (HdfsRepository, FeatureStoreName) => ScoobiAction[Unit]
 
   private implicit val logger = LogFactory.getLog("ivory.repository.fatrepo.ExtractChordWorkflow")
 
-  def onHdfs(repoPath: Path, extractor: Extractor): ScoobiAction[(String, String)] = {
+  def onHdfs(repoPath: Path, extractor: Extractor): ScoobiAction[String] = {
      for {
       repo  <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
       store <- ScoobiAction.fromHdfs(ExtractLatestWorkflow.latestStore(repo))
-      dname <- ScoobiAction.fromHdfs(ExtractLatestWorkflow.latestDictionary(repo))
-      _      = logger.info(s"Running extractor on '${repo.root.path}' repo, '${store}' store, '${dname}' dictionary'")
-      _     <- extractor(repo, store, dname)
-    } yield (store, dname)
+      _      = logger.info(s"Running extractor on '${repo.root.path}' repo, '${store}' store")
+      _     <- extractor(repo, store)
+    } yield store
   }
 }

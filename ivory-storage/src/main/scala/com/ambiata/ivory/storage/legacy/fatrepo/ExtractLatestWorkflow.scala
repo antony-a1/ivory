@@ -19,26 +19,24 @@ import com.ambiata.mundane.io._
  * This workflow is designed to extract the latest features from a feature store
  *
  * Steps:
- * 1. Find the latest version of a feature store and dictionary.
- *    - This will get a listing of all feature stores and dictionaries, ordering them by name, and taking the last (latest)
+ * 1. Find the latest version of a feature store.
+ *    - This will get a listing of all feature stores, ordering them by name, and taking the last (latest)
  * 2. Extract the most recent version of every feature for every entity.
- *    - Run snapshot app with discovered store and dictionary
+ *    - Run snapshot app with discovered store
  *    - Store in sparse row thrift format
  */
 object ExtractLatestWorkflow {
 
   type FeatureStoreName = String
-  type DictionaryName = String
   type Incremental = Option[(Path, SnapshotMeta)]
-  type Extractor = (HdfsRepository, FeatureStoreName, DictionaryName, Date, Path, Incremental) => ScoobiAction[Unit]
+  type Extractor = (HdfsRepository, FeatureStoreName, Date, Path, Incremental) => ScoobiAction[Unit]
 
   private implicit val logger = LogFactory.getLog("ivory.repository.fatrepo.ExtractLatestWorkflow")
 
-  def onHdfs(repoPath: Path, extractor: Extractor, date: Date, incremental: Boolean): ScoobiAction[(String, String, Path)] = {
+  def onHdfs(repoPath: Path, extractor: Extractor, date: Date, incremental: Boolean): ScoobiAction[(String, Path)] = {
     for {
       repo   <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
       sname  <- ScoobiAction.fromHdfs(latestStore(repo))
-      dname  <- ScoobiAction.fromHdfs(latestDictionary(repo))
       incr   <- ScoobiAction.fromHdfs(if(incremental) SnapshotMeta.latest(repo.snapshots.toHdfs, date) else Hdfs.ok(None))
       snap   <- ScoobiAction.fromHdfs(decideSnapshot(repo, date, sname, incr))
       (skip, output) = snap
@@ -51,15 +49,14 @@ object ExtractLatestWorkflow {
                                  |
                                  | Repository     : ${repo.root.path}
                                  | Feature Store  : ${sname}
-                                 | Dictionary     : ${dname}
                                  | Date           : ${date.hyphenated}
                                  | Output         : ${output}
                                  | Incremental    : ${incr}
                                  |
                                  """.stripMargin)
-                  extractor(repo, sname, dname, date, output, incr)
+                  extractor(repo, sname, date, output, incr)
                 }
-    } yield (sname, dname, output)
+    } yield (sname, output)
   }
 
   def decideSnapshot(repo: HdfsRepository, date: Date, storeName: String, incr: Option[(Path, SnapshotMeta)]): Hdfs[(Boolean, Path)] =
@@ -77,13 +74,6 @@ object ExtractLatestWorkflow {
     _          = logger.info(s"Latest feature store is '${latest}'")
   } yield latest
 
-  def latestDictionary(repo: HdfsRepository): Hdfs[String] = for {
-    _         <- Hdfs.value(logger.info(s"Finding latest dictionary in the '${repo.root.path}' repository."))
-    latestOpt <- latest(repo.dictionaries.toHdfs)
-    latest    <- latestOpt.map(Hdfs.ok(_)).getOrElse(Hdfs.fail(s"There are no dictionaries'"))
-    _          = logger.info(s"Latest dictionary is '${latest}'")
-  } yield latest
-
   def latest(path: Path): Hdfs[Option[String]] =
     Hdfs.globPaths(path).map(_.map(_.getName).sorted(SOrdering[String].reverse).headOption)
 
@@ -95,6 +85,7 @@ object ExtractLatestWorkflow {
     _ <- Hdfs.value(logger.info(s"Finding snapshot output dir in '${repo.root.path}' repository."))
     l <- latestIdentifier(repo.snapshots.toHdfs)
     _  = logger.info(s"Latest snapshot output id is '${l}'")
+    // TODO Use IdentifierUtil if/when we have directories and move
     r <- Hdfs.mkdirWithRetry(new Path(repo.snapshots.toHdfs, l.getOrElse(Identifier.initial).render), prev => Identifier.parse(prev).flatMap(_.next.map(_.render)))
     p <- r.map(Hdfs.value).getOrElse(Hdfs.fail(s"Can not create output dir under ${repo.snapshots}"))
     _  = logger.info(s"New snapshot output dir is '${p}'")

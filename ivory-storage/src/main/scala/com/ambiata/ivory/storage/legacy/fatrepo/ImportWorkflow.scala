@@ -13,35 +13,30 @@ import com.ambiata.ivory.scoobi.ScoobiAction
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
+import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
 
 /**
- * This workflow is designed to import dictionaries and features into an fat ivory repository,
+ * This workflow is designed to import features into an fat ivory repository,
  * one which contains all facts over all of time.
  *
  * Steps:
  * 1. Create empty repository if one doesn't exist
- * 2. Import dictionary:
- *    - Import the new dictionary, overwriting any existing files which clash.
- *    - Use todays date (yyyy-MM-dd) as the identifier for the new dictionaries
- * 3. Create an empty fact set to import the data feeds into
- * 4. Import the feeds into the fact set
- * 5. Create a new feature store:
+ * 2. Create an empty fact set to import the data feeds into
+ * 3. Import the feeds into the fact set
+ * 4. Create a new feature store:
  *    - Find the latest feature store
  *    - Create a new feature store containing the newly created fact set, and all the fact sets from the latest feature store
  *    - Use the previous feature store + 1 as the name of the new feature store
  */
 object ImportWorkflow {
 
-  type DictionaryName = String
-  type DictionaryPath = Path
   type ErrorPath = Path
-  type ImportDictFunc = (HdfsRepository, DictionaryName) => Hdfs[Unit]
-  type ImportFactsFunc = (HdfsRepository, Factset, DictionaryName, ErrorPath, DateTimeZone) => ScoobiAction[Unit]
+  type ImportFactsFunc = (HdfsRepository, Factset, ErrorPath, DateTimeZone) => ScoobiAction[Unit]
 
   private implicit val logger = LogFactory.getLog("ivory.repository.fatrepo.Import")
 
-  def onHdfs(repoPath: Path, importDict: Option[ImportDictFunc], importFacts: ImportFactsFunc, timezone: DateTimeZone): ScoobiAction[Factset] = {
+  def onHdfs(repoPath: Path, importFacts: ImportFactsFunc, timezone: DateTimeZone): ScoobiAction[Factset] = {
     val start = System.currentTimeMillis
     for {
       sc       <- ScoobiAction.scoobiConfiguration
@@ -52,20 +47,13 @@ object ImportWorkflow {
         println(s"created repository in ${x - start}ms")
         x
       }
-      dname    <- ScoobiAction.fromHdfs(importDictionary(repo, importDict)
-)
-      t2 = {
-        val x = System.currentTimeMillis
-        println(s"imported dictionary in ${x - t1}ms")
-        x
-      }
       factset  <- ScoobiAction.fromHdfs(createFactSet(repo))
       t3 = {
         val x = System.currentTimeMillis
-        println(s"created fact set in ${x - t2}ms")
+        println(s"created fact set in ${x - t1}ms")
         x
       }
-      _        <- importFacts(repo, factset, dname, new Path(repo.errors.path, factset.name), timezone)
+      _        <- importFacts(repo, factset, new Path(repo.errors.path, factset.name), timezone)
       t4 = {
         val x = System.currentTimeMillis
         println(s"imported fact set in ${x - t3}ms")
@@ -92,38 +80,6 @@ object ImportWorkflow {
       logger.info(s"Repository already exists at '${repo.root.path}', not creating a new one")
       Hdfs.ok(())
     }
-  } yield ()
-
-  def importDictionary(repo: HdfsRepository, importer: Option[ImportDictFunc]): Hdfs[String] = importer match {
-    case None =>
-      Hdfs.globPaths(repo.dictionaries.toHdfs, "*").map(dicts =>
-        dicts
-          .map(_.getName)
-          .filter(_.matches("""\d{4}-\d{2}-\d{2}"""))
-          .map(DateTimeFormat.forPattern("yyyy-MM-dd").parseLocalDate)
-          .sortBy(d => (d.getYear, d.getMonthOfYear, d.getDayOfMonth)).last.toString("yyyy-MM-dd")
-      )
-    case Some(importDict) => {
-      val name = (new LocalDate()).toString("yyyy-MM-dd")
-      logger.info(s"Importing dictionary under the name '${name}'")
-      for {
-        e <- Hdfs.exists(repo.dictionaryByName(name).toHdfs)
-        _ <- if(!e) copyLatestDictionary(repo, name) else Hdfs.ok(())
-        _ <- importDict(repo, name)
-        _  = logger.info(s"Successfully imported dictionary '${name}'")
-      } yield name
-    }
-  }
-
-  def copyLatestDictionary(repo: HdfsRepository, name: String): Hdfs[Unit] = for {
-    _         <- Hdfs.value(logger.debug(s"Going to copy the latest dictionary to '${name}'"))
-    dictPaths <- Hdfs.globPaths(repo.dictionaries.toHdfs)
-    latest     = dictPaths.sortBy(_.getName)(SOrdering[String].reverse).headOption
-    _         <- latest.traverse(l => {
-                   val dest = repo.dictionaryByName(name).toHdfs
-                   logger.debug(s"Copying dictionary '${l}' to '${dest}'")
-                   Hdfs.cp(l, dest, false)
-                 })
   } yield ()
 
   def createFactSet(repo: HdfsRepository): Hdfs[Factset] = for {

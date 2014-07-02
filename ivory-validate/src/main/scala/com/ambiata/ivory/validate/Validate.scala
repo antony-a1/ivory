@@ -100,16 +100,16 @@ case class ValidateFactSetHdfs(repo: HdfsRepository, factset: Factset, dict: Dic
 
 object Validate {
 
-  def validateHdfsStore(repoPath: Path, store: String, dict: String, output: Path, includeOverridden: Boolean): ScoobiAction[Long] = for {
+  def validateHdfsStore(repoPath: Path, store: String, output: Path, includeOverridden: Boolean): ScoobiAction[Long] = for {
     r <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
-    d <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dict))
+    d <- ScoobiAction.fromResultTIO(dictionaryFromIvory(r))
     s <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
     c <- ValidateStoreHdfs(r, s, d, includeOverridden).exec(output)
   } yield c
 
-  def validateHdfsFactSet(repoPath: Path, factset: Factset, dict: String, output: Path): ScoobiAction[Long] = for {
+  def validateHdfsFactSet(repoPath: Path, factset: Factset, output: Path): ScoobiAction[Long] = for {
     r <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
-    d <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dict))
+    d <- ScoobiAction.fromResultTIO(dictionaryFromIvory(r))
     c <- ValidateFactSetHdfs(r, factset, d).exec(output)
   } yield c
 

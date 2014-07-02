@@ -135,6 +135,7 @@ object build extends Build {
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.joda ++ depend.specs2 ++ depend.scoobi(version.value) ++ depend.saws)
   )
   .dependsOn(core, storage, alien_hdfs, scoobi, mr)
+  .dependsOn(storage % "test->test") // Only required for DirIO
 
   lazy val mr = Project(
     id = "mr"
@@ -162,6 +163,7 @@ object build extends Build {
     ) ++ Seq[Settings](libraryDependencies ++= depend.scalaz ++ depend.scoobi(version.value) ++ depend.saws)
   )
   .dependsOn(core, data, scoobi, alien_hdfs, core % "test->test")
+  .dependsOn(data % "test->test") // Only required for DirIO
 
   lazy val validate = Project(
     id = "validate"

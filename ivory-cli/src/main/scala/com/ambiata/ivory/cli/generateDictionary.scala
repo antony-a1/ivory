@@ -1,7 +1,6 @@
 package com.ambiata.ivory.cli
 
 import scalaz._, Scalaz._
-import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.parse._
 import com.ambiata.mundane.control._
@@ -36,8 +35,8 @@ object generateDictionary extends IvoryApp {
     })
 
   def generate(namespaces: Int, features: Int, dictPath: Path, flagsPath: Path): Hdfs[Unit] = for {
-    _    <- GenerateDictionary.onHdfs(namespaces, features, dictPath)
-    dict <- DictionaryTextStorage.dictionaryFromHdfs(dictPath).mapErrorString(e => s"Generated dictionary could not be read! $e")
+    dict <- GenerateDictionary.onHdfs(namespaces, features)
+    _    <- Hdfs.writeWith(dictPath, Streams.write(_, DictionaryTextStorage.delimitedDictionaryString(dict, '|')))
     _    <- GenerateFeatureFlags.onHdfs(dict, flagsPath)
   } yield ()
 }

@@ -15,11 +15,10 @@ object GenerateDictionary {
   type Nel[A] = NonEmptyList[A]
   import Rng._
 
-  def onHdfs(namespaces: Int, features: Int, output: Path): Hdfs[Unit] = for {
+  def onHdfs(namespaces: Int, features: Int): Hdfs[Dictionary] = for {
     words <- Hdfs.fromResultTIO(readWords)
     dict  <- Hdfs.fromIO(randomDictionary(namespaces, features, words).run)
-    _     <- DictionaryTextStorage.dictionaryToHdfs(output, dict)
-  } yield ()
+  } yield dict
 
   def readWords: ResultTIO[Nel[String]] = for {
     lines <- Streams.read(getClass.getResourceAsStream("/words.txt")).map(_.lines.toList)

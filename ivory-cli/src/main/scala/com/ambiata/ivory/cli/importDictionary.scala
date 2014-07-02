@@ -1,6 +1,6 @@
 package com.ambiata.ivory.cli
 
-import scalaz._, Scalaz._
+import scalaz._, Scalaz._, effect._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import com.ambiata.mundane.parse._
@@ -16,7 +16,7 @@ import com.nicta.scoobi.Scoobi._
 
 object importDictionary extends IvoryApp {
 
-  case class CliArguments(repo: String, path: String, name: String, tmpDirectory: FilePath = Repository.defaultS3TmpDirectory)
+  case class CliArguments(repo: String, path: String, update: Boolean)
 
   val parser = new scopt.OptionParser[CliArguments]("import-dictionary"){
     head("""
@@ -29,25 +29,18 @@ object importDictionary extends IvoryApp {
     opt[String]('r', "repo") action { (x, c) => c.copy(repo = x) } required() text
       s"Path to the repository. If the path starts with 's3://' we assume that this is a S3 repository"
 
-    opt[String]('t', "temp-dir") action { (x, c) => c.copy(tmpDirectory = x.toFilePath) } optional() text
-      s"Temporary directory path used to transfer data when interacting with S3. {user.home}/.s3repository by default"
-
     opt[String]('p', "path") action { (x, c) => c.copy(path = x) } required() text s"Hdfs path to either a single dictionary file or directory of files to import."
-    opt[String]('n', "name") action { (x, c) => c.copy(name = x) } required() text s"Name of the dictionary in the repository."
+    opt[String]('u', "update") action { (x, c) => c.copy(update = true) } optional() text s"Update the existing dictionary with extra values."
   }
 
-  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", ""), HadoopCmd { configuration => c =>
-      val actions =
-        if (c.repo.startsWith("s3://")) {
-          val p = c.repo.replace("s3://", "").toFilePath
-          val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, configuration)
-          DictionaryImporter.onS3(repository, c.name, new FilePath(c.path)).runHdfs(configuration).evalT
-        }
-        else
-          DictionaryImporter.onHdfs(new Path(c.repo), new Path(c.path), c.name).run(configuration)
-
-      actions.map {
-        case _ => List(s"Successfully imported dictionary ${c.path} into ${c.repo} under the name ${c.name}.")
+  val cmd = IvoryCmd[CliArguments](parser, CliArguments("", "", update = false), HadoopCmd { configuration => c =>
+      for {
+        repository <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(c.repo, configuration).leftMap(\&/.This(_)))
+        newPath <- DictionaryImporter.fromPath(repository, FilePath(c.path),
+          if (c.update) DictionaryImporter.Update else DictionaryImporter.Override
+        )
+      } yield {
+        List(s"Successfully imported dictionary ${c.path} into ${c.repo} under $newPath.")
       }
   })
 }

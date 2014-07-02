@@ -15,13 +15,14 @@ import com.ambiata.ivory.alien.hdfs._
 import com.ambiata.ivory.scoobi.FactFormats._
 import com.ambiata.ivory.scoobi.WireFormats._
 import com.ambiata.ivory.storage.legacy._
+import com.ambiata.ivory.storage.repository._
 
-case class HdfsGenerateFacts(entities: Int, dictPath: Path, flags: Path, start: LocalDate, end: LocalDate, storer: IvoryScoobiStorer[Fact, DList[_]]) {
+case class HdfsGenerateFacts(repository: Repository, entities: Int, flags: Path, start: LocalDate, end: LocalDate, storer: IvoryScoobiStorer[Fact, DList[_]]) {
   def withStorer(newStorer: IvoryScoobiStorer[Fact, DList[_]]): HdfsGenerateFacts =
     copy(storer = newStorer)
 
   def run(implicit sc: ScoobiConfiguration): Hdfs[Unit] = for {
-    dict <- DictionaryTextStorage.dictionaryFromHdfs(dictPath)
+    dict <- Hdfs.fromResultTIO(IvoryStorage.dictionaryFromIvory(repository))
     fl   <- FeatureFlags.fromHdfs(flags)
   } yield scoobiJob(dict, fl)
 
@@ -52,8 +53,8 @@ case class HdfsGenerateFacts(entities: Int, dictPath: Path, flags: Path, start: 
 object GenerateFacts {
   import DelimitedFactTextStorage._
 
-  def onHdfs(entities: Int, dictionary: Path, flags: Path, start: LocalDate, end: LocalDate, output: Path)(implicit sc: ScoobiConfiguration): Hdfs[Unit] =
-    HdfsGenerateFacts(entities, dictionary, flags, start, end, DelimitedFactTextStorer(output)).run
+  def onHdfs(repository: Repository, entities: Int, flags: Path, start: LocalDate, end: LocalDate, output: Path)(implicit sc: ScoobiConfiguration): Hdfs[Unit] =
+    HdfsGenerateFacts(repository, entities, flags, start, end, DelimitedFactTextStorer(output)).run
 
 }
 

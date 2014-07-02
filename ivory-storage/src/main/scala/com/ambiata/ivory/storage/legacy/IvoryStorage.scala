@@ -18,6 +18,7 @@ import com.ambiata.ivory.storage.fact._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.alien.hdfs._
 import com.ambiata.ivory.alien.hdfs.HdfsS3Action._
+import com.ambiata.mundane.control._
 
 trait IvoryLoader[A] {
   def load: A
@@ -77,54 +78,11 @@ case class InternalFactsetFactStorer(repo: HdfsRepository, factset: Factset, cod
 /**
  * Dictionary loaders/storers
  */
-case class InternalDictionaryLoader(repo: HdfsRepository, name: String) extends IvoryLoader[Hdfs[Dictionary]] {
-  import DictionaryTextStorage._
-  def load: Hdfs[Dictionary] =
-    DictionaryTextLoader(repo.dictionaryByName(name).toHdfs).load
-}
-
 case class InternalDictionaryStorer(repo: HdfsRepository, name: String) extends IvoryStorer[Dictionary, Hdfs[Unit]] {
   import DictionaryTextStorage._
   def store(dict: Dictionary): Hdfs[Unit] =
     DictionaryTextStorer(repo.dictionaryByName(name).toHdfs).store(dict)
 }
-
-case class InternalDictionariesStorer(repo: HdfsRepository, name: String) extends IvoryStorer[List[Dictionary], Hdfs[Unit]] {
-  import DictionaryTextStorage._
-  def store(dicts: List[Dictionary]): Hdfs[Unit] =
-    dicts.traverse(d => DictionaryTextStorer((repo.dictionaryByName(name) </> d.name).toHdfs).store(d)).map(_ => ())
-}
-
-case class DictionariesS3Storer(repository: S3Repository) {
-  import DictionaryTextStorage._
-
-  def store(dictionary: Dictionary, name: String): HdfsS3Action[Unit] = {
-    val tmpPath = (repository.tmp </> repository.dictionaryByName(name)).toHdfs
-    for {
-      _ <- HdfsS3Action.fromHdfs(DictionaryTextStorer(tmpPath).store(dictionary))
-      a <- HdfsS3.putPaths(repository.bucket, repository.dictionaryByName(name).path, new Path(tmpPath, "*"))
-      _ <- HdfsS3Action.fromHdfs(Hdfs.filesystem.map(fs => fs.delete(tmpPath, true)))
-    } yield a
-  }
-
-  def store(dictionaries: List[Dictionary], name: String): HdfsS3Action[Unit] =
-    for {
-      _ <- HdfsS3Action.fromHdfs(Hdfs.filesystem.map(fs => fs.mkdirs(repository.tmp.toHdfs)))
-      _ <- HdfsS3Action.fromHdfs(dictionaries.traverse(d => DictionaryTextStorer((repository.tmp </> repository.dictionaryByName(name) </> d.name).toHdfs).store(d)))
-      a <- HdfsS3.putPaths(repository.bucket, repository.dictionaryByName(name).path, (repository.tmp </> repository.dictionaryByName(name)).toHdfs, "*")
-      _ <- HdfsS3Action.fromHdfs(Hdfs.filesystem.map(fs => fs.delete(repository.tmp.toHdfs, true)))
-    } yield a
-}
-
-case class DictionariesS3Loader(repository: S3Repository) {
-  import DictionaryTextStorage._
-
-  def load(dictionaryName: String): HdfsS3Action[Dictionary] = for {
-    _ <- HdfsS3Action.fromAction(S3.downloadFile(repository.bucket, repository.dictionaryByName(dictionaryName).path, (repository.tmp </> dictionaryName).path))
-    d <- HdfsS3Action.fromHdfs(DictionaryTextLoader((repository.tmp </> dictionaryName).toHdfs).load)
-  } yield d
-}
-
 
 /**
  * Feature store loaders/storers
@@ -226,22 +184,11 @@ object IvoryStorage {
   def factsFromIvoryS3FactsetBetween(repository: S3Repository, factset: Factset, from: Date, to: Date): ScoobiS3Action[DList[ParseError \/ Fact]] =
     InternalFactsetFactS3Loader(repository, factset, Some(from), Some(to)).load
 
-  /* Dictionary */
-  def dictionaryFromIvory(repo: HdfsRepository, name: String): Hdfs[Dictionary] =
-    InternalDictionaryLoader(repo, name).load
+  def dictionaryFromIvory(repo: Repository): ResultTIO[Dictionary] =
+    DictionaryThriftStorage(repo).load
 
-  def dictionariesToIvory(repo: HdfsRepository, dicts: List[Dictionary], name: String): Hdfs[Unit] =
-    InternalDictionariesStorer(repo, name).store(dicts)
-
-  def dictionaryToIvory(repo: HdfsRepository, dict: Dictionary, name: String): Hdfs[Unit] =
-    InternalDictionaryStorer(repo, name).store(dict)
-
-  def dictionaryToIvoryS3(repo: S3Repository, dict: Dictionary, name: String): HdfsS3Action[Unit] =
-    DictionariesS3Storer(repo).store(dict, name)
-
-  def dictionariesToIvoryS3(repo: S3Repository, dictionaries: List[Dictionary], name: String): HdfsS3Action[Unit] =
-    DictionariesS3Storer(repo).store(dictionaries, name)
-
+  def dictionaryToIvory(repo: Repository, dictionary: Dictionary): ResultTIO[Unit] =
+    DictionaryThriftStorage(repo).store(dictionary).map(_ => ())
 
   /* Store */
   def storeFromIvory(repo: HdfsRepository, name: String): Hdfs[FeatureStore] =

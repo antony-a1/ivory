@@ -1,41 +1,30 @@
 package com.ambiata.ivory.ingest
 
-import scalaz._, Scalaz._
-import org.apache.hadoop.fs.Path
-
 import com.ambiata.ivory.core._
 import com.ambiata.ivory.storage.legacy._
 import com.ambiata.ivory.storage.repository._
-import com.ambiata.ivory.alien.hdfs._
-import com.ambiata.saws.core._
-import com.ambiata.saws._
-import com.ambiata.ivory.alien.hdfs.HdfsS3Action._
+import com.ambiata.mundane.control._
 import com.ambiata.mundane.io._
-import com.nicta.scoobi.Scoobi._
+import scalaz._, effect._
 
 // FIX move to com.ambiata.ivory.ingest.internal
 object DictionaryImporter {
 
-   def onHdfs(repoPath: Path, dictPath: Path, name: String): Hdfs[Unit] = {
-     val repo = Repository.fromHdfsPath(repoPath.toString.toFilePath, ScoobiConfiguration())
-     for {
-       files <- Hdfs.globFiles(dictPath)
-       _     <- if (files.isEmpty) Hdfs.fail(s"Path $dictPath does not exist or has no files!") else Hdfs.ok(())
-       ds    <- files.traverse(f => DictionaryTextStorage.dictionaryFromHdfs(f))
-       _     <- IvoryStorage.dictionariesToIvory(repo, ds, name)
-     } yield ()
-   }
+  def fromPath(repository: Repository, path: FilePath, importType: ImportType): ResultTIO[FilePath] =
+    DictionaryTextStorage.DictionaryTextLoader(repository, path).load.flatMap(fromDictionary(repository, _, importType))
 
-  def onS3(repository: S3Repository, dictionaryName: String, dictionaryPath: FilePath): HdfsS3Action[Dictionary] = {
-    val onHdfs = for {
-      files <- Hdfs.globFiles(new Path(dictionaryPath.path))
-      _     <- if (files.isEmpty) Hdfs.fail(s"Path $dictionaryPath does not exist or has no files!") else Hdfs.ok(())
-      ds    <- files.traverse(f => DictionaryTextStorage.dictionaryFromHdfs(f))
-    } yield ds
-
+  def fromDictionary(repository: Repository, dictionary: Dictionary, importType: ImportType): ResultTIO[FilePath] = {
+    val storage = DictionaryThriftStorage(repository)
     for {
-      ds <- HdfsS3Action.fromHdfs(onHdfs)
-      a  <- IvoryStorage.dictionariesToIvoryS3(repository, ds, dictionaryName)
-    } yield ds.reduce(_ append _)
+      oldDictionary <- importType match {
+        case Update => storage.load
+        case Override => ResultT.ok[IO, Dictionary](Dictionary(Map()))
+      }
+      out <- storage.store(oldDictionary.append(dictionary))
+    } yield out._2
   }
+
+  sealed trait ImportType
+  case object Update extends ImportType
+  case object Override extends ImportType
 }

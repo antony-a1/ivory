@@ -2,7 +2,7 @@ package com.ambiata.ivory.cli
 
 import com.ambiata.mundane.control._
 import com.ambiata.ivory.storage.legacy.DictionaryTextStorage
-import com.ambiata.ivory.storage.legacy.DictionaryThriftStorage.DictionaryThriftLoader
+import com.ambiata.ivory.storage.legacy.DictionaryThriftStorage
 import com.ambiata.ivory.storage.repository._
 import com.nicta.scoobi.Scoobi._
 import scalaz._, Scalaz._, effect._
@@ -31,7 +31,7 @@ object catDictionary extends IvoryApp {
     case CliArguments(repo, nameOpt, delim) =>
       for {
         repo <- ResultT.fromDisjunction[IO, Repository](Repository.fromUri(repo, conf).leftMap(\&/.This(_)))
-        store = DictionaryThriftLoader(repo)
+        store = DictionaryThriftStorage(repo)
         dictionary <- nameOpt.cata(name => store.loadFromPath(repo.dictionaries.relativeTo(repo.root) </> name), store.load)
       } yield List(
         DictionaryTextStorage.delimitedDictionaryString(dictionary, delim)

@@ -26,12 +26,13 @@ object Pivot {
   def onHdfsFromSnapshot(repoPath: Path, output: Path, delim: Char, tombstone: String, date: Date, codec: Option[CompressionCodec]): ScoobiAction[Unit] = for {
     repo <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
     snap <- HdfsSnapshot.takeSnapshot(repoPath, date, true, codec)
-    (store, dname, path) = snap
-    _    <- onHdfs(path, output, repo.dictionaryByName(dname).toHdfs, delim, tombstone)
+    (store, path) = snap
+    _    <- onHdfs(repoPath, path, output, delim, tombstone)
   } yield ()
 
-  def onHdfs(input: Path, output: Path, dictionary: Path, delim: Char, tombstone: String): ScoobiAction[Unit] = for {
-    d <- ScoobiAction.fromHdfs(DictionaryTextStorage.DictionaryTextLoader(dictionary).load)
+  def onHdfs(repoPath: Path, input: Path, output: Path, delim: Char, tombstone: String): ScoobiAction[Unit] = for {
+    repo <- ScoobiAction.scoobiConfiguration.map(sc => Repository.fromHdfsPath(repoPath.toString.toFilePath, sc))
+    d <- ScoobiAction.fromResultTIO(IvoryStorage.dictionaryFromIvory(repo))
     _ <- onHdfsWithDictionary(input, output, d, delim, tombstone)
   } yield ()
 

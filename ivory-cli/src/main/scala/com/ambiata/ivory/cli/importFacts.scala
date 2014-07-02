@@ -17,7 +17,6 @@ import ScoobiS3EMRAction._
 object importFacts extends IvoryApp {
 
   case class CliArguments(repositoryPath: String = "",
-                          dictionary: String = "",
                           factset: Factset   = Factset(""),
                           namespace: String  = "",
                           input: String      = "",
@@ -39,7 +38,6 @@ object importFacts extends IvoryApp {
     opt[String]('t', "temp-dir") action { (x, c) => c.copy(tmpDirectory = x.toFilePath) } optional() text
       s"Temporary directory path used to transfer data when interacting with S3. {user.home}/.s3repository by default"
 
-    opt[String]('d', "dictionary")      action { (x, c) => c.copy(dictionary = x) }      required() text s"Dictionary name, used to get encoding of fact."
     opt[String]('f', "factset")         action { (x, c) => c.copy(factset = Factset(x)) }   required() text s"Fact set name to import the feature into."
     opt[String]('n', "namespace")       action { (x, c) => c.copy(namespace = x) } required() text s"Namespace to import features into."
     opt[String]('i', "input")           action { (x, c) => c.copy(input = x)   }   required() text s"path to read EAVT text files from."
@@ -54,14 +52,14 @@ object importFacts extends IvoryApp {
         val p = c.repositoryPath.replace("s3://", "").toFilePath
         val repository = Repository.fromS3WithTemp(p.rootname.path, p.fromRoot, c.tmpDirectory, configuration)
         for {
-          dictionary <- ScoobiS3EMRAction.fromHdfsS3(DictionariesS3Loader(repository).load(c.dictionary))
+          dictionary <- ScoobiS3EMRAction.fromResultTIO(IvoryStorage.dictionaryFromIvory(repository))
           _          <- EavtTextImporter.onS3(repository, dictionary, c.factset, c.namespace, new FilePath(c.input), c.timezone, Some(new SnappyCodec))
         } yield ()
       } else {
         // import to Hdfs only
         val repository = HdfsRepository(c.repositoryPath.toFilePath, configuration, ScoobiRun(configuration))
         for {
-          dictionary <- ScoobiS3EMRAction.fromHdfs(InternalDictionaryLoader(repository, c.dictionary).load)
+          dictionary <- ScoobiS3EMRAction.fromResultTIO(IvoryStorage.dictionaryFromIvory(repository))
           _          <- ScoobiS3EMRAction.fromScoobiAction(
             EavtTextImporter.onHdfs(repository, dictionary, c.factset, c.namespace,
               new Path(c.input), c.errors.getOrElse(new Path("errors")), c.timezone, Some(new SnappyCodec)))

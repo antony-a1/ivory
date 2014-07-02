@@ -21,7 +21,7 @@ import com.ambiata.ivory.storage.repository._
 import com.ambiata.ivory.validate.Validate
 import com.ambiata.ivory.alien.hdfs._
 
-case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: HashMap[String, Array[Int]], outputPath: Path, tmpPath: Path, incremental: Option[Path], codec: Option[CompressionCodec]) {
+case class HdfsChord(repoPath: Path, store: String, entities: HashMap[String, Array[Int]], outputPath: Path, tmpPath: Path, incremental: Option[Path], codec: Option[CompressionCodec]) {
   import IvoryStorage._
 
   type PackedDate = Int
@@ -37,7 +37,7 @@ case class HdfsChord(repoPath: Path, store: String, dictName: String, entities: 
   def run: ScoobiAction[Unit] = for {
     c  <- ScoobiAction.scoobiConfiguration
     r  <- ScoobiAction.value(Repository.fromHdfsPath(repoPath.toString.toFilePath, c))
-    d  <- ScoobiAction.fromHdfs(dictionaryFromIvory(r, dictName))
+    d  <- ScoobiAction.fromResultTIO(dictionaryFromIvory(r))
     s  <- ScoobiAction.fromHdfs(storeFromIvory(r, store))
     (earliest, latest) = DateMap.bounds(entities)
     chordPath = new Path(tmpPath, java.util.UUID.randomUUID().toString)
@@ -151,20 +151,19 @@ object Chord {
     _                    = println(s"Earliest date in chord file is '${earliest}'")
     _                    = println(s"Latest date in chord file is '${latest}'")
     snap                <- if(takeSnapshot)
-                             HdfsSnapshot.takeSnapshot(repoPath, earliest, true, codec).map({ case (s, d, p) => (s, d, Some(p)) })
+                             HdfsSnapshot.takeSnapshot(repoPath, earliest, true, codec).map({ case (s, p) => (s, Some(p)) })
                            else
                              ScoobiAction.fromHdfs(latestSnapshot(repoPath, earliest))
-    (store, dname, path) = snap
-    _                   <- HdfsChord(repoPath, store, dname, es, outputPath, tmpPath, path, codec).run
+    (store, path)        = snap
+    _                   <- HdfsChord(repoPath, store, es, outputPath, tmpPath, path, codec).run
   } yield ()
 
-  def latestSnapshot(repoPath: Path, date: Date): Hdfs[(String, String, Option[Path])] = for {
+  def latestSnapshot(repoPath: Path, date: Date): Hdfs[(String, Option[Path])] = for {
     c      <- Hdfs.configuration
     repo   <- Hdfs.value(Repository.fromHdfsPath(repoPath.toString.toFilePath, c))
     store  <- ExtractLatestWorkflow.latestStore(repo)
-    dname  <- ExtractLatestWorkflow.latestDictionary(repo)
     latest <- SnapshotMeta.latest(repo.snapshots.toHdfs, date)
-  } yield (store, dname, latest.map(_._1))
+  } yield (store, latest.map(_._1))
 
   def serialiseChords(path: Path, map: HashMap[String, Array[Int]]): Hdfs[Unit] = {
     import java.io.ObjectOutputStream

@@ -197,7 +197,7 @@ class IngestMapper extends Mapper[LongWritable, Text, LongWritable, BytesWritabl
     ctx = MrContext.fromConfiguration(context.getConfiguration)
     out = new MultipleOutputs(context.asInstanceOf[Mapper[LongWritable, Text, NullWritable, BytesWritable]#Context])
     ctx.thriftCache.pop(context.getConfiguration, IngestJob.Keys.FeatureIdLookup, lookup)
-    dict = ctx.textCache.pop(context.getConfiguration, IngestJob.Keys.Dictionary, DictionaryTextStorage.fromString("ingest", _))
+    dict = ctx.textCache.pop(context.getConfiguration, IngestJob.Keys.Dictionary, DictionaryTextStorage.fromString)
     ivoryZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IvoryZone))
     ingestZone = DateTimeZone.forID(context.getConfiguration.get(IngestJob.Keys.IngestZone))
     base = context.getConfiguration.get(IngestJob.Keys.IngestBase)
