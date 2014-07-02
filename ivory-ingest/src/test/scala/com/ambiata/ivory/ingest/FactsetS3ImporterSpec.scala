@@ -23,7 +23,6 @@ import com.ambiata.ivory.scoobi.ScoobiS3EMRAction
 import ScoobiS3EMRAction._
 import org.specs2.specification.{BeforeAfterExample, BeforeExample}
 import com.amazonaws.services.s3.AmazonS3Client
-import com.ambiata.ivory.storage.legacy.IvoryStorage._
 import com.ambiata.ivory.storage.repository._
 import com.ambiata.mundane.io.FilePath
 import com.ambiata.ivory.core.Fact
@@ -41,9 +40,8 @@ class FactsetS3ImporterSpec extends HadoopSpecification with ThrownExpectations 
 
     val actions: ScoobiS3EMRAction[Unit] =
     for {
-      dictionary <- createDictionary(repository)
       path       <- saveFactsetFile
-      _          <- EavtTextImporter.onS3(repository, dictionary, Factset("factset1"), "customer", new FilePath(path.toString), DateTimeZone.getDefault, None)
+      _          <- EavtTextImporter.onS3(repository, createDictionary, Factset("factset1"), "customer", new FilePath(path.toString), DateTimeZone.getDefault, None)
     } yield ()
 
     actions.runScoobi(sc) must beOk
@@ -53,15 +51,9 @@ class FactsetS3ImporterSpec extends HadoopSpecification with ThrownExpectations 
     }
   }
 
-  def createDictionary(repository: S3Repository) = {
-    val dictionaryPath = new FilePath(s"target/$dir/dictionary.psv")
-    val dictionary = """customer|has.email|boolean|categorical|true if the customer has an email address|☠"""
-
-    for {
-      _          <- ScoobiS3EMRAction.fromHdfs(hdfs.Hdfs.writeWith(new Path(dictionaryPath.path), os => Streams.write(os, dictionary)))
-      dictionary <- ScoobiS3EMRAction.fromHdfsS3(DictionaryImporter.onS3(repository, "dictionary1", dictionaryPath))
-    } yield dictionary
-  }
+  def createDictionary = Dictionary(Map(
+    FeatureId("custom", "has.email") -> FeatureMeta(BooleanEncoding, CategoricalType, "true if the customer has an email address", List("☠"))
+  ))
 
   val expected = List(
     BooleanFact("6207777", FeatureId("customer", "has.email"), Date(1979, 10, 17), Time(10), true),
