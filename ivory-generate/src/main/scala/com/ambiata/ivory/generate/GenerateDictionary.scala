@@ -30,7 +30,7 @@ object GenerateDictionary {
     nss     <- randomNamespaces(namespaces, words)
     names   <- randomNames(features, words)
     entries <- randomDictionaryEntries(nss, names)
-  } yield Dictionary("random", entries.toMap)
+  } yield Dictionary(entries.toMap)
 
   def randomDictionaryEntries(namespaces: Nel[String], names: Nel[String]): Rng[List[(FeatureId, FeatureMeta)]] =
     names.list.map(nm => randomDictionaryEntry(namespaces, nm)).sequenceU

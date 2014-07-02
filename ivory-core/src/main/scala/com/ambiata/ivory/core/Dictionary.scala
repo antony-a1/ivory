@@ -4,19 +4,19 @@ import scalaz._, Scalaz._
 import scala.math.{Ordering => SOrdering}
 
 /** The feature dictionary is simply a look up of metadata for a given identifier/name. */
-case class Dictionary(name: String, meta: Map[FeatureId, FeatureMeta]) {
+case class Dictionary(meta: Map[FeatureId, FeatureMeta]) {
 
   /** Create a `Dictionary` from `this` only containing features in the specified namespace. */
   def forNamespace(namespace: String): Dictionary =
-    Dictionary(name, meta filter { case (fid, _) => fid.namespace === namespace })
+    Dictionary(meta filter { case (fid, _) => fid.namespace === namespace })
 
   /** Create a `Dictionary` from `this` only containing the specified features. */
   def forFeatureIds(featureIds: Set[FeatureId]): Dictionary =
-    Dictionary(name, meta filter { case (fid, _) => featureIds.contains(fid) })
+    Dictionary(meta filter { case (fid, _) => featureIds.contains(fid) })
 
   /** append the mappings coming from another dictionary */
   def append(other: Dictionary) =
-    Dictionary(name, meta ++ other.meta)
+    Dictionary(meta ++ other.meta)
 }
 
 case class FeatureId(namespace: String, name: String) {

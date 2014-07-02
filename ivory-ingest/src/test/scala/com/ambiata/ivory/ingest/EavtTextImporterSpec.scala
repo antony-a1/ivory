@@ -72,7 +72,7 @@ trait Setup {
   val repository = Repository.fromHdfsPath(directory </> "repo", sc)
 
   val dictionary =
-    Dictionary("dict",
+    Dictionary(
       Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, CategoricalType, "abc"),
           FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding,    NumericalType, "def"),
           FeatureId("ns1", "fid3") -> FeatureMeta(DoubleEncoding, NumericalType, "ghi")))

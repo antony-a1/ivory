@@ -64,11 +64,11 @@ trait SampleFacts extends MustThrownMatchers {
   }
 
   def createDictionary(repo: HdfsRepository)(implicit sc: ScoobiConfiguration) = {
-    val dict = Dictionary(DICTIONARY_NAME, Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, CategoricalType, "desc"),
+    val dict = Dictionary(Map(FeatureId("ns1", "fid1") -> FeatureMeta(StringEncoding, CategoricalType, "desc"),
       FeatureId("ns1", "fid2") -> FeatureMeta(IntEncoding, NumericalType, "desc"),
       FeatureId("ns2", "fid3") -> FeatureMeta(BooleanEncoding, CategoricalType, "desc")))
 
-    dictionaryToIvory(repo, dict, dict.name).run(sc) must beOk
+    dictionaryToIvory(repo, dict, DICTIONARY_NAME) must beOk
     dict
   }
 

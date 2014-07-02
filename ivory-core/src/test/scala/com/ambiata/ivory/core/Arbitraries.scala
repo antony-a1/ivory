@@ -65,7 +65,7 @@ object Arbitraries {
     DateTime.unsafe(dt.date.year, dt.date.month, d.toByte, (h * 60 * 60) + (m * 60) + s)
   }
 
-  lazy val TestDictionary: Dictionary = Dictionary("EavtParsersSpec", Map(
+  lazy val TestDictionary: Dictionary = Dictionary(Map(
     FeatureId("fruit", "apple") -> FeatureMeta(LongEncoding, ContinuousType, "Reds and Greens", "?" :: Nil)
   , FeatureId("fruit", "orange") -> FeatureMeta(StringEncoding, CategoricalType, "Oranges", "?" :: Nil)
   , FeatureId("vegetables", "potatoe") -> FeatureMeta(DoubleEncoding, ContinuousType, "Browns", "?" :: Nil)

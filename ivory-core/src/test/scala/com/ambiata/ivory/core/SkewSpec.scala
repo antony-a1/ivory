@@ -70,5 +70,5 @@ Skew Tests
     (1 to 10).map(n => FeatureId("widgets", "w" + n)).toList ++
     (1 to 10).map(n => FeatureId("knobs", "k" + n)).toList ++
     (1 to 10).map(n => FeatureId("flavours", "f" + n)).toList
-  def dict = Dictionary("dict", featureIds.map(_ -> fake).toMap)
+  def dict = Dictionary(featureIds.map(_ -> fake).toMap)
 }

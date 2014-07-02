@@ -36,24 +36,24 @@ object DictionaryTextStorage {
   def dictionaryToHdfs(path: Path, dict: Dictionary): Hdfs[Unit] =
     DictionaryTextStorer(path).store(dict)
 
-  def fromInputStream(name: String, is: java.io.InputStream): ResultTIO[Dictionary] = for {
+  def fromInputStream(is: java.io.InputStream): ResultTIO[Dictionary] = for {
     content <- Streams.read(is)
-    r <- ResultT.fromDisjunction[IO, Dictionary](fromLines(name, content.lines.toList).leftMap(This(_)))
+    r <- ResultT.fromDisjunction[IO, Dictionary](fromLines(content.lines.toList).leftMap(This(_)))
   } yield r
 
-  def fromString(name: String, s: String): String \/ Dictionary =
-    fromLines(name, s.lines.toList)
+  def fromString(s: String): String \/ Dictionary =
+    fromLines(s.lines.toList)
 
-  def fromLines(name: String, lines: List[String]): String \/ Dictionary = {
+  def fromLines(lines: List[String]): String \/ Dictionary = {
     val numbered = lines.zipWithIndex.map({ case (l, n) => (l, n + 1) })
-    numbered.map({ case (l, n) => parseDictionaryEntry(l).leftMap(e => s"Line $n: $e")}).sequenceU.map(entries => Dictionary(name, entries.toMap))
+    numbered.map({ case (l, n) => parseDictionaryEntry(l).leftMap(e => s"Line $n: $e")}).sequenceU.map(entries => Dictionary(entries.toMap))
   }
 
   def fromFile(path: String): ResultTIO[Dictionary] = {
     val file = new java.io.File(path)
     for {
       raw <- Files.read(file.getAbsolutePath.toFilePath)
-      fs  <- ResultT.fromDisjunction[IO, Dictionary](fromLines(file.getName, raw.lines.toList).leftMap(err => This(s"Error reading dictionary from file '$path': $err")))
+      fs  <- ResultT.fromDisjunction[IO, Dictionary](fromLines(raw.lines.toList).leftMap(err => This(s"Error reading dictionary from file '$path': $err")))
     } yield fs
   }
 
