@@ -37,13 +37,12 @@ object ImportWorkflow {
   type DictionaryPath = Path
   type ErrorPath = Path
   type TmpPath = Path
-  type Tombstone = List[String]
-  type ImportDictFunc = (HdfsRepository, DictionaryName, Tombstone, TmpPath) => Hdfs[Unit]
+  type ImportDictFunc = (HdfsRepository, DictionaryName, TmpPath) => Hdfs[Unit]
   type ImportFactsFunc = (HdfsRepository, Factset, DictionaryName, TmpPath, ErrorPath, DateTimeZone) => ScoobiAction[Unit]
 
   private implicit val logger = LogFactory.getLog("ivory.repository.fatrepo.Import")
 
-  def onHdfs(repoPath: Path, importDict: Option[ImportDictFunc], importFacts: ImportFactsFunc, tombstone: Tombstone, tmpPath: Path, timezone: DateTimeZone): ScoobiAction[Factset] = {
+  def onHdfs(repoPath: Path, importDict: Option[ImportDictFunc], importFacts: ImportFactsFunc, tmpPath: Path, timezone: DateTimeZone): ScoobiAction[Factset] = {
     val start = System.currentTimeMillis
     for {
       sc       <- ScoobiAction.scoobiConfiguration
@@ -54,7 +53,7 @@ object ImportWorkflow {
         println(s"created repository in ${x - start}ms")
         x
       }
-      dname    <- ScoobiAction.fromHdfs(importDictionary(repo, tombstone, new Path(tmpPath, "dictionaries"), importDict)
+      dname    <- ScoobiAction.fromHdfs(importDictionary(repo, new Path(tmpPath, "dictionaries"), importDict)
 )
       t2 = {
         val x = System.currentTimeMillis
@@ -96,7 +95,7 @@ object ImportWorkflow {
     }
   } yield ()
 
-  def importDictionary(repo: HdfsRepository, tombstone: List[String], tmpPath: Path, importer: Option[ImportDictFunc]): Hdfs[String] = importer match {
+  def importDictionary(repo: HdfsRepository, tmpPath: Path, importer: Option[ImportDictFunc]): Hdfs[String] = importer match {
     case None =>
       Hdfs.globPaths(repo.dictionaries.toHdfs, "*").map(dicts =>
         dicts
@@ -111,7 +110,7 @@ object ImportWorkflow {
       for {
         e <- Hdfs.exists(repo.dictionaryByName(name).toHdfs)
         _ <- if(!e) copyLatestDictionary(repo, name) else Hdfs.ok(())
-        _ <- importDict(repo, name, tombstone, tmpPath)
+        _ <- importDict(repo, name, tmpPath)
         _  = logger.info(s"Successfully imported dictionary '${name}'")
       } yield name
     }

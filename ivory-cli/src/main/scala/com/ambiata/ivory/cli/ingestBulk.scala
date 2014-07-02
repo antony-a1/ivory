@@ -18,8 +18,6 @@ import scalaz.{DList => _, _}, Scalaz._
 
 object ingestBulk extends IvoryApp {
 
-  val tombstone = List("☠")
-
   case class CliArguments(repo: String, dictionary: Option[String], input: String, tmp: String, timezone: DateTimeZone, optimal: Long, codec: Option[CompressionCodec])
 
   val parser = new scopt.OptionParser[CliArguments]("ingest-bulk") {
@@ -49,16 +47,16 @@ object ingestBulk extends IvoryApp {
   def cmd = IvoryCmd[CliArguments](parser,
       CliArguments("", None, "", "", DateTimeZone.getDefault, 1024 * 1024 * 256 /* 256MB */, Some(new SnappyCodec)),
       ScoobiCmd(configuration => c => {
-      val res = onHdfs(new Path(c.repo), c.dictionary, new Path(c.input), tombstone, new Path(c.tmp), c.timezone, c.optimal, c.codec)
+      val res = onHdfs(new Path(c.repo), c.dictionary, new Path(c.input), new Path(c.tmp), c.timezone, c.optimal, c.codec)
       res.run(configuration).map {
         case f => List(s"Successfully imported '${c.input}' as ${f} into '${c.repo}'")
       }
     }))
 
-  def onHdfs(repo: Path, dictionary: Option[String], input: Path, tombstone: List[String], tmp: Path, timezone: DateTimeZone, optimal: Long, codec: Option[CompressionCodec]): ScoobiAction[Factset] =
-    fatrepo.ImportWorkflow.onHdfs(repo, dictionary.map(defaultDictionaryImport(_)), importFeed(input, optimal, codec), tombstone, tmp, timezone)
+  def onHdfs(repo: Path, dictionary: Option[String], input: Path, tmp: Path, timezone: DateTimeZone, optimal: Long, codec: Option[CompressionCodec]): ScoobiAction[Factset] =
+    fatrepo.ImportWorkflow.onHdfs(repo, dictionary.map(defaultDictionaryImport(_)), importFeed(input, optimal, codec), tmp, timezone)
 
-  def defaultDictionaryImport(dictionary: String)(repo: HdfsRepository, name: String, tombstone: List[String], tmpPath: Path): Hdfs[Unit] =
+  def defaultDictionaryImport(dictionary: String)(repo: HdfsRepository, name: String, tmpPath: Path): Hdfs[Unit] =
     DictionaryImporter.onHdfs(repo.root.toHdfs, repo.dictionaryByName(dictionary).toHdfs, name)
 
   def importFeed(input: Path, optimal: Long, codec: Option[CompressionCodec])(repo: HdfsRepository, factset: Factset, dname: String, tmpPath: Path, errorPath: Path, timezone: DateTimeZone): ScoobiAction[Unit] = for {
