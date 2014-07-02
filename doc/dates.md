@@ -74,7 +74,7 @@ Ivory supports a sub-set of ISO 8601 timestamps.
 
  `yyyy-MM-dd` -
 
-    Date with a day granularitry in the local time zone. Example: `2012-01-15`,
+    Date with a day granularity in the local time zone. Example: `2012-01-15`,
     `2014-12-31`.
 
 #### Local Date And Time
@@ -267,7 +267,7 @@ E4|A1|3|2010-03-03T14:30:00+11:00
 
 ##### `Ingestion Solution 2`
   Perform individual ingestions for each timezone, using the
-  "Local date / time" format, but specificy an overriding
+  "Local date / time" format, but specify an overriding
   ingestion timezone for the whole dataset. The ingestion
   will then translate each row into the repository timezone.
 
@@ -308,7 +308,7 @@ To address this we could do one of two things:
    - annotate DST overlapped hours with an extra bit in the time field; or
    - offset time by an additional interval to handle the gained time.
 
-However, both of these things require non-standard treament of "second
+However, both of these things require non-standard treatment of "second
 of day" and will require code changes to ivory to handle.
 
 To be clear, at this point ivory handles "second of day" based only on
@@ -326,7 +326,7 @@ There are number of key pieces of this which are not complete:
     there is no "standard library" for dealing with dates in a
     consistent way within ivory.
 
-  - The ISO 8601 variants are not complete and not uniformally
+  - The ISO 8601 variants are not complete and not uniformly
     supported.
 
   - Ingestion incorrectly forces a timezone to be specified for

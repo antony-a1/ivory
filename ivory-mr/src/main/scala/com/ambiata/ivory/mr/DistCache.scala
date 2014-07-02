@@ -14,7 +14,7 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.mapreduce.Job
 
 /**
- * This is module for managing passing data-types via tha distributed cache. This is
+ * This is module for managing passing data-types via the distributed cache. This is
  * _unsafe_ at best, and should be used with extreme caution. The only valid reason to
  * use it is when writing raw map reduce jobs.
  */

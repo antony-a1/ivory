@@ -29,7 +29,7 @@ ivory_repository/
 │   └── stores
 │       ├── feature_store1
 │       └── feature_store2
-└── fact_sets
+└── factsets
     ├── fact_set1
     └── fact_set2
 ```
@@ -74,8 +74,8 @@ my_fact_set/
 
 ```
 
-In this fact set, facts are partioned across two namespaces: `widgets` and `demo`. The *widget* facts
-are spread accross three dates, while *demographic* facts are constrained to one. Note also that
+In this fact set, facts are partitioned across two namespaces: `widgets` and `demo`. The *widget* facts
+are spread across three dates, while *demographic* facts are constrained to one. Note also that
 a given namespace-partition can contain multiple EAVT files.
 
 EAVT files are simply pipe-delimited text files with one EAVT record per line. For example, a line in
@@ -112,10 +112,10 @@ The ordering is important as it allows facts to be overriden. When a feature sto
 with the same entity, attribute and time are identified, the value from the fact contained in the most recent fact
 set will be used, where most recent means listed higher in the feature store file.
 
-Because a feature store can be speified by just referencing fact sets, Ivory can support poor-man versioning giving
+Because a feature store can be specified by just referencing fact sets, Ivory can support poor-man versioning giving
 rise to use cases such as:
 
-* overrding buggy values with corrected ones;
+* overriding buggy values with corrected ones;
 * combining *production* features with *ad-hoc* features.
 
 
@@ -138,7 +138,7 @@ feature identifier the following metadata:
 
 * A human-readable *description*.
 
-In Ivory, feature metadata is seperated from the features store (facts) in its own set of text files known
+In Ivory, feature metadata is separated from the features store (facts) in its own set of text files known
 as *feature dictionaries*. Dictionary text files are also pipe-delimited and of the following form:
 
 ```
@@ -165,7 +165,7 @@ check that the encoding types specified for features in the dictionary are consi
 > ivory validate --feature-store feature_store.txt --dictionary feature_dictionary.txt
 ```
 
-We can also use Ivory to generate statistics for the values of specific features accross a feature store using the
+We can also use Ivory to generate statistics for the values of specific features across a feature store using the
 `inspect` command. This will compute statistics such as density, ranges (for numerical features), factors (for
 categorical features), historgrams, means, etc. Inspections can filter both the features of interest as well which
 facts to considered by time:
@@ -181,7 +181,7 @@ Querying
 Ivory supports two types of queries: *snapshots* and *chords*.
 
 
-A `snaphot` query is used to extract the feature values for entities at a certain point in time. Snapshoting can filter
+A `snapshot` query is used to extract the feature values for entities at a certain point in time. Snapshotting can filter
 the set of features and/or entities considered. By default the output is in *EAVT* format, but can be output in
 row-oriented form (i.e. column per feature) using the `--pivot` option. When a  `snapshot` query is performed, the most
 recent feature value for a given entity-attribute, with respect to the snapshot time, will be returned in the output:
@@ -233,7 +233,7 @@ This outputs two files:
 The format of the feature flag file is:
 
 ```
-namespace|name|sparcity|fequency
+namespace|name|sparcity|frequency
 ```
 
 An example is:
@@ -258,4 +258,4 @@ Versioning
 The format of fact sets are versioned. This allows the format of fact sets to be modified in the future but still maintain feature stores that
 reference fact sets persisted in an older format.
 
-A fact set format version is specifed by a `.version` file that is stored at the root directory of a given fact set.
+A fact set format version is specified by a `.version` file that is stored at the root directory of a given fact set.
